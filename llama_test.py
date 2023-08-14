@@ -1,23 +1,17 @@
-### Testing code from: https://huggingface.co/upstage/Llama-2-70b-instruct-v2 ###
+from transformers import LlamaForCausalLM, LlamaTokenizer
 
-import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer, TextStreamer
+# Load model and tokenizer
+model = LlamaForCausalLM.from_pretrained('meta-llama/Llama-2-13b-chat-hf')
+tokenizer = LlamaTokenizer.from_pretrained('meta-llama/Llama-2-13b-chat-hf')
 
-tokenizer = AutoTokenizer.from_pretrained("upstage/Llama-2-70b-instruct-v2")
-model = AutoModelForCausalLM.from_pretrained(
-    "upstage/Llama-2-70b-instruct-v2",
-    device_map="auto",
-    torch_dtype=torch.float16,
-    load_in_8bit=True,
-    rope_scaling={"type": "dynamic", "factor": 2} # allows handling of longer inputs
-)
+# Text to generate from
+input_text = "Produce a set of Vectors in the following format: \n V: 1, 3, 6, 2, 5"
+input_ids = tokenizer.encode(input_text, return_tensors="pt")
 
-prompt = "### User:\nThomas is healthy, but he has to go to the hospital. What could be the reasons?\n\n### Assistant:\n"
-inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
-del inputs["token_type_ids"]
-streamer = TextStreamer(tokenizer, skip_prompt=True, skip_special_tokens=True)
+# Generate text
+# The `generate` method returns token ids which we can decode back to text
+output_ids = model.generate(input_ids, max_length=50)  # you can customize max_length
+output_text = tokenizer.decode(output_ids[0], skip_special_tokens=True)
 
-output = model.generate(**inputs, streamer=streamer, use_cache=True, max_new_tokens=float('inf'))
-output_text = tokenizer.decode(output[0], skip_special_tokens=True)
+print(output_text)
 
-# Apparently we only have 11,55 GB of VRAM on this machine which makes it impossible to execute the model
