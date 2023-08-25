@@ -23,7 +23,10 @@ Detailed introduction of the project including the problem it aims to solve and 
 ## Installation
 
 ```bash
-# Instructions to install the project, typically code blocks or shell commands.
-#Create conda environment
+
+# Go into project foler ("llama_traffic")
+cd llama_traffic
+
+# Create conda environment
 conda env create -f environment.yml
 ````
