@@ -24,7 +24,7 @@ Detailed introduction of the project including the problem it aims to solve and 
 
 ```bash
 
-# Go into project foler ("llama_traffic")
+# Go into project folder ("llama_traffic")
 cd llama_traffic
 
 # Create conda environment
