@@ -24,7 +24,6 @@ Detailed introduction of the project including the problem it aims to solve and 
 
 ```bash
 # Instructions to install the project, typically code blocks or shell commands.
-````
 #Create conda environment
 conda env create -f environment.yml
 ````
