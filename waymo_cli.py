@@ -191,7 +191,7 @@ class SimpleShell(cmd.Cmd):
         self.waymo_dataset = parsed
         print("Successfully initialized the given scenario!")
 
-    def do_print_current_raw_scenario(self):
+    def do_print_current_raw_scenario(self, arg):
         print(self.waymo_dataset)
 
     def plot_scenario(self, arg):
