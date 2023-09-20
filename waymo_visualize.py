@@ -77,16 +77,16 @@ def get_viewport(all_states, all_states_mask):
 
     return center_y, center_x, width
 
-
 def visualize_one_step(states,
-                        mask,
-                        roadgraph,
-                        title,
-                        center_y,
-                        center_x,
-                        width,
-                        color_map,
-                        size_pixels=1000):
+                                mask,
+                                roadgraph,
+                                title,
+                                center_y,
+                                center_x,
+                                width,
+                                color_map,
+                                agent_ids=None,  # <-- New parameter
+                                size_pixels=1000):
     """Generate visualization for a single step."""
 
     # Create figure and axes.
@@ -109,6 +109,11 @@ def visualize_one_step(states,
         color=colors,
     )
 
+    if agent_ids is not None:
+
+        for x, y, agent_id in zip(masked_x, masked_y, agent_ids[mask]):  # <-- Iterate through the masked agent IDs
+            ax.text(x, y, str(agent_id), color='black', fontsize=20, ha='center', va='center')  # <-- Plot the ID
+
     # Title.
     ax.set_title(title)
 
@@ -127,6 +132,7 @@ def visualize_one_step(states,
 
 def visualize_all_agents_smooth(
         decoded_example,
+        with_ids=False,
         size_pixels=1000,
     ):
     """Visualizes all agent predicted trajectories in a serie of images.
@@ -138,6 +144,11 @@ def visualize_all_agents_smooth(
     Returns:
         T of [H, W, 3] uint8 np.arrays of the drawn matplotlib's figure canvas.
     """
+    if with_ids:
+        agent_ids = decoded_example['state/id'].numpy()
+    else:
+        agent_ids = None
+
     # [num_agents, num_past_steps, 2] float32.
     past_states = tf.stack(
         [decoded_example['state/past/x'], decoded_example['state/past/y']],
@@ -182,7 +193,7 @@ def visualize_all_agents_smooth(
             np.split(past_states_mask, num_past_steps, 1))):
         im = visualize_one_step(s[:, 0], m[:, 0], roadgraph_xyz,
                                 'past: %d' % (num_past_steps - i), center_y,
-                                center_x, width, color_map, size_pixels)
+                                center_x, width, color_map, agent_ids, size_pixels)
         images.append(im)
 
     # Generate one image for the current time step.
@@ -190,7 +201,7 @@ def visualize_all_agents_smooth(
     m = current_states_mask
 
     im = visualize_one_step(s[:, 0], m[:, 0], roadgraph_xyz, 'current', center_y,
-                            center_x, width, color_map, size_pixels)
+                            center_x, width, color_map, agent_ids, size_pixels)
     images.append(im)
 
     # Generate images from future time steps.
@@ -200,7 +211,7 @@ def visualize_all_agents_smooth(
             np.split(future_states_mask, num_future_steps, 1))):
         im = visualize_one_step(s[:, 0], m[:, 0], roadgraph_xyz,
                                 'future: %d' % (i + 1), center_y, center_x, width,
-                                color_map, size_pixels)
+                                color_map, agent_ids, size_pixels)
         images.append(im)
 
     return images

@@ -31,6 +31,7 @@ class SimpleShell(cmd.Cmd):
         parser = argparse.ArgumentParser()
         parser.add_argument('-n', '--name', default='World')
         parser.add_argument('-p', '--path')
+        parser.add_argument('--ids', action='store_true')
         return parser
 
     def do_greet(self, arg):
@@ -41,7 +42,7 @@ class SimpleShell(cmd.Cmd):
         except SystemExit:
             pass  # argparse calls sys.exit(), catch the exception to prevent shell exit
 
-    def do_init_waymo_dataset(self, arg):
+    def do_load_scenario(self, arg):
         """Initialize the Waymo Open Motion Dataset Scenario for the given path.
         Flags: --path or -p=PATH_TO_SCENARIO"""
 
@@ -53,10 +54,21 @@ class SimpleShell(cmd.Cmd):
         print(self.waymo_dataset)
 
     def do_plot_scenario(self, arg):
+
+        parser = self.arg_parser()
+        args = parser.parse_args(arg.split())
+        if args.id:
+            print("Plotting scenario with agent ids...")
+            images = visualize_all_agents_smooth(
+                self.waymo_dataset, with_ids=True)
+        else:
+            print("Plotting scenario without agent ids...")
+            images = visualize_all_agents_smooth(
+                self.waymo_dataset, with_ids=False)
+
         if self.waymo_dataset == {}:
             print("No scenario has been initialized yet!")
         else:
-            images = visualize_all_agents_smooth(self.waymo_dataset)
             anim = create_animation(images[::5])
             timestamp = datetime.now()
             anim.save(f'/home/pmueller/llama_traffic/output/{timestamp}.mp4',
