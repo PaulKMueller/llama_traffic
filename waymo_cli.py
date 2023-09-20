@@ -57,7 +57,7 @@ class SimpleShell(cmd.Cmd):
 
         parser = self.arg_parser()
         args = parser.parse_args(arg.split())
-        if args.id:
+        if args.ids:
             print("Plotting scenario with agent ids...")
             images = visualize_all_agents_smooth(
                 self.waymo_dataset, with_ids=True)
@@ -74,6 +74,18 @@ class SimpleShell(cmd.Cmd):
             anim.save(f'/home/pmueller/llama_traffic/output/{timestamp}.mp4',
                       writer='ffmpeg', fps=1)
             print(f"Successfully created animation in /home/pmueller/llama_traffic/output/{timestamp}.mp4!")
+
+    def do_plot_vehicle(self, arg):
+        vehicle_id = arg.split()[0]
+        print("Plotting vehicle for given ID...")
+        images = visualize_all_agents_smooth(
+                decoded_example=self.waymo_dataset, with_ids=False, specific_id=vehicle_id)
+        anim = create_animation(images[::5])
+        timestamp = datetime.now()
+        anim.save(f'/home/pmueller/llama_traffic/output/{timestamp}.mp4',
+                      writer='ffmpeg', fps=1)
+        print(f"Successfully created animation in /home/pmueller/llama_traffic/output/{timestamp}.mp4!")
+        
 
     # Basic command to exit the shell
     def do_exit(self, arg):
