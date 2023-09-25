@@ -1,38 +1,27 @@
 import cmd
 import argparse
 
-import uuid
-import time
 from datetime import datetime
 
-from matplotlib import cm
-import matplotlib.animation as animation
-import matplotlib.pyplot as plt
-
-import numpy as np
-from IPython.display import HTML
-import itertools
-import tensorflow as tf
-
-from google.protobuf import text_format
-from waymo_open_dataset.metrics.ops import py_metrics_ops
-from waymo_open_dataset.metrics.python import config_util_py as config_util
-from waymo_open_dataset.protos import motion_metrics_pb2
-
-from waymo_visualize import visualize_all_agents_smooth, create_animation
+from waymo_visualize import (visualize_all_agents_smooth,
+                              create_animation,
+                              visualize_trajectory)
 from waymo_initialize import init_waymo
 
 class SimpleShell(cmd.Cmd):
     prompt = '(waymo_cli) '
     waymo_dataset = {}
+    scenario_loaded = False
 
 
     def arg_parser(self):
+        # Initializing the available flags for the different commands.
         parser = argparse.ArgumentParser()
         parser.add_argument('-n', '--name', default='World')
         parser.add_argument('-p', '--path')
         parser.add_argument('--ids', action='store_true')
         return parser
+
 
     def do_greet(self, arg):
         'Greet someone. Flags: --name=NAME'
@@ -42,19 +31,40 @@ class SimpleShell(cmd.Cmd):
         except SystemExit:
             pass  # argparse calls sys.exit(), catch the exception to prevent shell exit
 
+
     def do_load_scenario(self, arg):
         """Initialize the Waymo Open Motion Dataset Scenario for the given path.
-        Flags: --path or -p=PATH_TO_SCENARIO"""
+        If the --ids flag is present, the vehicles will be 
+        plotted with their corresponding ids."""
 
+        # For testing purposes you can use the following paths
+        # /mrtstorage/datasets/tmp/waymo_open_motion_v_1_2_0/uncompressed/tf_example/training/training_tfexample.tfrecord-00499-of-01000
+
+
+        # Check for empty arguments (no path provided)
+        if (arg == ""):
+            print("\nYou have provided no path for the scenario you want to load."
+                  "\nPlease provide a path!\n")
+            return
+        
         filename = arg.split()[0]
         self.waymo_dataset = init_waymo(filename)
+        self.scenario_loaded = True
         print("Successfully initialized the given scenario!")
 
     def do_print_current_raw_scenario(self, arg):
         print(self.waymo_dataset)
 
-    def do_plot_scenario(self, arg):
 
+    def do_plot_scenario(self, arg):
+        """Plots the scenarion that has been loaded with 'load_scenario'."""
+
+        # Checking if a scenarion has been loaded already.
+        if not self.scenario_loaded:
+            print(("\nNo scenario has been initialized yet!"
+                   " \nPlease use 'load_scenario'"
+                  " to load a scenario before calling the 'plot_scenario' command.\n"))
+            return
         parser = self.arg_parser()
         args = parser.parse_args(arg.split())
         if args.ids:
@@ -72,19 +82,63 @@ class SimpleShell(cmd.Cmd):
             anim = create_animation(images[::5])
             timestamp = datetime.now()
             anim.save(f'/home/pmueller/llama_traffic/output/{timestamp}.mp4',
-                      writer='ffmpeg', fps=1)
-            print(f"Successfully created animation in /home/pmueller/llama_traffic/output/{timestamp}.mp4!")
+                      writer='ffmpeg', fps=10)
+            print(("Successfully created animation in"
+                    f" /home/pmueller/llama_traffic/output/{timestamp}.mp4!"))
+
 
     def do_plot_vehicle(self, arg):
+        """Plots the vehicle with the given ID"""
+
+        # Checking if a scenario has been loaded already.
+        if not self.scenario_loaded:
+            print(("\nNo scenario has been initialized yet!"
+                  " \nPlease use 'load_scenario' to load a s"
+                  "cenario before calling the 'plot_scenario' command.\n"))
+            return
+
+        # Check for empty arguments (no ID provided)
+        if (arg == ""):
+            print(("\nYou have provided no ID for the vehicle "
+                    "that you want to plot.\nPlease provide a path!\n"))
+            return
+
         vehicle_id = arg.split()[0]
-        print("Plotting vehicle for given ID...")
+        print(f"Plotting vehicle with the ID: {vehicle_id}...")
         images = visualize_all_agents_smooth(
-                decoded_example=self.waymo_dataset, with_ids=False, specific_id=vehicle_id)
+                decoded_example=self.waymo_dataset,
+                with_ids=False,
+                specific_id=vehicle_id)
         anim = create_animation(images[::5])
         timestamp = datetime.now()
         anim.save(f'/home/pmueller/llama_traffic/output/{timestamp}.mp4',
-                      writer='ffmpeg', fps=1)
-        print(f"Successfully created animation in /home/pmueller/llama_traffic/output/{timestamp}.mp4!")
+                      writer='ffmpeg', fps=10)
+        print("Successfully created animation in "
+              f"/home/pmueller/llama_traffic/output/{timestamp}.mp4!")
+
+    
+    def do_get_trajectory(self, arg):
+        """Prints the coordinates for the given vehicle 
+        at each moment in time in the loaded scenario."""
+
+        # Checking if a scenario has been loaded already.
+        if not self.scenario_loaded:
+            print(("\nNo scenario has been initialized yet! \nPlease use 'load_scenario'"
+                  " to load a scenario before calling the 'plot_scenario' command.\n"))
+            return
+        
+        # Check for empty arguments (no ID provided)
+        if (arg == ""):
+            print(("\nYou have provided no ID for the vehicle "
+                    "whose trajectory you want to get.\nPlease provide a path!\n"))
+            return
+
+        vehicle_id = arg.split()[0]
+        print(f"Printing coordinates for vehicle {vehicle_id}...")
+        timestamp = datetime.now()
+        trajectory = visualize_trajectory(decoded_example=self.waymo_dataset,
+                                          specific_id=vehicle_id)
+        trajectory.savefig(f"/home/pmueller/llama_traffic/output/{timestamp}.png")
         
 
     # Basic command to exit the shell
