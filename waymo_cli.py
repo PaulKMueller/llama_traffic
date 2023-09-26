@@ -120,7 +120,11 @@ class SimpleShell(cmd.Cmd):
 
     
     def do_get_trajectory(self, arg):
-        #TODO Add documentation
+        """Saves a trajectory (represented as a line) for the given vehicle.
+
+        Args:
+            arg (string): The vehicle ID for which to plot the trajectory.
+        """        
 
         # Checking if a scenario has been loaded already.
         if not self.scenario_loaded:
