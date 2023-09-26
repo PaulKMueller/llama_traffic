@@ -1,85 +1,66 @@
 import numpy as np
 import tensorflow as tf
+import pandas as pd
 
-def visualize_one_step(states,
+def get_viewport(all_states, all_states_mask):
+    """Gets the region containing the data.
+
+    Args:
+        all_states: states of agents as an array of shape [num_agents, num_steps,
+        2].
+        all_states_mask: binary mask of shape [num_agents, num_steps] for
+        `all_states`.
+
+    Returns:
+        center_y: float. y coordinate for center of data.
+        center_x: float. x coordinate for center of data.
+        width: float. Width of data.
+    """
+    valid_states = all_states[all_states_mask]
+    all_y = valid_states[..., 1]
+    all_x = valid_states[..., 0]
+
+    center_y = (np.max(all_y) + np.min(all_y)) / 2
+    center_x = (np.max(all_x) + np.min(all_x)) / 2
+
+    range_y = np.ptp(all_y)
+    range_x = np.ptp(all_x)
+
+    width = max(range_y, range_x)
+
+    return center_y, center_x, width
+
+
+def get_coordinates_one_step(states,
                         mask,
-                        roadgraph,
-                        title,
-                        center_y,
-                        center_x,
-                        width,
-                        color_map,
-                        with_ids,
                         agent_ids=None,
-                        specific_id=None,
-                        size_pixels=1000):
-    """Generate visualization for a single step."""
-
-    # Plot roadgraph.
-    rg_pts = roadgraph[:, :2].T
-
+                        specific_id=None,):
+    """Get coordinates for one vehicle for one step."""
 
     # If a specific ID is provided, filter the states,
     # masks, and colors to only include that ID.
 
     if specific_id is not None:
-        n = 128  # For example, an array of size 5
+        n = 128
         mask = np.full(n, False)
         index_of_id = np.where(agent_ids == float(specific_id))
         mask[index_of_id] = True
+    else:
+        print("Please provide a specific vehicle ID!")
+        return
 
     masked_x = states[:, 0][mask]
     masked_y = states[:, 1][mask]
-    colors = color_map[mask]
 
-    # Plot agent current position.
-    ax.scatter(
-        masked_x,
-        masked_y,
-        marker='o',
-        linewidths=3,
-        color=colors,
-    )
-
-    print(f"X: {masked_x}\nY: {masked_y}")
-
-    if with_ids:
-
-        for x, y, agent_id in zip(
-            # Iterate through the masked agent IDs
-            masked_x, masked_y, agent_ids[mask]):
-            # Plot the ID
-            ax.text(x,
-                    y,
-                    str(agent_id),
-                    color='black',
-                    fontsize=20,
-                    ha='center',
-                    va='center')
-
-    # Title.
-    ax.set_title(title)
-
-    # Set axes.  Should be at least 10m on a side and cover 160% of agents.
-    size = max(10, width * 1.0)
-    ax.axis([
-        -size / 2 + center_x, size / 2 + center_x, -size / 2 + center_y,
-        size / 2 + center_y
-    ])
-    ax.set_aspect('equal')
-
-    image = fig_canvas_image(fig)
-    plt.close(fig)
-    return image
+    return {"X": masked_x[0], "Y": masked_y[0]}
 
 
-def visualize_all_agents_smooth(
+def get_coordinates(
         decoded_example,
-        with_ids=False,
-        specific_id=None,
-        size_pixels=1000,
+        specific_id=None
     ):
-    """Visualizes all agent predicted trajectories in a serie of images.
+    """TODO: More accurate description
+    Visualizes all agent predicted trajectories in a serie of images.
 
     Args:
         decoded_example: Dictionary containing agent info about all modeled agents.
@@ -88,6 +69,8 @@ def visualize_all_agents_smooth(
     Returns:
         T of [H, W, 3] uint8 np.arrays of the drawn matplotlib's figure canvas.
     """
+
+    output_df = pd.DataFrame(columns=["X", "Y"])
 
     agent_ids = decoded_example['state/id'].numpy()
 
@@ -109,53 +92,42 @@ def visualize_all_agents_smooth(
         -1).numpy()
     future_states_mask = decoded_example['state/future/valid'].numpy() > 0.0
 
-    # [num_points, 3] float32.
-    roadgraph_xyz = decoded_example['roadgraph_samples/xyz'].numpy()
-
-    num_agents, num_past_steps, _ = past_states.shape
+    _, num_past_steps, _ = past_states.shape
     num_future_steps = future_states.shape[1]
 
-    color_map = get_colormap(num_agents)
-
-    # [num_agens, num_past_steps + 1 + num_future_steps, depth] float32.
-    all_states = np.concatenate([past_states, current_states, future_states], 1)
-
-    # [num_agens, num_past_steps + 1 + num_future_steps] float32.
-    all_states_mask = np.concatenate(
-        [past_states_mask, current_states_mask, future_states_mask], 1)
-
-    center_y, center_x, width = get_viewport(all_states, all_states_mask)
-
-    images = []
-
     # Generate images from past time steps.
-    for i, (s, m) in enumerate(
+    for _, (s, m) in enumerate(
         zip(
             np.split(past_states, num_past_steps, 1),
             np.split(past_states_mask, num_past_steps, 1))):
-        im = visualize_one_step(s[:, 0], m[:, 0], roadgraph_xyz,
-                                'past: %d' % (num_past_steps - i), center_y,
-                                center_x, width, color_map, with_ids,
-                                agent_ids, specific_id, size_pixels)
-        images.append(im)
+        coordinates_for_step = get_coordinates_one_step(s[:, 0], m[:, 0],
+                                agent_ids=agent_ids, specific_id=specific_id)
+        coordinates_for_step_df = pd.DataFrame([coordinates_for_step])
+        output_df = pd.concat([output_df, coordinates_for_step_df], ignore_index=True)
+
 
     # Generate one image for the current time step.
     s = current_states
     m = current_states_mask
 
-    im = visualize_one_step(s[:, 0], m[:, 0], roadgraph_xyz, 'current', center_y,
-                            center_x, width, color_map, with_ids,
-                            agent_ids, specific_id, size_pixels)
-    images.append(im)
+    coordinates_for_step = get_coordinates_one_step(s[:, 0], m[:, 0],
+                                                    agent_ids=agent_ids,
+                                                    specific_id=specific_id)
+    coordinates_for_step_df = pd.DataFrame([coordinates_for_step])
+    output_df = pd.concat([output_df, coordinates_for_step_df], ignore_index=True)
+
 
     # Generate images from future time steps.
-    for i, (s, m) in enumerate(
+    for _, (s, m) in enumerate(
         zip(
             np.split(future_states, num_future_steps, 1),
             np.split(future_states_mask, num_future_steps, 1))):
-        im = visualize_one_step(s[:, 0], m[:, 0], roadgraph_xyz,
-                                'future: %d' % (i + 1), center_y, center_x, width,
-                                color_map, with_ids, agent_ids, specific_id, size_pixels)
-        images.append(im)
+        coordinates_for_step = get_coordinates_one_step(s[:, 0],
+                                                        m[:, 0],
+                                                        agent_ids=agent_ids,
+                                                        specific_id=specific_id)
+        coordinates_for_step_df = pd.DataFrame([coordinates_for_step])
+        output_df = pd.concat([output_df, coordinates_for_step_df], ignore_index=True)
 
-    return images
+
+    return output_df

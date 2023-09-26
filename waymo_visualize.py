@@ -102,7 +102,7 @@ def visualize_one_step(states,
     # masks, and colors to only include that ID.
 
     if specific_id is not None:
-        n = 128  # For example, an array of size 5
+        n = 128
         mask = np.full(n, False)
         index_of_id = np.where(agent_ids == float(specific_id))
         mask[index_of_id] = True

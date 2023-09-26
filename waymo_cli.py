@@ -3,6 +3,8 @@ import argparse
 
 from datetime import datetime
 
+from waymo_inform import get_coordinates
+
 from waymo_visualize import (visualize_all_agents_smooth,
                               create_animation,
                               visualize_trajectory)
@@ -118,8 +120,7 @@ class SimpleShell(cmd.Cmd):
 
     
     def do_get_trajectory(self, arg):
-        """Prints the coordinates for the given vehicle 
-        at each moment in time in the loaded scenario."""
+        #TODO Add documentation
 
         # Checking if a scenario has been loaded already.
         if not self.scenario_loaded:
@@ -139,6 +140,30 @@ class SimpleShell(cmd.Cmd):
         trajectory = visualize_trajectory(decoded_example=self.waymo_dataset,
                                           specific_id=vehicle_id)
         trajectory.savefig(f"/home/pmueller/llama_traffic/output/{timestamp}.png")
+
+    
+    def do_get_coordinates(self, arg):
+        """Prints the coordinates for the given vehicle 
+        at each moment in time in the loaded scenario."""
+        # Checking if a scenario has been loaded already.
+        if not self.scenario_loaded:
+            print(("\nNo scenario has been initialized yet! \nPlease use 'load_scenario'"
+                  " to load a scenario before calling the 'plot_scenario' command.\n"))
+            return
+        
+        # Check for empty arguments (no ID provided)
+        if (arg == ""):
+            print(("\nYou have provided no ID for the vehicle "
+                    "whose trajectory you want to get.\nPlease provide a path!\n"))
+            return
+        
+        vehicle_id = arg.split()[0]
+        coordinates = get_coordinates(decoded_example = self.waymo_dataset,
+                                      specific_id = vehicle_id)
+
+        timestamp = datetime.now()
+        print(coordinates.head())
+        coordinates.to_csv(f"/home/pmueller/llama_traffic/output/{timestamp}.scsv")
         
 
     # Basic command to exit the shell
