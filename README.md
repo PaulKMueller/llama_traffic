@@ -29,4 +29,17 @@ cd llama_traffic
 
 # Create conda environment
 conda env create -f environment.yml
-````
+```
+
+## Usage
+
+### Starting the Command Line Interface
+
+```bash
+# Start the CLI
+python waymo_cli.py
+
+# Show all available commands
+help
+```
+
