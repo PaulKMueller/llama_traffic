@@ -120,8 +120,6 @@ def visualize_one_step(states,
         color=colors,
     )
 
-    print(f"X: {masked_x}\nY: {masked_y}")
-
     if with_ids:
 
         for x, y, agent_id in zip(

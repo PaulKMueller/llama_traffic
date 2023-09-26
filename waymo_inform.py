@@ -131,3 +131,29 @@ def get_coordinates(
 
 
     return output_df
+
+
+def get_direction_of_vehicle(coordinates):
+    # TODO DocString
+    starting_point = coordinates.iloc[0]
+    ending_point = coordinates.iloc[-1]
+
+    starting_X = starting_point["X"]
+    starting_Y = starting_point["Y"]
+    ending_X = ending_point["X"]
+    ending_Y = ending_point["Y"]
+
+    if (ending_X > starting_X and ending_Y < starting_Y):
+        direction = "Right"
+    elif (ending_X > starting_X and ending_Y > starting_Y):
+        direction = "Left"
+    elif (ending_X < starting_X and ending_Y > starting_Y):
+        direction = "Right"
+    elif (ending_X < starting_X and ending_Y < starting_Y):
+        direction = "Left"
+    else:
+        direction = "Straight"
+
+    return direction
+
+

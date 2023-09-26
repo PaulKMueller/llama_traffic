@@ -3,7 +3,7 @@ import argparse
 
 from datetime import datetime
 
-from waymo_inform import get_coordinates
+from waymo_inform import get_coordinates, get_direction_of_vehicle
 
 from waymo_visualize import (visualize_all_agents_smooth,
                               create_animation,
@@ -164,6 +164,21 @@ class SimpleShell(cmd.Cmd):
         timestamp = datetime.now()
         print(coordinates.head())
         coordinates.to_csv(f"/home/pmueller/llama_traffic/output/{timestamp}.scsv")
+
+    def do_get_direction(self, arg):
+        
+        # Check for empty arguments (no coordinates provided)
+        if (arg == ""):
+            print(("\nYou have provided no ID for the vehicle "
+                    "whose trajectory you want to get.\nPlease provide a path!\n"))
+            return
+        
+        vehicle_id = arg.split()[0]
+        coordinates = get_coordinates(decoded_example = self.waymo_dataset,
+                                      specific_id = vehicle_id)
+        
+        print(f"{get_direction_of_vehicle(coordinates)}!")
+
         
 
     # Basic command to exit the shell
