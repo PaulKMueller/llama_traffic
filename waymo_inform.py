@@ -59,15 +59,12 @@ def get_coordinates(
         decoded_example,
         specific_id=None
     ):
-    """TODO: More accurate description
-    Visualizes all agent predicted trajectories in a serie of images.
+    """Returns the coordinates of the vehicle identified by its
+    specific_id and stores them as a CSV in the output folder.
 
     Args:
         decoded_example: Dictionary containing agent info about all modeled agents.
-        size_pixels: The size in pixels of the output image.
-
-    Returns:
-        T of [H, W, 3] uint8 np.arrays of the drawn matplotlib's figure canvas.
+        specific_id: The idea for which to store the coordinates.
     """
 
     output_df = pd.DataFrame(columns=["X", "Y"])
