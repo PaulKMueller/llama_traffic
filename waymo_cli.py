@@ -10,6 +10,9 @@ from waymo_visualize import (visualize_all_agents_smooth,
                               visualize_trajectory)
 from waymo_initialize import init_waymo
 
+from waymo_utils import get_scenario_list
+
+
 class SimpleShell(cmd.Cmd):
     prompt = '(waymo_cli) '
     waymo_dataset = {}
@@ -22,6 +25,7 @@ class SimpleShell(cmd.Cmd):
         parser.add_argument('-n', '--name', default='World')
         parser.add_argument('-p', '--path')
         parser.add_argument('--ids', action='store_true')
+        parser.add_argument('--index')
         return parser
 
 
@@ -61,32 +65,43 @@ class SimpleShell(cmd.Cmd):
     def do_plot_scenario(self, arg):
         """Plots the scenarion that has been loaded with 'load_scenario'."""
 
-        # Checking if a scenarion has been loaded already.
-        if not self.scenario_loaded:
-            print(("\nNo scenario has been initialized yet!"
-                   " \nPlease use 'load_scenario'"
-                  " to load a scenario before calling the 'plot_scenario' command.\n"))
-            return
         parser = self.arg_parser()
         args = parser.parse_args(arg.split())
+
+        if args.index is not None:
+            scenario_name = get_scenario_list()[int(args.index)]
+            print(scenario_name)
+            scenario = init_waymo('/mrtstorage/datasets/tmp/waymo_open_motion_v_1_2_0/uncompressed/tf_example/training/' + scenario_name)
+        elif self.scenario_loaded:
+                scenario = self.waymo_dataset
+        else:
+            print(("\nNo scenario has been initialized yet!"
+                        " \nPlease use 'load_scenario'"
+                        " to load a scenario before calling the 'plot_scenario' command.\n"))
+            return
+        
+
         if args.ids:
             print("Plotting scenario with agent ids...")
             images = visualize_all_agents_smooth(
-                self.waymo_dataset, with_ids=True)
+                scenario, with_ids=True)
         else:
             print("Plotting scenario without agent ids...")
             images = visualize_all_agents_smooth(
-                self.waymo_dataset, with_ids=False)
+                scenario, with_ids=False)
 
-        if self.waymo_dataset == {}:
-            print("No scenario has been initialized yet!")
-        else:
-            anim = create_animation(images[::5])
-            timestamp = datetime.now()
-            anim.save(f'/home/pmueller/llama_traffic/output/{timestamp}.mp4',
-                      writer='ffmpeg', fps=10)
-            print(("Successfully created animation in"
-                    f" /home/pmueller/llama_traffic/output/{timestamp}.mp4!"))
+        anim = create_animation(images[::5])
+        timestamp = datetime.now()
+        anim.save(f'/home/pmueller/llama_traffic/output/{timestamp}.mp4',
+                    writer='ffmpeg', fps=10)
+        print(("Successfully created animation in"
+                f" /home/pmueller/llama_traffic/output/{timestamp}.mp4!"))
+
+
+    def do_list_scenarios(self, arg):
+        scenarios = get_scenario_list()
+        for file in scenarios:
+            print(file)
 
 
     def do_plot_vehicle(self, arg):

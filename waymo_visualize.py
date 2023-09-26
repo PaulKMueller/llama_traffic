@@ -266,6 +266,8 @@ def create_animation(images):
         ax.set_yticks([])
         ax.grid('off')
 
+    print(len(images))
+
     anim = animation.FuncAnimation(
         fig, animate_func, frames=len(images) // 2, interval=100)
     plt.close(fig)
