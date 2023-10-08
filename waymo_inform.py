@@ -16,6 +16,7 @@ def get_viewport(all_states, all_states_mask):
         center_x: float. x coordinate for center of data.
         width: float. Width of data.
     """
+
     valid_states = all_states[all_states_mask]
     all_y = valid_states[..., 1]
     all_x = valid_states[..., 0]
@@ -131,7 +132,28 @@ def get_coordinates(
 
 
 def get_direction_of_vehicle(coordinates):
-    # TODO DocString
+    """Sorts a given trajectory into one of the 
+    following buckets: 
+
+    - Straight
+    - Straight-Left
+    - Straight-Right
+    - Left
+    - Right
+    - Left U-Turn
+    - Right U-Turn
+    - Stationary
+
+    These buckets are inspired by the paper:
+    "MotionLM: Multi-Agent Motion Forecasting as Language Modeling"
+
+    Args:
+        coordinates (pandas.dataframe): The coordinates of the
+                                        vehicle trajectory as a dataframe.
+
+    Returns:
+        str: Label of the bucket to which the vehicle trajectory was assigned.
+    """    
     starting_point = coordinates.iloc[0]
     ending_point = coordinates.iloc[-1]
 

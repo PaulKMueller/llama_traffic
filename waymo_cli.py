@@ -126,7 +126,7 @@ class SimpleShell(cmd.Cmd):
                 decoded_example=self.waymo_dataset,
                 with_ids=False,
                 specific_id=vehicle_id)
-        anim = create_animation(images[::5])
+        anim = create_animation(images[::1])
         timestamp = datetime.now()
         anim.save(f'/home/pmueller/llama_traffic/output/{timestamp}.mp4',
                       writer='ffmpeg', fps=10)
@@ -154,7 +154,7 @@ class SimpleShell(cmd.Cmd):
             return
 
         vehicle_id = arg.split()[0]
-        print(f"Printing coordinates for vehicle {vehicle_id}...")
+        print(f"Plotting trajectory for vehicle {vehicle_id}...")
         timestamp = datetime.now()
         trajectory = visualize_trajectory(decoded_example=self.waymo_dataset,
                                           specific_id=vehicle_id)
@@ -184,6 +184,7 @@ class SimpleShell(cmd.Cmd):
         print(coordinates.head())
         coordinates.to_csv(f"/home/pmueller/llama_traffic/output/{timestamp}.scsv")
 
+
     def do_get_direction(self, arg):
         
         # Check for empty arguments (no coordinates provided)
@@ -198,6 +199,18 @@ class SimpleShell(cmd.Cmd):
         
         print(f"{get_direction_of_vehicle(coordinates)}!")
 
+
+    def do_filter_trajectories(self, arg):
+        """Filters the trajectories in the loaded scenario in left, right and straight.
+
+        Args:
+            arg (str): Arguments for the command.
+
+        Returns:
+            str: The path to the folder containing 
+            the folders "Left", "Right" and "Straight".
+        """        
+
         
 
     # Basic command to exit the shell
@@ -205,6 +218,7 @@ class SimpleShell(cmd.Cmd):
         'Exit the shell: EXIT'
         print("Exiting the shell...")
         return True
+
 
     do_EOF = do_exit
 
