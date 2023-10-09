@@ -3,7 +3,9 @@ import argparse
 
 from datetime import datetime
 
-from waymo_inform import get_coordinates, get_direction_of_vehicle
+from waymo_inform import (get_coordinates,
+                          get_direction_of_vehicle,
+                          get_total_trajectory_angle)
 
 from waymo_visualize import (visualize_all_agents_smooth,
                               create_animation,
@@ -39,13 +41,10 @@ class SimpleShell(cmd.Cmd):
 
 
     def do_load_scenario(self, arg):
-        """Initialize the Waymo Open Motion Dataset Scenario for the given path.
-        If the --ids flag is present, the vehicles will be 
-        plotted with their corresponding ids."""
+        """Initialize the Waymo Open Motion Dataset Scenario for the given path."""
 
         # For testing purposes you can use the following paths
         # /mrtstorage/datasets/tmp/waymo_open_motion_v_1_2_0/uncompressed/tf_example/training/training_tfexample.tfrecord-00499-of-01000
-
 
         # Check for empty arguments (no path provided)
         if (arg == ""):
@@ -90,6 +89,7 @@ class SimpleShell(cmd.Cmd):
             images = visualize_all_agents_smooth(
                 scenario, with_ids=False)
 
+
         anim = create_animation(images[::5])
         timestamp = datetime.now()
         anim.save(f'/home/pmueller/llama_traffic/output/{timestamp}.mp4',
@@ -126,7 +126,7 @@ class SimpleShell(cmd.Cmd):
                 decoded_example=self.waymo_dataset,
                 with_ids=False,
                 specific_id=vehicle_id)
-        anim = create_animation(images[::1])
+        anim = create_animation(images[::5])
         timestamp = datetime.now()
         anim.save(f'/home/pmueller/llama_traffic/output/{timestamp}.mp4',
                       writer='ffmpeg', fps=10)
@@ -187,7 +187,7 @@ class SimpleShell(cmd.Cmd):
 
     def do_get_direction(self, arg):
         
-        # Check for empty arguments (no coordinates provided)
+        # Check for empty arguments (no vehicle ID provided)
         if (arg == ""):
             print(("\nYou have provided no ID for the vehicle "
                     "whose trajectory you want to get.\nPlease provide a path!\n"))
@@ -210,6 +210,21 @@ class SimpleShell(cmd.Cmd):
             str: The path to the folder containing 
             the folders "Left", "Right" and "Straight".
         """        
+        # TODO: Implement this function.
+
+    
+    def do_get_trajectoy_angle(self, arg):
+        # Check for empty arguments (no coordinates provided)
+        if (arg == ""):
+            print(("\nYou have provided no ID for the vehicle "
+                    "whose trajectory you want to get.\nPlease provide a path!\n"))
+            return
+        
+        vehicle_id = arg.split()[0]
+        coordinates = get_coordinates(decoded_example = self.waymo_dataset,
+                                      specific_id = vehicle_id)
+        print(get_total_trajectory_angle(coordinates))
+
 
         
 

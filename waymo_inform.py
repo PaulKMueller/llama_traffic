@@ -112,6 +112,10 @@ def get_coordinates(
                                                     agent_ids=agent_ids,
                                                     specific_id=specific_id)
     coordinates_for_step_df = pd.DataFrame([coordinates_for_step])
+
+    # Delete all rows where both X and Y are -1.0
+    output_df = output_df[~((output_df["X"] == -1.0) & (output_df["Y"] == -1.0))]
+
     output_df = pd.concat([output_df, coordinates_for_step_df], ignore_index=True)
 
 
@@ -130,6 +134,33 @@ def get_coordinates(
 
     return output_df
 
+
+def get_point_angle(point_one, point_two):
+    """Calculates the angle between to points.
+
+    Args:
+        point_one (float): The starting point of the movement increment.
+        point_two (float): The end point of the movement increment.
+    """    
+
+    angle = np.arctan2(point_two["Y"] - point_one["Y"], point_two["X"] - point_one["X"])
+    print(angle)
+    return angle
+
+
+def get_total_trajectory_angle(coordinates):
+    """Returns the total angle of the trajectory as derived
+    by adding up the angles between the coordinate points.
+
+    Args:
+        coordinates (pandas.dataframe): A dataframe containing the coordinates
+                                        of the vehicle trajectory.
+    """    
+    angles = []
+    for i in range(len(coordinates) - 1):
+        angles.append(get_point_angle(coordinates.iloc[i], coordinates.iloc[i+1]))
+    
+    return sum(angles)
 
 def get_direction_of_vehicle(coordinates):
     """Sorts a given trajectory into one of the 
