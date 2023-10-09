@@ -113,9 +113,6 @@ def get_coordinates(
                                                     specific_id=specific_id)
     coordinates_for_step_df = pd.DataFrame([coordinates_for_step])
 
-    # Delete all rows where both X and Y are -1.0
-    output_df = output_df[~((output_df["X"] == -1.0) & (output_df["Y"] == -1.0))]
-
     output_df = pd.concat([output_df, coordinates_for_step_df], ignore_index=True)
 
 
@@ -132,35 +129,55 @@ def get_coordinates(
         output_df = pd.concat([output_df, coordinates_for_step_df], ignore_index=True)
 
 
+    # Delete all rows where both X and Y are -1.0
+    output_df = output_df[~((output_df["X"] == -1.0) & (output_df["Y"] == -1.0))]
+
     return output_df
 
 
-def get_point_angle(point_one, point_two):
-    """Calculates the angle between to points.
+def get_point_angle(point_one, point_two, reference_vector):
+    """Calculates the angle between two points relative to a reference vector.
 
     Args:
-        point_one (float): The starting point of the movement increment.
-        point_two (float): The end point of the movement increment.
+        point_one (dict): The starting point with "X" and "Y" keys.
+        point_two (dict): The end point with "X" and "Y" keys.
+        reference_vector (tuple): The reference direction vector.
     """    
-
-    angle = np.arctan2(point_two["Y"] - point_one["Y"], point_two["X"] - point_one["X"])
-    print(angle)
+    # Calculate the direction vector for the segment
+    segment_vector = (point_two["X"] - point_one["X"], point_two["Y"] - point_one["Y"])
+    
+    # Calculate the dot product and magnitudes of the vectors
+    dot_product = (segment_vector[0] * reference_vector[0] + 
+                   segment_vector[1] * reference_vector[1])
+    magnitude_segment = np.sqrt(segment_vector[0]**2 + segment_vector[1]**2)
+    magnitude_reference = np.sqrt(reference_vector[0]**2 + reference_vector[1]**2)
+    
+    # Calculate the angle between the segment vector and the reference vector
+    angle = np.arccos(dot_product / (magnitude_segment * magnitude_reference))
+    
     return angle
-
 
 def get_total_trajectory_angle(coordinates):
     """Returns the total angle of the trajectory as derived
-    by adding up the angles between the coordinate points.
+    by adding up the angles between the coordinate points relative to the 
+    axis created by the line between the first two points.
 
     Args:
-        coordinates (pandas.dataframe): A dataframe containing the coordinates
-                                        of the vehicle trajectory.
+        coordinates (pd.DataFrame): A dataframe containing the coordinates
+                                    of the vehicle trajectory.
     """    
+    # Calculate the reference direction vector using the first two points
+    reference_vector = (coordinates.iloc[1]["X"] - coordinates.iloc[0]["X"], 
+                        coordinates.iloc[1]["Y"] - coordinates.iloc[0]["Y"])
+    
     angles = []
     for i in range(len(coordinates) - 1):
-        angles.append(get_point_angle(coordinates.iloc[i], coordinates.iloc[i+1]))
+        angles.append(get_point_angle(coordinates.iloc[i],
+                                      coordinates.iloc[i+1],
+                                      reference_vector))
     
     return sum(angles)
+
 
 def get_direction_of_vehicle(coordinates):
     """Sorts a given trajectory into one of the 
