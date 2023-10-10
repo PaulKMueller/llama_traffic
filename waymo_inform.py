@@ -1,6 +1,7 @@
 import numpy as np
 import tensorflow as tf
 import pandas as pd
+import math
 
 def get_viewport(all_states, all_states_mask):
     """Gets the region containing the data.
@@ -147,36 +148,38 @@ def get_point_angle(point_one, point_two, reference_vector):
     segment_vector = (point_two["X"] - point_one["X"], point_two["Y"] - point_one["Y"])
     
     # Calculate the dot product and magnitudes of the vectors
-    dot_product = (segment_vector[0] * reference_vector[0] + 
-                   segment_vector[1] * reference_vector[1])
+    dot_product = segment_vector[0] * reference_vector[0] + segment_vector[1] * reference_vector[1]
     magnitude_segment = np.sqrt(segment_vector[0]**2 + segment_vector[1]**2)
     magnitude_reference = np.sqrt(reference_vector[0]**2 + reference_vector[1]**2)
     
     # Calculate the angle between the segment vector and the reference vector
-    angle = np.arccos(dot_product / (magnitude_segment * magnitude_reference))
+    angle_radians = np.arccos(dot_product / (magnitude_segment * magnitude_reference))
     
-    return angle
+    # Convert the angle from radians to degrees
+    angle_degrees = angle_radians * (180 / math.pi)
+    
+    return angle_degrees
+
 
 def get_total_trajectory_angle(coordinates):
-    """Returns the total angle of the trajectory as derived
-    by adding up the angles between the coordinate points relative to the 
-    axis created by the line between the first two points.
+    """Returns the angle between the last direction vector and the first.
 
     Args:
         coordinates (pd.DataFrame): A dataframe containing the coordinates
                                     of the vehicle trajectory.
     """    
-    # Calculate the reference direction vector using the first two points
-    reference_vector = (coordinates.iloc[1]["X"] - coordinates.iloc[0]["X"], 
-                        coordinates.iloc[1]["Y"] - coordinates.iloc[0]["Y"])
+    # Calculate the direction vector of the first segment
+    first_vector = (coordinates.iloc[1]["X"] - coordinates.iloc[0]["X"], 
+                    coordinates.iloc[1]["Y"] - coordinates.iloc[0]["Y"])
     
-    angles = []
-    for i in range(len(coordinates) - 1):
-        angles.append(get_point_angle(coordinates.iloc[i],
-                                      coordinates.iloc[i+1],
-                                      reference_vector))
+    # Calculate the direction vector of the last segment
+    last_vector = (coordinates.iloc[-1]["X"] - coordinates.iloc[-2]["X"], 
+                   coordinates.iloc[-1]["Y"] - coordinates.iloc[-2]["Y"])
     
-    return sum(angles)
+    # Compute the angle between the first and last direction vectors
+    angle = get_point_angle({"X": 0, "Y": 0}, {"X": last_vector[0], "Y": last_vector[1]}, first_vector)
+    
+    return angle
 
 
 def get_direction_of_vehicle(coordinates):

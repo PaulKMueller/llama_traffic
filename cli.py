@@ -213,7 +213,10 @@ class SimpleShell(cmd.Cmd):
         # TODO: Implement this function.
 
     
-    def do_get_trajectoy_angle(self, arg):
+    def do_get_angle_for_vehicle(self, arg):
+        """Returns the aggregated delta angles of the trajectory of the given vehicle.
+        """
+
         # Check for empty arguments (no coordinates provided)
         if (arg == ""):
             print(("\nYou have provided no ID for the vehicle "
@@ -223,10 +226,10 @@ class SimpleShell(cmd.Cmd):
         vehicle_id = arg.split()[0]
         coordinates = get_coordinates(decoded_example = self.waymo_dataset,
                                       specific_id = vehicle_id)
-        print(get_total_trajectory_angle(coordinates))
-
-
+        angle = get_total_trajectory_angle(coordinates)
         
+        print(f"The total heading change is:{angle} degrees!")
+
 
     # Basic command to exit the shell
     def do_exit(self, arg):
