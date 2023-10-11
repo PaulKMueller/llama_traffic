@@ -5,7 +5,8 @@ from datetime import datetime
 
 from waymo_inform import (get_coordinates,
                           get_direction_of_vehicle,
-                          get_total_trajectory_angle)
+                          get_total_trajectory_angle,
+                          get_total_displacement)
 
 from waymo_visualize import (visualize_all_agents_smooth,
                               create_animation,
@@ -28,6 +29,7 @@ class SimpleShell(cmd.Cmd):
         parser.add_argument('-p', '--path')
         parser.add_argument('--ids', action='store_true')
         parser.add_argument('--index')
+        parser.add_argument('--example', '-e', action='store_true')
         return parser
 
 
@@ -46,16 +48,25 @@ class SimpleShell(cmd.Cmd):
         # For testing purposes you can use the following paths
         # /mrtstorage/datasets/tmp/waymo_open_motion_v_1_2_0/uncompressed/tf_example/training/training_tfexample.tfrecord-00499-of-01000
 
+        parser = self.arg_parser()
+        args = parser.parse_args(arg.split())
+
         # Check for empty arguments (no path provided)
         if (arg == ""):
             print("\nYou have provided no path for the scenario you want to load."
                   "\nPlease provide a path!\n")
             return
-        
-        filename = arg.split()[0]
-        self.waymo_dataset = init_waymo(filename)
-        self.scenario_loaded = True
-        print("Successfully initialized the given scenario!")
+        elif (args.example):
+            self.waymo_dataset = init_waymo(
+                "/mrtstorage/datasets/tmp/waymo_open_motion_v_1_2_0/uncompressed/tf_example/training/training_tfexample.tfrecord-00499-of-01000")
+            self.scenario_loaded = True
+            print("Successfully initialized the example scenario!")
+            return
+        else:
+            filename = arg.split()[0]
+            self.waymo_dataset = init_waymo(filename)
+            self.scenario_loaded = True
+            print("Successfully initialized the given scenario!")
 
     def do_print_current_raw_scenario(self, arg):
         print(self.waymo_dataset)
@@ -70,13 +81,16 @@ class SimpleShell(cmd.Cmd):
         if args.index is not None:
             scenario_name = get_scenario_list()[int(args.index)]
             print(scenario_name)
-            scenario = init_waymo('/mrtstorage/datasets/tmp/waymo_open_motion_v_1_2_0/uncompressed/tf_example/training/' + scenario_name)
+            scenario = init_waymo(('/mrtstorage/datasets/tmp/waymo_open_motion_v_1_2_0'
+                                   '/uncompressed/tf_example/training/') + 
+                                   scenario_name)
         elif self.scenario_loaded:
                 scenario = self.waymo_dataset
         else:
             print(("\nNo scenario has been initialized yet!"
                         " \nPlease use 'load_scenario'"
-                        " to load a scenario before calling the 'plot_scenario' command.\n"))
+                        " to load a scenario before calling"
+                         " the 'plot_scenario' command.\n"))
             return
         
 
@@ -198,6 +212,27 @@ class SimpleShell(cmd.Cmd):
                                       specific_id = vehicle_id)
         
         print(f"{get_direction_of_vehicle(coordinates)}!")
+
+
+    def do_get_displacement(self, arg):
+        """_summary_
+
+        Args:
+            arg (_type_): _description_
+        """
+        # TODO: Documentation
+
+        # Check for empty arguments (no coordinates provided)
+        if (arg == ""):
+            print(("\nYou have provided no ID for the vehicle "
+                    "whose trajectory you want to get.\nPlease provide a path!\n"))
+            return
+        
+        vehicle_id = arg.split()[0]
+        get_total_displacement(coordinates = get_coordinates(
+            decoded_example = self.waymo_dataset,
+            specific_id = vehicle_id))
+
 
 
     def do_filter_trajectories(self, arg):

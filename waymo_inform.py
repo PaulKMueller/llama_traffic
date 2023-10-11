@@ -36,7 +36,7 @@ def get_viewport(all_states, all_states_mask):
 def get_coordinates_one_step(states,
                         mask,
                         agent_ids=None,
-                        specific_id=None,):
+                        specific_id:float=None,):
     """Get coordinates for one vehicle for one step."""
 
     # If a specific ID is provided, filter the states,
@@ -59,7 +59,7 @@ def get_coordinates_one_step(states,
 
 def get_coordinates(
         decoded_example,
-        specific_id=None
+        specific_id: float=None
     ):
     """Returns the coordinates of the vehicle identified by its
     specific_id and stores them as a CSV in the output folder.
@@ -136,7 +136,7 @@ def get_coordinates(
     return output_df
 
 
-def get_point_angle(point_one, point_two, reference_vector):
+def get_point_angle(point_one: pd.DataFrame, point_two: pd.DataFrame, reference_vector):
     """Calculates the angle between two points relative to a reference vector.
 
     Args:
@@ -161,7 +161,22 @@ def get_point_angle(point_one, point_two, reference_vector):
     return angle_degrees
 
 
-def get_total_trajectory_angle(coordinates):
+def get_total_displacement(coordinates: pd.DataFrame):
+    """Calculates the total displacement of the vehicle with the given coordinates.
+
+    Args:
+        coordinates (pandas.dataframe): The coordinates of the vehicle for which
+        to calculate the total displacement.
+    """    
+    starting_point = (coordinates["X"][0], coordinates["Y"][0])
+    end_point = (coordinates["X"].iloc[-1], coordinates["Y"].iloc[-1])
+
+    displacement = (end_point[0] - starting_point[0], end_point[1] - starting_point[1])
+    print(displacement)
+    print(math.sqrt(displacement[0]**2 + displacement[1]**2))
+
+
+def get_total_trajectory_angle(coordinates: pd.DataFrame):
     """Returns the angle between the last direction vector and the first.
 
     Args:
@@ -182,7 +197,7 @@ def get_total_trajectory_angle(coordinates):
     return angle
 
 
-def get_direction_of_vehicle(coordinates):
+def get_direction_of_vehicle(coordinates: pd.DataFrame):
     """Sorts a given trajectory into one of the 
     following buckets: 
 
