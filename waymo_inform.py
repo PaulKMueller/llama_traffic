@@ -167,13 +167,56 @@ def get_total_displacement(coordinates: pd.DataFrame):
     Args:
         coordinates (pandas.dataframe): The coordinates of the vehicle for which
         to calculate the total displacement.
+    Returns:
+        str: Total displacement of the vehicle.
     """    
     starting_point = (coordinates["X"][0], coordinates["Y"][0])
     end_point = (coordinates["X"].iloc[-1], coordinates["Y"].iloc[-1])
 
-    displacement = (end_point[0] - starting_point[0], end_point[1] - starting_point[1])
-    print(displacement)
-    print(math.sqrt(displacement[0]**2 + displacement[1]**2))
+    displacement_vector = (
+        end_point[0] - starting_point[0], end_point[1] - starting_point[1])
+
+    # Calculuating the magnitude of the displacement vector and returning it
+    return math.sqrt(displacement_vector[0]**2 + displacement_vector[1]**2)
+
+
+def get_relative_displacement(decoded_example, coordinates: pd.DataFrame):
+    total_displacement = get_total_displacement(coordinates)
+    _, _, width = get_viewport(
+        get_all_states(decoded_example),
+        get_all_states_mask(decoded_example))
+
+    relative_displacement = total_displacement / width
+    return relative_displacement
+
+
+def get_all_states(decoded_example):
+
+    past_states = tf.stack([decoded_example['state/past/x'],
+                            decoded_example['state/past/y']], -1).numpy()
+    
+    current_states = tf.stack([decoded_example['state/current/x'],
+                               decoded_example['state/current/y']], -1).numpy()
+    
+    future_states = tf.stack([decoded_example['state/future/x'],
+                              decoded_example['state/future/y']], -1).numpy()
+    
+    all_states = np.concatenate([past_states, current_states, future_states], 1)
+    return all_states
+
+
+def get_all_states_mask(decoded_example):
+
+    past_states_mask = decoded_example['state/past/valid'].numpy() > 0.0
+    
+    current_states_mask = decoded_example['state/current/valid'].numpy() > 0.0
+    
+    future_states_mask = decoded_example['state/future/valid'].numpy() > 0.0
+
+    all_states_mask = np.concatenate([past_states_mask,
+                                      current_states_mask,
+                                      future_states_mask], 1)
+    return all_states_mask
 
 
 def get_total_trajectory_angle(coordinates: pd.DataFrame):

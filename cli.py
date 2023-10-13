@@ -6,7 +6,8 @@ from datetime import datetime
 from waymo_inform import (get_coordinates,
                           get_direction_of_vehicle,
                           get_total_trajectory_angle,
-                          get_total_displacement)
+                          get_total_displacement,
+                          get_relative_displacement)
 
 from waymo_visualize import (visualize_all_agents_smooth,
                               create_animation,
@@ -43,7 +44,11 @@ class SimpleShell(cmd.Cmd):
 
 
     def do_load_scenario(self, arg):
-        """Initialize the Waymo Open Motion Dataset Scenario for the given path."""
+        """TODO: Docstring for do_load_scenario.
+
+        Args:
+            arg (_type_): _description_
+        """        
 
         # For testing purposes you can use the following paths
         # /mrtstorage/datasets/tmp/waymo_open_motion_v_1_2_0/uncompressed/tf_example/training/training_tfexample.tfrecord-00499-of-01000
@@ -69,11 +74,20 @@ class SimpleShell(cmd.Cmd):
             print("Successfully initialized the given scenario!")
 
     def do_print_current_raw_scenario(self, arg):
+        """TODO: Docstring for do_print_current_raw_scenario.
+
+        Args:
+            arg (_type_): _description_
+        """        
         print(self.waymo_dataset)
 
 
     def do_plot_scenario(self, arg):
-        """Plots the scenarion that has been loaded with 'load_scenario'."""
+        """TODO: Docstring for do_plot_scenario.
+
+        Args:
+            arg (_type_): _description_
+        """        
 
         parser = self.arg_parser()
         args = parser.parse_args(arg.split())
@@ -113,13 +127,22 @@ class SimpleShell(cmd.Cmd):
 
 
     def do_list_scenarios(self, arg):
+        """TODO: Docstring for do_list_scenarios.
+
+        Args:
+            arg (_type_): _description_
+        """        
         scenarios = get_scenario_list()
         for file in scenarios:
             print(file)
 
 
     def do_plot_vehicle(self, arg):
-        """Plots the vehicle with the given ID"""
+        """TODO: Docstring for do_plot_vehicle.
+
+        Args:
+            arg (_type_): _description_
+        """        
 
         # Checking if a scenario has been loaded already.
         if not self.scenario_loaded:
@@ -176,8 +199,11 @@ class SimpleShell(cmd.Cmd):
 
     
     def do_get_coordinates(self, arg):
-        """Prints the coordinates for the given vehicle 
-        at each moment in time in the loaded scenario."""
+        """TODO: Docstring for do_get_coordinates.
+
+        Args:
+            arg (_type_): _description_
+        """        
         # Checking if a scenario has been loaded already.
         if not self.scenario_loaded:
             print(("\nNo scenario has been initialized yet! \nPlease use 'load_scenario'"
@@ -200,6 +226,11 @@ class SimpleShell(cmd.Cmd):
 
 
     def do_get_direction(self, arg):
+        """TODO: Docstring for do_get_direction.
+
+        Args:
+            arg (_type_): _description_
+        """        
         
         # Check for empty arguments (no vehicle ID provided)
         if (arg == ""):
@@ -215,12 +246,12 @@ class SimpleShell(cmd.Cmd):
 
 
     def do_get_displacement(self, arg):
-        """_summary_
+        """Calculates the total displacement of the vehicle with the given ID
+        and prints it.
 
         Args:
-            arg (_type_): _description_
-        """
-        # TODO: Documentation
+            arg (str): Vehicle ID for which to calculate the displacement.
+        """        
 
         # Check for empty arguments (no coordinates provided)
         if (arg == ""):
@@ -229,9 +260,13 @@ class SimpleShell(cmd.Cmd):
             return
         
         vehicle_id = arg.split()[0]
-        get_total_displacement(coordinates = get_coordinates(
-            decoded_example = self.waymo_dataset,
-            specific_id = vehicle_id))
+        displacement = get_relative_displacement(
+            decoded_example=self.waymo_dataset,
+            coordinates = get_coordinates(
+                decoded_example = self.waymo_dataset,
+                specific_id = vehicle_id))
+        
+        print(f'{round(displacement*100, 2)} %')
 
 
 
