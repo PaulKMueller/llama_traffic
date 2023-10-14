@@ -6,7 +6,6 @@ from datetime import datetime
 from waymo_inform import (get_coordinates,
                           get_direction_of_vehicle,
                           get_total_trajectory_angle,
-                          get_total_displacement,
                           get_relative_displacement)
 
 from waymo_visualize import (visualize_all_agents_smooth,
@@ -35,7 +34,13 @@ class SimpleShell(cmd.Cmd):
 
 
     def do_greet(self, arg):
-        'Greet someone. Flags: --name=NAME'
+        """Prints a greeting to the user whose name is provided as an argument.
+        The format of the command is: greet --name <NAME>
+        or: greet -n <NAME>
+
+        Args:
+            arg (str): The name of the user to greet.
+        """        
         try:
             parsed = self.arg_parser().parse_args(arg.split())
             print(f"Hello, {parsed.name}!")
@@ -44,10 +49,15 @@ class SimpleShell(cmd.Cmd):
 
 
     def do_load_scenario(self, arg):
-        """TODO: Docstring for do_load_scenario.
+        """Loads the scenario from the given path.
+        The format of the command is: load_scenario <PATH>
+        or: load_scenario --example
+        or: load_scenario -e
 
         Args:
-            arg (_type_): _description_
+            arg (str): The path to the scenario that should be loaded.
+            Alternatively, the flag --example or -e can be used to load
+            a pre-defined example scenario.
         """        
 
         # For testing purposes you can use the following paths
@@ -74,19 +84,21 @@ class SimpleShell(cmd.Cmd):
             print("Successfully initialized the given scenario!")
 
     def do_print_current_raw_scenario(self, arg):
-        """TODO: Docstring for do_print_current_raw_scenario.
+        """Prints the current scenario that has been loaded in its decoded form.
+        This function is for debugging purposes only.
 
         Args:
-            arg (_type_): _description_
+            arg (str): No arguments are required.
         """        
         print(self.waymo_dataset)
 
 
     def do_plot_scenario(self, arg):
-        """TODO: Docstring for do_plot_scenario.
+        """Plots the scenario that has previously been
+        loaded with the 'load_scenario' command.
 
         Args:
-            arg (_type_): _description_
+            arg (str): No arguments are required.
         """        
 
         parser = self.arg_parser()
@@ -106,7 +118,6 @@ class SimpleShell(cmd.Cmd):
                         " to load a scenario before calling"
                          " the 'plot_scenario' command.\n"))
             return
-        
 
         if args.ids:
             print("Plotting scenario with agent ids...")
@@ -127,10 +138,12 @@ class SimpleShell(cmd.Cmd):
 
 
     def do_list_scenarios(self, arg):
-        """TODO: Docstring for do_list_scenarios.
+        """Lists all available scenarios in the training folder.
+        See:
+        /mrtstorage/datasets/tmp/waymo_open_motion_v_1_2_0/uncompressed/tf_example/training
 
         Args:
-            arg (_type_): _description_
+            arg (str): No arguments are required.
         """        
         scenarios = get_scenario_list()
         for file in scenarios:
@@ -138,10 +151,13 @@ class SimpleShell(cmd.Cmd):
 
 
     def do_plot_vehicle(self, arg):
-        """TODO: Docstring for do_plot_vehicle.
+        """Creates a mp4 animation of the trajectory of
+        the given vehicle for the loaded scenario.
+        Format should be: plot_vehicle <ID>
+        Pleas make sure, that you have loaded a scenario before.
 
         Args:
-            arg (_type_): _description_
+            arg (str): the vehicle ID for which to plot the trajectory.
         """        
 
         # Checking if a scenario has been loaded already.
@@ -173,6 +189,8 @@ class SimpleShell(cmd.Cmd):
     
     def do_get_trajectory(self, arg):
         """Saves a trajectory (represented as a line) for the given vehicle.
+        Format should be: get_trajectory <ID>
+        Pleas make sure, that you have loaded a scenario before.
 
         Args:
             arg (string): The vehicle ID for which to plot the trajectory.
@@ -199,10 +217,12 @@ class SimpleShell(cmd.Cmd):
 
     
     def do_get_coordinates(self, arg):
-        """TODO: Docstring for do_get_coordinates.
+        """Saves the coordinates of the given vehicle as a csv file.
+        Format should be: get_coordinates <ID>
+        Pleas make sure, that you have loaded a scenario before.
 
         Args:
-            arg (_type_): _description_
+            arg (str): The vehicle ID for which to get the coordinates.
         """        
         # Checking if a scenario has been loaded already.
         if not self.scenario_loaded:
@@ -226,10 +246,22 @@ class SimpleShell(cmd.Cmd):
 
 
     def do_get_direction(self, arg):
-        """TODO: Docstring for do_get_direction.
+        """Returns the direction of the given vehicle.
+        The direction in this case is defined as one of eight buckets:
+            - Straight
+            - Straight-Left
+            - Straight-Right
+            - Left
+            - Right
+            - Left U-Turn
+            - Right U-Turn
+            - Stationary
+
+        Format should be: get_direction <ID>
+        Pleas make sure, that you have loaded a scenario before.
 
         Args:
-            arg (_type_): _description_
+            arg (str): The vehicle ID for which to get the direction bucket.
         """        
         
         # Check for empty arguments (no vehicle ID provided)
@@ -248,6 +280,8 @@ class SimpleShell(cmd.Cmd):
     def do_get_displacement(self, arg):
         """Calculates the total displacement of the vehicle with the given ID
         and prints it.
+        Format should be: get_displacement <ID>
+        Pleas make sure, that you have loaded a scenario before.
 
         Args:
             arg (str): Vehicle ID for which to calculate the displacement.
@@ -278,7 +312,7 @@ class SimpleShell(cmd.Cmd):
 
         Returns:
             str: The path to the folder containing 
-            the folders "Left", "Right" and "Straight".
+            one folder for each direction bucket (see get_direction).
         """        
         # TODO: Implement this function.
 
