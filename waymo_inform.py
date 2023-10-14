@@ -235,12 +235,13 @@ def get_total_trajectory_angle(coordinates: pd.DataFrame):
                    coordinates.iloc[-1]["Y"] - coordinates.iloc[-2]["Y"])
     
     # Compute the angle between the first and last direction vectors
-    angle = get_point_angle({"X": 0, "Y": 0}, {"X": last_vector[0], "Y": last_vector[1]}, first_vector)
+    angle = get_point_angle(
+        {"X": 0, "Y": 0}, {"X": last_vector[0], "Y": last_vector[1]}, first_vector)
     
     return angle
 
 
-def get_direction_of_vehicle(coordinates: pd.DataFrame):
+def get_direction_of_vehicle(decoded_example, coordinates: pd.DataFrame):
     """Sorts a given trajectory into one of the 
     following buckets: 
 
@@ -262,7 +263,11 @@ def get_direction_of_vehicle(coordinates: pd.DataFrame):
 
     Returns:
         str: Label of the bucket to which the vehicle trajectory was assigned.
-    """    
+    """
+
+    displacement = get_relative_displacement(decoded_example, coordinates)
+    if (displacement < 0.05):
+        return "Stationary"
     starting_point = coordinates.iloc[0]
     ending_point = coordinates.iloc[-1]
 

@@ -274,7 +274,7 @@ class SimpleShell(cmd.Cmd):
         coordinates = get_coordinates(decoded_example = self.waymo_dataset,
                                       specific_id = vehicle_id)
         
-        print(f"{get_direction_of_vehicle(coordinates)}!")
+        print(f"\n{get_direction_of_vehicle(self.waymo_dataset, coordinates)}!\n")
 
 
     def do_get_displacement(self, arg):
