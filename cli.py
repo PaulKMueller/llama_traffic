@@ -238,7 +238,7 @@ class SimpleShell(cmd.Cmd):
         for vehicle_id in vehicle_ids:
             trajectory = visualize_trajectory(decoded_example=self.waymo_scenario,
                                               specific_id=vehicle_id)
-            trajectory.savefig(f"/home/pmueller/llama_traffic/vehicle_trajectories/{vehicle_id}.png")
+            trajectory.savefig(f"/home/pmueller/llama_traffic/output/{vehicle_id}.png")
 
     
     def do_get_coordinates(self, arg):

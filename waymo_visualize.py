@@ -395,7 +395,6 @@ def visualize_trajectory(decoded_example, with_ids=False,
                                       'future', center_y, center_x, width,
                                       color_map, with_ids, agent_ids,
                                       specific_id, size_pixels, alpha=0.7)
-    
 
     return plt
 
