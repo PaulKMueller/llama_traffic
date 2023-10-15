@@ -6,7 +6,8 @@ from datetime import datetime
 from waymo_inform import (get_coordinates,
                           get_direction_of_vehicle,
                           get_total_trajectory_angle,
-                          get_relative_displacement)
+                          get_relative_displacement,
+                          get_vehicles_for_scenario)
 
 from waymo_visualize import (visualize_all_agents_smooth,
                               create_animation,
@@ -18,7 +19,7 @@ from waymo_utils import get_scenario_list
 
 class SimpleShell(cmd.Cmd):
     prompt = '(waymo_cli) '
-    waymo_dataset = {}
+    waymo_scenario = {}
     scenario_loaded = False
 
 
@@ -72,14 +73,14 @@ class SimpleShell(cmd.Cmd):
                   "\nPlease provide a path!\n")
             return
         elif (args.example):
-            self.waymo_dataset = init_waymo(
+            self.waymo_scenario = init_waymo(
                 "/mrtstorage/datasets/tmp/waymo_open_motion_v_1_2_0/uncompressed/tf_example/training/training_tfexample.tfrecord-00499-of-01000")
             self.scenario_loaded = True
             print("Successfully initialized the example scenario!")
             return
         else:
             filename = arg.split()[0]
-            self.waymo_dataset = init_waymo(filename)
+            self.waymo_scenario = init_waymo(filename)
             self.scenario_loaded = True
             print("Successfully initialized the given scenario!")
 
@@ -90,7 +91,7 @@ class SimpleShell(cmd.Cmd):
         Args:
             arg (str): No arguments are required.
         """        
-        print(self.waymo_dataset)
+        print(self.waymo_scenario)
 
 
     def do_plot_scenario(self, arg):
@@ -111,7 +112,7 @@ class SimpleShell(cmd.Cmd):
                                    '/uncompressed/tf_example/training/') + 
                                    scenario_name)
         elif self.scenario_loaded:
-                scenario = self.waymo_dataset
+                scenario = self.waymo_scenario
         else:
             print(("\nNo scenario has been initialized yet!"
                         " \nPlease use 'load_scenario'"
@@ -176,7 +177,7 @@ class SimpleShell(cmd.Cmd):
         vehicle_id = arg.split()[0]
         print(f"Plotting vehicle with the ID: {vehicle_id}...")
         images = visualize_all_agents_smooth(
-                decoded_example=self.waymo_dataset,
+                decoded_example=self.waymo_scenario,
                 with_ids=False,
                 specific_id=vehicle_id)
         anim = create_animation(images[::5])
@@ -187,7 +188,7 @@ class SimpleShell(cmd.Cmd):
               f"/home/pmueller/llama_traffic/output/{timestamp}.mp4!")
 
     
-    def do_get_trajectory(self, arg):
+    def do_plot_trajectory(self, arg):
         """Saves a trajectory (represented as a line) for the given vehicle.
         Format should be: get_trajectory <ID>
         Pleas make sure, that you have loaded a scenario before.
@@ -211,9 +212,33 @@ class SimpleShell(cmd.Cmd):
         vehicle_id = arg.split()[0]
         print(f"Plotting trajectory for vehicle {vehicle_id}...")
         timestamp = datetime.now()
-        trajectory = visualize_trajectory(decoded_example=self.waymo_dataset,
+        trajectory = visualize_trajectory(decoded_example=self.waymo_scenario,
                                           specific_id=vehicle_id)
         trajectory.savefig(f"/home/pmueller/llama_traffic/output/{timestamp}.png")
+
+
+    def do_plot_all_trajectories(self, arg):
+        """Saves a trajectory (represented as a line) for all vehicles in the scenario.
+        Format should be: plot_all_trajectories
+        Please make sure, that you have loaded a scenario before.
+
+        Args:
+            arg (str): No arguments are required.
+        """        
+
+        # Checking if a scenario has been loaded already.
+        if not self.scenario_loaded:
+            print(("\nNo scenario has been initialized yet! \nPlease use 'load_scenario'"
+                  " to load a scenario before calling the 'plot_scenario' command.\n"))
+            return
+
+        print("Plotting trajectories for all vehicles...")
+        vehicle_ids = get_vehicles_for_scenario(self.waymo_scenario)
+
+        for vehicle_id in vehicle_ids:
+            trajectory = visualize_trajectory(decoded_example=self.waymo_scenario,
+                                              specific_id=vehicle_id)
+            trajectory.savefig(f"/home/pmueller/llama_traffic/vehicle_trajectories/{vehicle_id}.png")
 
     
     def do_get_coordinates(self, arg):
@@ -237,7 +262,7 @@ class SimpleShell(cmd.Cmd):
             return
         
         vehicle_id = arg.split()[0]
-        coordinates = get_coordinates(decoded_example = self.waymo_dataset,
+        coordinates = get_coordinates(decoded_example = self.waymo_scenario,
                                       specific_id = vehicle_id)
 
         timestamp = datetime.now()
@@ -271,10 +296,10 @@ class SimpleShell(cmd.Cmd):
             return
         
         vehicle_id = arg.split()[0]
-        coordinates = get_coordinates(decoded_example = self.waymo_dataset,
+        coordinates = get_coordinates(decoded_example = self.waymo_scenario,
                                       specific_id = vehicle_id)
         
-        print(f"\n{get_direction_of_vehicle(self.waymo_dataset, coordinates)}!\n")
+        print(f"\n{get_direction_of_vehicle(self.waymo_scenario, coordinates)}!\n")
 
 
     def do_get_displacement(self, arg):
@@ -295,9 +320,9 @@ class SimpleShell(cmd.Cmd):
         
         vehicle_id = arg.split()[0]
         displacement = get_relative_displacement(
-            decoded_example=self.waymo_dataset,
+            decoded_example=self.waymo_scenario,
             coordinates = get_coordinates(
-                decoded_example = self.waymo_dataset,
+                decoded_example = self.waymo_scenario,
                 specific_id = vehicle_id))
         
         print(f'{round(displacement*100, 2)} %')
@@ -313,8 +338,29 @@ class SimpleShell(cmd.Cmd):
         Returns:
             str: The path to the folder containing 
             one folder for each direction bucket (see get_direction).
-        """        
+        """
         # TODO: Implement this function.
+
+
+    def do_get_vehicles_in_loaded_scenario(self, arg):
+        """Prints the IDs of all vehicles in the loaded scenario.
+
+        Args:
+            arg (str): No arguments are required.
+        """        
+
+        # Checking if a scenario has been loaded already.
+        if not self.scenario_loaded:
+            print(("\nNo scenario has been initialized yet!"
+                  " \nPlease use 'load_scenario' to load a s"
+                  "cenario before calling the 'plot_scenario' command.\n"))
+            return
+
+        filtered_ids = get_vehicles_for_scenario(self.waymo_scenario)
+        
+        print(*filtered_ids, sep = "\n")
+        
+        
 
     
     def do_get_angle_for_vehicle(self, arg):
@@ -328,7 +374,7 @@ class SimpleShell(cmd.Cmd):
             return
         
         vehicle_id = arg.split()[0]
-        coordinates = get_coordinates(decoded_example = self.waymo_dataset,
+        coordinates = get_coordinates(decoded_example = self.waymo_scenario,
                                       specific_id = vehicle_id)
         angle = get_total_trajectory_angle(coordinates)
         

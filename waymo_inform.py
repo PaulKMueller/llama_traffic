@@ -290,3 +290,13 @@ def get_direction_of_vehicle(decoded_example, coordinates: pd.DataFrame):
     return direction
 
 
+def get_vehicles_for_scenario(decoded_example):
+    # All the vehicles in the scenario
+    agent_ids = decoded_example['state/id'].numpy()
+
+    # Filter out the -1 values (which are the vehicles that are not in the scene)
+    filtered_ids = np.sort(agent_ids[agent_ids != -1])
+
+    return filtered_ids
+
+
