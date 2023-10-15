@@ -160,5 +160,13 @@ cython_debug/
 #.idea/
 
 
-# Output folder
+# Output folders
 output/
+Left/
+Left-U-Turn/
+Right/
+Right-U-Turn/
+Stationary/
+Straight/
+Straight-Left/
+Straight-Right/
