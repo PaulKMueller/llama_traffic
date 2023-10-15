@@ -339,7 +339,25 @@ class SimpleShell(cmd.Cmd):
             str: The path to the folder containing 
             one folder for each direction bucket (see get_direction).
         """
-        # TODO: Implement this function.
+
+        # Checking if a scenario has been loaded already.
+        if not self.scenario_loaded:
+            print(("\nNo scenario has been initialized yet!"
+                  " \nPlease use 'load_scenario' to load a s"
+                  "cenario before calling the 'plot_scenario' command.\n"))
+            return
+
+        vehicle_ids = get_vehicles_for_scenario(self.waymo_scenario)
+
+        for vehicle_id in vehicle_ids:
+            direction = get_direction_of_vehicle(
+                self.waymo_scenario,
+                get_coordinates(self.waymo_scenario, vehicle_id))
+            
+            trajectory = visualize_trajectory(decoded_example=self.waymo_scenario,
+                                              specific_id=vehicle_id)
+            
+            trajectory.savefig(f"/home/pmueller/llama_traffic/{direction}/{vehicle_id}.png")
 
 
     def do_get_vehicles_in_loaded_scenario(self, arg):
@@ -378,7 +396,7 @@ class SimpleShell(cmd.Cmd):
                                       specific_id = vehicle_id)
         angle = get_total_trajectory_angle(coordinates)
         
-        print(f"The total heading change is:{angle} degrees!")
+        print(f"The total heading change is: {angle} degrees!")
 
 
     # Basic command to exit the shell

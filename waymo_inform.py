@@ -238,7 +238,39 @@ def get_total_trajectory_angle(coordinates: pd.DataFrame):
     angle = get_point_angle(
         {"X": 0, "Y": 0}, {"X": last_vector[0], "Y": last_vector[1]}, first_vector)
     
+    if get_gross_direction(coordinates) == "Right":
+        angle = -angle
+    
     return angle
+
+
+def get_gross_direction(coordinates: pd.DataFrame):
+    """Returns left, right, or straight depending on the direction of the trajectory.
+
+    Args:
+        coordinates (pd.DataFrame): The coordinates of the vehicle trajectory.
+    """    
+    starting_point = coordinates.iloc[0]
+    ending_point = coordinates.iloc[-1]
+
+    starting_X = starting_point["X"]
+    starting_Y = starting_point["Y"]
+
+    ending_X = ending_point["X"]
+    ending_Y = ending_point["Y"]
+
+    if (ending_X > starting_X and ending_Y < starting_Y):
+        direction = "Right"
+    elif (ending_X > starting_X and ending_Y > starting_Y):
+        direction = "Left"
+    elif (ending_X < starting_X and ending_Y > starting_Y):
+        direction = "Right"
+    elif (ending_X < starting_X and ending_Y < starting_Y):
+        direction = "Left"
+    else:
+        direction = "Straight"
+
+    return direction
 
 
 def get_direction_of_vehicle(decoded_example, coordinates: pd.DataFrame):
@@ -250,8 +282,8 @@ def get_direction_of_vehicle(decoded_example, coordinates: pd.DataFrame):
     - Straight-Right
     - Left
     - Right
-    - Left U-Turn
-    - Right U-Turn
+    - Left-U-Turn
+    - Right-U-Turn
     - Stationary
 
     These buckets are inspired by the paper:
@@ -265,25 +297,24 @@ def get_direction_of_vehicle(decoded_example, coordinates: pd.DataFrame):
         str: Label of the bucket to which the vehicle trajectory was assigned.
     """
 
-    displacement = get_relative_displacement(decoded_example, coordinates)
-    if (displacement < 0.05):
-        return "Stationary"
-    starting_point = coordinates.iloc[0]
-    ending_point = coordinates.iloc[-1]
+    relative_displacement = get_relative_displacement(decoded_example, coordinates)
+    total_angle = get_total_trajectory_angle(coordinates)
+    gross_direction = get_gross_direction(coordinates)
 
-    starting_X = starting_point["X"]
-    starting_Y = starting_point["Y"]
-    ending_X = ending_point["X"]
-    ending_Y = ending_point["Y"]
-
-    if (ending_X > starting_X and ending_Y < starting_Y):
+    if (relative_displacement < 0.01):
+        direction = "Stationary"
+    elif total_angle < 30 and gross_direction == "Right":
+        direction = "Straight-Right"
+    elif total_angle < 30 and gross_direction == "Left":
+        direction = "Straight-Left"
+    elif total_angle > 30 and total_angle <= 120 and gross_direction == "Right":
         direction = "Right"
-    elif (ending_X > starting_X and ending_Y > starting_Y):
+    elif total_angle > 30 and total_angle <= 120 and gross_direction == "Left":
         direction = "Left"
-    elif (ending_X < starting_X and ending_Y > starting_Y):
-        direction = "Right"
-    elif (ending_X < starting_X and ending_Y < starting_Y):
-        direction = "Left"
+    elif total_angle > 120 and gross_direction == "Right":
+        direction = "Right-U-Turn"
+    elif total_angle > 120 and gross_direction == "Left":
+        direction = "Left-U-Turn"
     else:
         direction = "Straight"
 
