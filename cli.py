@@ -424,7 +424,7 @@ class SimpleShell(cmd.Cmd):
         
 
     
-    def do_get_angle_for_vehicle(self, arg):
+    def do_total_delta_angle_for_vehicle(self, arg):
         """Returns the aggregated delta angles of the trajectory of the given vehicle.
         """
 
@@ -438,6 +438,24 @@ class SimpleShell(cmd.Cmd):
         coordinates = get_coordinates(decoded_example = self.waymo_scenario,
                                       specific_id = vehicle_id)
         angle = get_sum_of_delta_angles(coordinates)
+        
+        print(f"The total heading change is: {angle} degrees!")
+
+    
+    def do_get_total_angle_for_vehicle(self, arg):
+        """Returns the total angle of the trajectory of the given vehicle.
+        """
+
+        # Check for empty arguments (no coordinates provided)
+        if (arg == ""):
+            print(("\nYou have provided no ID for the vehicle "
+                    "whose trajectory you want to get.\nPlease provide a path!\n"))
+            return
+        
+        vehicle_id = arg.split()[0]
+        coordinates = get_coordinates(decoded_example = self.waymo_scenario,
+                                      specific_id = vehicle_id)
+        angle = get_total_trajectory_angle(coordinates)
         
         print(f"The total heading change is: {angle} degrees!")
 
@@ -472,7 +490,7 @@ class SimpleShell(cmd.Cmd):
         """       
 
         for file in os.listdir("/home/pmueller/llama_traffic/output"):
-            os.remove(f"/home/pmueller/llama_traffic/{file}")
+            os.remove(f"/home/pmueller/llama_traffic/output/{file}")
 
         print("\nSuccessfully cleared the output folder!\n")
 

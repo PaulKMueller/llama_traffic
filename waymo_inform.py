@@ -4,7 +4,7 @@ import pandas as pd
 import math
 
 def dotproduct(v1, v2):
-  return sum((a*b) for a, b in zip(v1, v2))
+  return sum(a*b for a, b in zip(v1, v2))
 
 def length(v):
   return math.sqrt(dotproduct(v, v))
@@ -12,7 +12,15 @@ def length(v):
 def get_angle_between_vectors(v1, v2):
   if length(v1) == 0 or length(v2) == 0:
       return 0
-  return math.acos(dotproduct(v1, v2) / (length(v1) * length(v2)))
+  
+  product = dotproduct(v1, v2) / (len(v1) * len(v2))
+  
+  if product > 1:
+        return 0
+  elif product < -1:
+        return math.pi
+  print(product)
+  return math.acos(product)
 
 def get_viewport(all_states, all_states_mask):
     """Gets the region containing the data.
