@@ -85,7 +85,7 @@ class SimpleShell(cmd.Cmd):
             filename = arg.split()[0]
             self.waymo_scenario = init_waymo(filename)
             self.scenario_loaded = True
-            print("Successfully initialized the given scenario!")
+            print("\nSuccessfully initialized the given scenario!\n")
 
     def do_print_current_raw_scenario(self, arg):
         """Prints the current scenario that has been loaded in its decoded form.
@@ -243,10 +243,13 @@ class SimpleShell(cmd.Cmd):
         print("\nPlotting trajectories for all vehicles...")
         vehicle_ids = get_vehicles_for_scenario(self.waymo_scenario)
 
+
         for vehicle_id in vehicle_ids:
             trajectory = visualize_trajectory(decoded_example=self.waymo_scenario,
                                               specific_id=vehicle_id)
-            trajectory.savefig(f"/home/pmueller/llama_traffic/output/{vehicle_id}.png")
+            sum_of_delta_angles = get_sum_of_delta_angles(
+                get_coordinates(self.waymo_scenario, vehicle_id))
+            trajectory.savefig(f"/home/pmueller/llama_traffic/output/{vehicle_id}_{sum_of_delta_angles}.png")
 
         print(("Plotting complete.\n"
               "You can find the plots in /home/pmueller/llama_traffic/output/"))
@@ -447,16 +450,37 @@ class SimpleShell(cmd.Cmd):
         """
 
         print("\nClearing the buckets...")
-        for direction in ["Left", "Right", "Straight", "Stationary", "Right-U-Turn", "Left-U-Turn", "Straight-Right", "Straight-Left"]:
+        for direction in [
+            "Left",
+            "Right",
+            "Straight",
+            "Stationary",
+            "Right-U-Turn",
+            "Left-U-Turn",
+            "Straight-Right",
+            "Straight-Left"]:
             for file in os.listdir(f"/home/pmueller/llama_traffic/{direction}"):
                 os.remove(f"/home/pmueller/llama_traffic/{direction}/{file}")
         print("Successfully cleared the buckets!\n")    
 
 
+    def clear_output_folder(self, arg):
+        """Clears the standard output folder.
+
+        Args:
+            arg (str): No arguments are required.
+        """       
+
+        for file in os.listdir("/home/pmueller/llama_traffic/output"):
+            os.remove(f"/home/pmueller/llama_traffic/{file}")
+
+        print("\nSuccessfully cleared the output folder!\n")
+
+
     # Basic command to exit the shell
     def do_exit(self, arg):
         'Exit the shell: EXIT'
-        print("Exiting the shell...")
+        print("\nExiting the shell...\n")
         return True
 
 

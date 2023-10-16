@@ -3,6 +3,15 @@ import tensorflow as tf
 import pandas as pd
 import math
 
+def dotproduct(v1, v2):
+  return sum((a*b) for a, b in zip(v1, v2))
+
+def length(v):
+  return math.sqrt(dotproduct(v, v))
+
+def get_angle_between_vectors(v1, v2):
+  return math.acos(dotproduct(v1, v2) / (length(v1) * length(v2)))
+
 def get_viewport(all_states, all_states_mask):
     """Gets the region containing the data.
 
@@ -238,17 +247,16 @@ def get_delta_angles(coordinates: pd.DataFrame):
                            coordinates.iloc[i]["Y"] - coordinates.iloc[i - 1]["Y"])
         
         # Compute the angle between the current and previous direction vectors
-        angle = get_point_angle(
-            {"X": 0, "Y": 0},
-            {"X": previous_vector[0],
-             "Y": previous_vector[1]},
-             current_vector)
+        angle = get_angle_between_vectors(current_vector, previous_vector)
         
-        direction = get_gross_direction_for_two_points(coordinates.iloc[i], coordinates.iloc[i + 1])
+        direction = get_gross_direction_for_two_points(
+            coordinates.iloc[i], coordinates.iloc[i + 1])
         if direction == "Right":
             angle = -angle
         
         delta_angles.append(angle)
+        print(f"Current angle: {angle}")
+        print(f"Cumulative angle: {sum(delta_angles)}\n")
     
     return delta_angles
 
