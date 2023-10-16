@@ -10,6 +10,8 @@ def length(v):
   return math.sqrt(dotproduct(v, v))
 
 def get_angle_between_vectors(v1, v2):
+  if length(v1) == 0 or length(v2) == 0:
+      return 0
   return math.acos(dotproduct(v1, v2) / (length(v1) * length(v2)))
 
 def get_viewport(all_states, all_states_mask):

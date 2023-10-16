@@ -464,7 +464,7 @@ class SimpleShell(cmd.Cmd):
         print("Successfully cleared the buckets!\n")    
 
 
-    def clear_output_folder(self, arg):
+    def do_clear_output_folder(self, arg):
         """Clears the standard output folder.
 
         Args:
