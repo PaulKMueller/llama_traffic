@@ -7,7 +7,9 @@ from waymo_inform import (get_coordinates,
                           get_direction_of_vehicle,
                           get_total_trajectory_angle,
                           get_relative_displacement,
-                          get_vehicles_for_scenario)
+                          get_vehicles_for_scenario,
+                          get_delta_angles,
+                          get_sum_of_delta_angles)
 
 from waymo_visualize import (visualize_all_agents_smooth,
                               create_animation,
@@ -353,6 +355,11 @@ class SimpleShell(cmd.Cmd):
             direction = get_direction_of_vehicle(
                 self.waymo_scenario,
                 get_coordinates(self.waymo_scenario, vehicle_id))
+            delta_angle_sum = get_sum_of_delta_angles(
+                get_coordinates(self.waymo_scenario, vehicle_id))
+
+            print(
+                f"Vehicle ID: {vehicle_id}\nAngle: {delta_angle_sum}\nDirection: {direction}")
             
             trajectory = visualize_trajectory(decoded_example=self.waymo_scenario,
                                               specific_id=vehicle_id)
@@ -377,6 +384,25 @@ class SimpleShell(cmd.Cmd):
         filtered_ids = get_vehicles_for_scenario(self.waymo_scenario)
         
         print(*filtered_ids, sep = "\n")
+
+
+    def do_get_delta_angles_for_vehicle(self, arg):
+        """Returns the delta angles of the trajectory of the given vehicle.
+        """
+
+        # Check for empty arguments (no coordinates provided)
+        if (arg == ""):
+            print(("\nYou have provided no ID for the vehicle "
+                    "whose trajectory you want to get.\nPlease provide a path!\n"))
+            return
+        
+        vehicle_id = arg.split()[0]
+        coordinates = get_coordinates(decoded_example = self.waymo_scenario,
+                                      specific_id = vehicle_id)
+        angles = get_delta_angles(coordinates)
+        
+        print(f"The total heading change is: {angles} degrees!")
+        print(sum(angles))
         
         
 
@@ -394,7 +420,7 @@ class SimpleShell(cmd.Cmd):
         vehicle_id = arg.split()[0]
         coordinates = get_coordinates(decoded_example = self.waymo_scenario,
                                       specific_id = vehicle_id)
-        angle = get_total_trajectory_angle(coordinates)
+        angle = get_sum_of_delta_angles(coordinates)
         
         print(f"The total heading change is: {angle} degrees!")
 

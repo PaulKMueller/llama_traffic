@@ -219,6 +219,78 @@ def get_all_states_mask(decoded_example):
     return all_states_mask
 
 
+def get_delta_angles(coordinates: pd.DataFrame):
+    """Returns the angle between each segment in the trajectory.
+
+    Args:
+        coordinates (pd.DataFrame): A dataframe containing the coordinates
+                                    of the vehicle trajectory.
+    """    
+    delta_angles = []
+    
+    for i in range(len(coordinates) - 1):
+        # Calculate the direction vector of the current segment
+        current_vector = (coordinates.iloc[i + 1]["X"] - coordinates.iloc[i]["X"], 
+                          coordinates.iloc[i + 1]["Y"] - coordinates.iloc[i]["Y"])
+        
+        # Calculate the direction vector of the previous segment
+        previous_vector = (coordinates.iloc[i]["X"] - coordinates.iloc[i - 1]["X"], 
+                           coordinates.iloc[i]["Y"] - coordinates.iloc[i - 1]["Y"])
+        
+        # Compute the angle between the current and previous direction vectors
+        angle = get_point_angle(
+            {"X": 0, "Y": 0},
+            {"X": previous_vector[0],
+             "Y": previous_vector[1]},
+             current_vector)
+        
+        direction = get_gross_direction_for_two_points(coordinates.iloc[i], coordinates.iloc[i + 1])
+        if direction == "Right":
+            angle = -angle
+        
+        delta_angles.append(angle)
+    
+    return delta_angles
+
+
+def get_sum_of_delta_angles(coordinates: pd.DataFrame):
+    """Returns the sum of the angles between each segment in the trajectory.
+
+    Args:
+        coordinates (pd.DataFrame): A dataframe containing the coordinates
+                                    of the vehicle trajectory.
+    """    
+    delta_angles = get_delta_angles(coordinates)
+    return sum(delta_angles)
+
+
+def get_gross_direction_for_two_points(point_one: pd.DataFrame, point_two: pd.DataFrame):
+    """Returns left, right, or straight depending on the direction of the trajectory.
+
+    Args:
+        point_one (pd.DataFrame): The coordinates of the first point.
+        point_two (pd.DataFrame): The coordinates of the second point.
+    """    
+    starting_X = point_one["X"]
+    starting_Y = point_one["Y"]
+
+    ending_X = point_two["X"]
+    ending_Y = point_two["Y"]
+
+    if (ending_X > starting_X and ending_Y < starting_Y):
+        direction = "Right"
+    elif (ending_X > starting_X and ending_Y > starting_Y):
+        direction = "Left"
+    elif (ending_X < starting_X and ending_Y > starting_Y):
+        direction = "Right"
+    elif (ending_X < starting_X and ending_Y < starting_Y):
+        direction = "Left"
+    else:
+        direction = "Straight"
+
+    return direction
+
+
 def get_total_trajectory_angle(coordinates: pd.DataFrame):
     """Returns the angle between the last direction vector and the first.
 
@@ -298,18 +370,18 @@ def get_direction_of_vehicle(decoded_example, coordinates: pd.DataFrame):
     """
 
     relative_displacement = get_relative_displacement(decoded_example, coordinates)
-    total_angle = get_total_trajectory_angle(coordinates)
+    total_angle = abs(get_total_trajectory_angle(coordinates))
     gross_direction = get_gross_direction(coordinates)
 
-    if (relative_displacement < 0.01):
+    if (relative_displacement < 0.05):
         direction = "Stationary"
-    elif total_angle < 30 and gross_direction == "Right":
+    elif total_angle < 40 and gross_direction == "Right":
         direction = "Straight-Right"
-    elif total_angle < 30 and gross_direction == "Left":
+    elif total_angle < 40 and gross_direction == "Left":
         direction = "Straight-Left"
-    elif total_angle > 30 and total_angle <= 120 and gross_direction == "Right":
+    elif total_angle > 40 and total_angle <= 120 and gross_direction == "Right":
         direction = "Right"
-    elif total_angle > 30 and total_angle <= 120 and gross_direction == "Left":
+    elif total_angle > 40 and total_angle <= 120 and gross_direction == "Left":
         direction = "Left"
     elif total_angle > 120 and gross_direction == "Right":
         direction = "Right-U-Turn"
