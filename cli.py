@@ -1,5 +1,6 @@
 import cmd
 import argparse
+import os
 
 from datetime import datetime
 
@@ -123,11 +124,11 @@ class SimpleShell(cmd.Cmd):
             return
 
         if args.ids:
-            print("Plotting scenario with agent ids...")
+            print("\nPlotting scenario with agent ids...")
             images = visualize_all_agents_smooth(
                 scenario, with_ids=True)
         else:
-            print("Plotting scenario without agent ids...")
+            print("\nPlotting scenario without agent ids...")
             images = visualize_all_agents_smooth(
                 scenario, with_ids=False)
 
@@ -137,7 +138,7 @@ class SimpleShell(cmd.Cmd):
         anim.save(f'/home/pmueller/llama_traffic/output/{timestamp}.mp4',
                     writer='ffmpeg', fps=10)
         print(("Successfully created animation in"
-                f" /home/pmueller/llama_traffic/output/{timestamp}.mp4!"))
+                f" /home/pmueller/llama_traffic/output/{timestamp}.mp4!\n"))
 
 
     def do_list_scenarios(self, arg):
@@ -149,8 +150,11 @@ class SimpleShell(cmd.Cmd):
             arg (str): No arguments are required.
         """        
         scenarios = get_scenario_list()
+        print("\n")
         for file in scenarios:
             print(file)
+
+        print("\n")
 
 
     def do_plot_vehicle(self, arg):
@@ -177,7 +181,7 @@ class SimpleShell(cmd.Cmd):
             return
 
         vehicle_id = arg.split()[0]
-        print(f"Plotting vehicle with the ID: {vehicle_id}...")
+        print(f"\nPlotting vehicle with the ID: {vehicle_id}...")
         images = visualize_all_agents_smooth(
                 decoded_example=self.waymo_scenario,
                 with_ids=False,
@@ -186,8 +190,8 @@ class SimpleShell(cmd.Cmd):
         timestamp = datetime.now()
         anim.save(f'/home/pmueller/llama_traffic/output/{timestamp}.mp4',
                       writer='ffmpeg', fps=10)
-        print("Successfully created animation in "
-              f"/home/pmueller/llama_traffic/output/{timestamp}.mp4!")
+        print(("Successfully created animation in "
+              f"/home/pmueller/llama_traffic/output/{timestamp}.mp4!\n"))
 
     
     def do_plot_trajectory(self, arg):
@@ -212,11 +216,13 @@ class SimpleShell(cmd.Cmd):
             return
 
         vehicle_id = arg.split()[0]
-        print(f"Plotting trajectory for vehicle {vehicle_id}...")
+        print(f"\nPlotting trajectory for vehicle {vehicle_id}...")
         timestamp = datetime.now()
         trajectory = visualize_trajectory(decoded_example=self.waymo_scenario,
                                           specific_id=vehicle_id)
         trajectory.savefig(f"/home/pmueller/llama_traffic/output/{timestamp}.png")
+        print(("Successfully created trajectory plot in "
+              f"/home/pmueller/llama_traffic/output/{timestamp}.png"))
 
 
     def do_plot_all_trajectories(self, arg):
@@ -234,13 +240,16 @@ class SimpleShell(cmd.Cmd):
                   " to load a scenario before calling the 'plot_scenario' command.\n"))
             return
 
-        print("Plotting trajectories for all vehicles...")
+        print("\nPlotting trajectories for all vehicles...")
         vehicle_ids = get_vehicles_for_scenario(self.waymo_scenario)
 
         for vehicle_id in vehicle_ids:
             trajectory = visualize_trajectory(decoded_example=self.waymo_scenario,
                                               specific_id=vehicle_id)
             trajectory.savefig(f"/home/pmueller/llama_traffic/output/{vehicle_id}.png")
+
+        print(("Plotting complete.\n"
+              "You can find the plots in /home/pmueller/llama_traffic/output/"))
 
     
     def do_get_coordinates(self, arg):
@@ -268,8 +277,11 @@ class SimpleShell(cmd.Cmd):
                                       specific_id = vehicle_id)
 
         timestamp = datetime.now()
-        print(coordinates.head())
         coordinates.to_csv(f"/home/pmueller/llama_traffic/output/{timestamp}.scsv")
+
+        print((f"\nThe coordinates of vehicle {vehicle_id}"
+              f"have been saved to /home/pmueller/llama_traffic/"
+              f"output/{timestamp}.scsv\n"))
 
 
     def do_get_direction(self, arg):
@@ -327,7 +339,7 @@ class SimpleShell(cmd.Cmd):
                 decoded_example = self.waymo_scenario,
                 specific_id = vehicle_id))
         
-        print(f'{round(displacement*100, 2)} %')
+        print(f'\nThe relative displacement is: {round(displacement*100, 2)} %\n')
 
 
 
@@ -383,14 +395,16 @@ class SimpleShell(cmd.Cmd):
 
         filtered_ids = get_vehicles_for_scenario(self.waymo_scenario)
         
+        print("\n")
         print(*filtered_ids, sep = "\n")
+        print("\n")
 
 
     def do_get_delta_angles_for_vehicle(self, arg):
         """Returns the delta angles of the trajectory of the given vehicle.
         """
 
-        # Check for empty arguments (no coordinates provided)
+        # Check for empty arguments (no vehicle ID provided)
         if (arg == ""):
             print(("\nYou have provided no ID for the vehicle "
                     "whose trajectory you want to get.\nPlease provide a path!\n"))
@@ -423,6 +437,20 @@ class SimpleShell(cmd.Cmd):
         angle = get_sum_of_delta_angles(coordinates)
         
         print(f"The total heading change is: {angle} degrees!")
+
+
+    def do_clear_buckets(self, arg):
+        """Clears the buckets for the different directions.
+
+        Args:
+            arg (str): No arguments are required.
+        """
+
+        print("\nClearing the buckets...")
+        for direction in ["Left", "Right", "Straight", "Stationary", "Right-U-Turn", "Left-U-Turn", "Straight-Right", "Straight-Left"]:
+            for file in os.listdir(f"/home/pmueller/llama_traffic/{direction}"):
+                os.remove(f"/home/pmueller/llama_traffic/{direction}/{file}")
+        print("Successfully cleared the buckets!\n")    
 
 
     # Basic command to exit the shell
