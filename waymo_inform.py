@@ -6,21 +6,26 @@ import math
 def dotproduct(v1, v2):
   return sum(a*b for a, b in zip(v1, v2))
 
-def length(v):
+def vector_length(v):
   return math.sqrt(dotproduct(v, v))
 
 def get_angle_between_vectors(v1, v2):
-  if length(v1) == 0 or length(v2) == 0:
-      return 0
-  
-  product = dotproduct(v1, v2) / (len(v1) * len(v2))
-  
-  if product > 1:
+    if vector_length(v1) == 0 or vector_length(v2) == 0:
         return 0
-  elif product < -1:
-        return math.pi
-  print(product)
-  return math.acos(product)
+    
+    product = dotproduct(v1, v2) / (vector_length(v1) * vector_length(v2))
+
+    if product > 1:
+        return 0
+    if product < -1:
+        return 180
+
+    acos = math.acos(product)
+    result_angle = acos * (180 / math.pi)
+
+    if result_angle > 180:
+            result_angle = 360 - result_angle
+    return result_angle
 
 def get_viewport(all_states, all_states_mask):
     """Gets the region containing the data.
@@ -152,6 +157,8 @@ def get_coordinates(
     # Delete all rows where both X and Y are -1.0
     output_df = output_df[~((output_df["X"] == -1.0) & (output_df["Y"] == -1.0))]
 
+    output_df = output_df.reset_index(drop=True)
+
     return output_df
 
 
@@ -247,7 +254,7 @@ def get_delta_angles(coordinates: pd.DataFrame):
     """    
     delta_angles = []
     
-    for i in range(len(coordinates) - 1):
+    for i in range(1, len(coordinates) - 1):
         # Calculate the direction vector of the current segment
         current_vector = (coordinates.iloc[i + 1]["X"] - coordinates.iloc[i]["X"], 
                           coordinates.iloc[i + 1]["Y"] - coordinates.iloc[i]["Y"])
@@ -265,10 +272,24 @@ def get_delta_angles(coordinates: pd.DataFrame):
             angle = -angle
         
         delta_angles.append(angle)
-        print(f"Current angle: {angle}")
-        print(f"Cumulative angle: {sum(delta_angles)}\n")
     
     return delta_angles
+
+
+def remove_outlier_angles(delta_angles: list):
+    """Removes outlier angles from a list of angles.
+
+    Args:
+        delta_angles (list): A list of angles.
+    """    
+
+    filtered_delta_angles = []
+
+    for angle in delta_angles:
+        if angle < 20 and angle > -20:
+            filtered_delta_angles.append(angle)
+    
+    return filtered_delta_angles
 
 
 def get_sum_of_delta_angles(coordinates: pd.DataFrame):
@@ -279,7 +300,10 @@ def get_sum_of_delta_angles(coordinates: pd.DataFrame):
                                     of the vehicle trajectory.
     """    
     delta_angles = get_delta_angles(coordinates)
-    return sum(delta_angles)
+    # print(f"Delta angles: {delta_angles}")
+    filtered_delta_angles = remove_outlier_angles(delta_angles)
+    print(f"Filtered: {filtered_delta_angles}")
+    return sum(filtered_delta_angles)
 
 
 def get_gross_direction_for_two_points(point_one: pd.DataFrame, point_two: pd.DataFrame):
@@ -393,17 +417,19 @@ def get_direction_of_vehicle(decoded_example, coordinates: pd.DataFrame):
 
     if (relative_displacement < 0.05):
         direction = "Stationary"
-    elif total_angle < 40 and gross_direction == "Right":
+    elif total_angle < 20 and total_angle > -20:
+        direction = "Straight"
+    elif total_angle <= 40 and gross_direction == "Right":
         direction = "Straight-Right"
-    elif total_angle < 40 and gross_direction == "Left":
+    elif total_angle <= 40 and gross_direction == "Left":
         direction = "Straight-Left"
-    elif total_angle > 40 and total_angle <= 120 and gross_direction == "Right":
+    elif total_angle > 40 and total_angle <= 130 and gross_direction == "Right":
         direction = "Right"
-    elif total_angle > 40 and total_angle <= 120 and gross_direction == "Left":
+    elif total_angle > 40 and total_angle <= 130 and gross_direction == "Left":
         direction = "Left"
-    elif total_angle > 120 and gross_direction == "Right":
+    elif total_angle > 130 and gross_direction == "Right":
         direction = "Right-U-Turn"
-    elif total_angle > 120 and gross_direction == "Left":
+    elif total_angle > 130 and gross_direction == "Left":
         direction = "Left-U-Turn"
     else:
         direction = "Straight"

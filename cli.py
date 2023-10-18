@@ -67,25 +67,34 @@ class SimpleShell(cmd.Cmd):
         # For testing purposes you can use the following paths
         # /mrtstorage/datasets/tmp/waymo_open_motion_v_1_2_0/uncompressed/tf_example/training/training_tfexample.tfrecord-00499-of-01000
 
-        parser = self.arg_parser()
-        args = parser.parse_args(arg.split())
+        args = arg.split()
 
         # Check for empty arguments (no path provided)
         if (arg == ""):
             print("\nYou have provided no path for the scenario you want to load."
                   "\nPlease provide a path!\n")
             return
-        elif (args.example):
+        elif (args[0] == "-e" or args[0] == "--example"):
             self.waymo_scenario = init_waymo(
                 "/mrtstorage/datasets/tmp/waymo_open_motion_v_1_2_0/uncompressed/tf_example/training/training_tfexample.tfrecord-00499-of-01000")
             self.scenario_loaded = True
             print("Successfully initialized the example scenario!")
             return
-        else:
+        elif (args[0] == "-p" or args[0] == "--path"):
             filename = arg.split()[0]
-            self.waymo_scenario = init_waymo(filename)
+            print(f"Das Szenario wird geladen: {filename}")
+            self.waymo_scenario = init_waymo(args[1])
             self.scenario_loaded = True
             print("\nSuccessfully initialized the given scenario!\n")
+            return
+        else:
+            try:
+                self.waymo_scenario = init_waymo(args[0])
+                self.scenario_loaded = True
+                print("\nSuccessfully initialized the given scenario!\n")
+                return
+            except:
+                print("\nYou have provided no path for the scenario you want to load. Please use the -p flag to indicate the path.\n")
 
     def do_print_current_raw_scenario(self, arg):
         """Prints the current scenario that has been loaded in its decoded form.
@@ -152,7 +161,7 @@ class SimpleShell(cmd.Cmd):
         scenarios = get_scenario_list()
         print("\n")
         for file in scenarios:
-            print(file)
+            print(f"/mrtstorage/datasets/tmp/waymo_open_motion_v_1_2_0/uncompressed/tf_example/training/{file}")
 
         print("\n")
 
@@ -220,7 +229,10 @@ class SimpleShell(cmd.Cmd):
         timestamp = datetime.now()
         trajectory = visualize_trajectory(decoded_example=self.waymo_scenario,
                                           specific_id=vehicle_id)
-        trajectory.savefig(f"/home/pmueller/llama_traffic/output/{timestamp}.png")
+        # trajectory.savefig(f"/home/pmueller/llama_traffic/output/{timestamp}.png")
+        sum_of_delta_angles = get_sum_of_delta_angles(
+            get_coordinates(self.waymo_scenario, vehicle_id))
+        trajectory.savefig(f"/home/pmueller/llama_traffic/output/{vehicle_id}_{sum_of_delta_angles}.png")
         print(("Successfully created trajectory plot in "
               f"/home/pmueller/llama_traffic/output/{timestamp}.png"))
 
@@ -245,6 +257,7 @@ class SimpleShell(cmd.Cmd):
 
 
         for vehicle_id in vehicle_ids:
+            print(f"Plotting trajectory for vehicle {vehicle_id}...")
             trajectory = visualize_trajectory(decoded_example=self.waymo_scenario,
                                               specific_id=vehicle_id)
             sum_of_delta_angles = get_sum_of_delta_angles(
