@@ -1,0 +1,3 @@
+[submodule "red-motion"]
+	path = red-motion
+	url = https://github.com/KIT-MRT/red-motion

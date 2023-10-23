@@ -74,6 +74,7 @@ class SimpleShell(cmd.Cmd):
             print("\nYou have provided no path for the scenario you want to load."
                   "\nPlease provide a path!\n")
             return
+        
         elif (args[0] == "-e" or args[0] == "--example"):
             self.waymo_scenario = init_waymo(
                 "/mrtstorage/datasets/tmp/waymo_open_motion_v_1_2_0/uncompressed/tf_example/training/training_tfexample.tfrecord-00499-of-01000")
@@ -84,6 +85,15 @@ class SimpleShell(cmd.Cmd):
             filename = arg.split()[0]
             print(f"Das Szenario wird geladen: {filename}")
             self.waymo_scenario = init_waymo(args[1])
+            self.scenario_loaded = True
+            print("\nSuccessfully initialized the given scenario!\n")
+            return
+        elif (args[0] == "-i" or args[0] == "--index"):
+            scenario_name = get_scenario_list()[int(args[1])]
+            print(f"The scenario {scenario_name} is being loaded...")
+            self.waymo_scenario = init_waymo(('/mrtstorage/datasets/tmp/waymo_open_motion_v_1_2_0'
+                                   '/uncompressed/tf_example/training/') + 
+                                   scenario_name)
             self.scenario_loaded = True
             print("\nSuccessfully initialized the given scenario!\n")
             return
@@ -160,8 +170,10 @@ class SimpleShell(cmd.Cmd):
         """        
         scenarios = get_scenario_list()
         print("\n")
+        counter = 0
         for file in scenarios:
-            print(f"/mrtstorage/datasets/tmp/waymo_open_motion_v_1_2_0/uncompressed/tf_example/training/{file}")
+            print(f"{counter}: /mrtstorage/datasets/tmp/waymo_open_motion_v_1_2_0/uncompressed/tf_example/training/{file}")
+            counter += 1
 
         print("\n")
 
@@ -380,14 +392,15 @@ class SimpleShell(cmd.Cmd):
         vehicle_ids = get_vehicles_for_scenario(self.waymo_scenario)
 
         for vehicle_id in vehicle_ids:
+            print(f"Vehicle ID: {vehicle_id}")
             direction = get_direction_of_vehicle(
                 self.waymo_scenario,
                 get_coordinates(self.waymo_scenario, vehicle_id))
             delta_angle_sum = get_sum_of_delta_angles(
                 get_coordinates(self.waymo_scenario, vehicle_id))
 
-            print(
-                f"Vehicle ID: {vehicle_id}\nAngle: {delta_angle_sum}\nDirection: {direction}")
+
+            # \nAngle: {delta_angle_sum}\nDirection: {direction}"
             
             trajectory = visualize_trajectory(decoded_example=self.waymo_scenario,
                                               specific_id=vehicle_id)

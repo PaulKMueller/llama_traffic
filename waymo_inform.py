@@ -413,7 +413,12 @@ def get_direction_of_vehicle(decoded_example, coordinates: pd.DataFrame):
 
     relative_displacement = get_relative_displacement(decoded_example, coordinates)
     total_angle = abs(get_sum_of_delta_angles(coordinates))
+    # total_angle = abs(get_total_trajectory_angle(coordinates))
     gross_direction = get_gross_direction(coordinates)
+
+    print(f"Relative displacement: {relative_displacement}")
+    print(f"Total angle: {total_angle}")
+    print(f"Gross direction: {gross_direction}")
 
     if (relative_displacement < 0.05):
         direction = "Stationary"
