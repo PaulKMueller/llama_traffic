@@ -1,10 +1,13 @@
 # Llama_traffic
 
-# Llama_Traffic
+## Llama_Traffic
 The generation of realistic high quality trajectories is a major bottleneck in the creation of autonomous driving agents.
+
+![Model arch](.res/arch.png)
+
 Llama_Traffic tackles this problem by facilitating the language-based creation of original trajectories.
 
-## Table of Contents
+### Table of Contents
 
 1. [Introduction](#introduction)
 2. [Installation](#installation)
@@ -16,11 +19,11 @@ Llama_Traffic tackles this problem by facilitating the language-based creation o
 8. [Acknowledgements](#acknowledgements)
 9. [Contact](#contact)
 
-## Introduction
+### Introduction
 
 Detailed introduction of the project including the problem it aims to solve and its relevance.
 
-## Installation
+### Installation
 
 ```bash
 
