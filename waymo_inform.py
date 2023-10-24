@@ -413,6 +413,7 @@ def get_direction_of_vehicle(decoded_example, coordinates: pd.DataFrame):
 
     relative_displacement = get_relative_displacement(decoded_example, coordinates)
     total_angle = abs(get_sum_of_delta_angles(coordinates))
+
     # total_angle = abs(get_total_trajectory_angle(coordinates))
     gross_direction = get_gross_direction(coordinates)
 

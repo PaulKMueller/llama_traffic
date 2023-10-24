@@ -14,16 +14,19 @@ from waymo_inform import (get_coordinates,
 
 from waymo_visualize import (visualize_all_agents_smooth,
                               create_animation,
-                              visualize_trajectory)
+                              visualize_trajectory,
+                              visualize_coordinates,
+                              visualize_map)
 from waymo_initialize import init_waymo
 
-from waymo_utils import get_scenario_list
+from waymo_utils import get_scenario_list, get_spline_for_coordinates, get_scenario_id
 
 
 class SimpleShell(cmd.Cmd):
     prompt = '(waymo_cli) '
     waymo_scenario = {}
     scenario_loaded = False
+    scenario_name = ""
 
 
     def arg_parser(self):
@@ -52,6 +55,45 @@ class SimpleShell(cmd.Cmd):
             pass  # argparse calls sys.exit(), catch the exception to prevent shell exit
 
 
+    def do_plot_map(self, arg):
+        # Checking if a scenario has been loaded already.
+        if not self.scenario_loaded:
+            print(("\nNo scenario has been initialized yet!"
+                  " \nPlease use 'load_scenario' to load a s"
+                  "cenario before calling the 'plot_scenario' command.\n"))
+            return
+        
+        image = visualize_map(self.waymo_scenario)
+        image.savefig(f"/home/pmueller/llama_traffic/output/roadgraph_{get_scenario_id(self.scenario_name)}.png")
+
+
+    def do_visualize_trajectory(self, arg):
+
+        # Checking if a scenario has been loaded already.
+        if not self.scenario_loaded:
+            print(("\nNo scenario has been initialized yet!"
+                  " \nPlease use 'load_scenario' to load a s"
+                  "cenario before calling the 'plot_scenario' command.\n"))
+            return
+
+        # Check for empty arguments (no ID provided)
+        if (arg == ""):
+            print(("\nYou have provided no ID for the vehicle "
+                    "that you want to plot.\nPlease provide a path!\n"))
+            return
+
+        vehicle_id = arg.split()[0]
+
+
+        coordinates = get_coordinates(decoded_example = self.waymo_scenario,
+                                        specific_id = arg)
+        trajectory = visualize_coordinates(self.waymo_scenario, coordinates)
+
+        trajectory.savefig(f"/home/pmueller/llama_traffic/output/{vehicle_id}.png")
+
+
+
+
     def do_load_scenario(self, arg):
         """Loads the scenario from the given path.
         The format of the command is: load_scenario <PATH>
@@ -76,6 +118,7 @@ class SimpleShell(cmd.Cmd):
             return
         
         elif (args[0] == "-e" or args[0] == "--example"):
+            self.scenario_name = "training_tfexample.tfrecord-00499-of-01000"
             self.waymo_scenario = init_waymo(
                 "/mrtstorage/datasets/tmp/waymo_open_motion_v_1_2_0/uncompressed/tf_example/training/training_tfexample.tfrecord-00499-of-01000")
             self.scenario_loaded = True
@@ -85,6 +128,7 @@ class SimpleShell(cmd.Cmd):
             filename = arg.split()[0]
             print(f"Das Szenario wird geladen: {filename}")
             self.waymo_scenario = init_waymo(args[1])
+            self.scenario_name = filename
             self.scenario_loaded = True
             print("\nSuccessfully initialized the given scenario!\n")
             return
@@ -94,6 +138,7 @@ class SimpleShell(cmd.Cmd):
             self.waymo_scenario = init_waymo(('/mrtstorage/datasets/tmp/waymo_open_motion_v_1_2_0'
                                    '/uncompressed/tf_example/training/') + 
                                    scenario_name)
+            self.scenario_name = scenario_name
             self.scenario_loaded = True
             print("\nSuccessfully initialized the given scenario!\n")
             return
@@ -466,6 +511,30 @@ class SimpleShell(cmd.Cmd):
         angle = get_sum_of_delta_angles(coordinates)
         
         print(f"The total heading change is: {angle} degrees!")
+
+
+    def do_get_spline(self, arg):
+
+        # Checking if a scenario has been loaded already.
+        if not self.scenario_loaded:
+            print(("\nNo scenario has been initialized yet! \nPlease use 'load_scenario'"
+                  " to load a scenario before calling the 'plot_scenario' command.\n"))
+            return
+        
+        # Check for empty arguments (no ID provided)
+        if (arg == ""):
+            print(("\nYou have provided no ID for the vehicle "
+                    "whose trajectory you want to get.\nPlease provide a path!\n"))
+            return
+        
+        vehicle_id = arg.split()[0]
+        coordinates = get_coordinates(decoded_example = self.waymo_scenario,
+                                      specific_id = vehicle_id)
+
+        spline = get_spline_for_coordinates(coordinates)
+        print(spline)
+        print(len(spline))
+
 
     
     def do_get_total_angle_for_vehicle(self, arg):

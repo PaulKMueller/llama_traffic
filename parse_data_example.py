@@ -1,6 +1,6 @@
 import numpy as np
 from glob import glob
-from red_motion.data_utils.visualize import plot_marginal_predictions_3d
+from red_motion.src.red_motion.data_utils.visualize import plot_marginal_predictions_3d
 
 # load data
 samples = sorted(glob("/content/red-motion/src/red_motion/data_utils/demo_files/*.npz"))
