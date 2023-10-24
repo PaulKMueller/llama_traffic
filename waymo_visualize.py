@@ -392,24 +392,14 @@ def visualize_trajectory_one_step(
 
 
 def visualize_coordinates(decoded_example, coordinates, size_pixels=1000):
-    roadgraph_xyz = decoded_example["roadgraph_samples/xyz"].numpy()
-    fig, ax = plt.subplots()
 
-    # Plot the road graph
-    ax.scatter(
-        roadgraph_xyz[:, 0], roadgraph_xyz[:, 1], c="gray", s=2, label="Road Graph"
-    )
+    plot = visualize_map(decoded_example=decoded_example)
+    print(type(coordinates))
+    # Plot coordinates on map
+    for _, coordinate in coordinates.iterrows():
+        plot.plot(coordinate["X"], coordinate["Y"], "ro", markersize=5)
 
-    # Plot the trajectory
-    ax.plot(coordinates["X"], coordinates["Y"], "-o", label="Trajectory", color="blue")
-
-    ax.set_title("Trajectory Visualization with Road Graph")
-    ax.set_xlabel("X")
-    ax.set_ylabel("Y")
-    ax.legend()
-    ax.grid(True)
-
-    return plt
+    return plot
 
 
 def visualize_coordinates_one_step(

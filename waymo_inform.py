@@ -3,6 +3,8 @@ import tensorflow as tf
 import pandas as pd
 import math
 
+from waymo_utils import get_spline_for_coordinates
+
 def dotproduct(v1, v2):
   return sum(a*b for a, b in zip(v1, v2))
 
@@ -253,6 +255,8 @@ def get_delta_angles(coordinates: pd.DataFrame):
                                     of the vehicle trajectory.
     """    
     delta_angles = []
+
+    coordinates = get_spline_for_coordinates(coordinates)
     
     for i in range(1, len(coordinates) - 1):
         # Calculate the direction vector of the current segment
@@ -266,12 +270,13 @@ def get_delta_angles(coordinates: pd.DataFrame):
         # Compute the angle between the current and previous direction vectors
         angle = get_angle_between_vectors(current_vector, previous_vector)
         
-        direction = get_gross_direction_for_two_points(
-            coordinates.iloc[i], coordinates.iloc[i + 1])
+        direction = get_gross_direction_for_two_points(coordinates.iloc[i], coordinates.iloc[i + 1])
+
         if direction == "Right":
             angle = -angle
         
         delta_angles.append(angle)
+        delta_angles.append(direction)
     
     return delta_angles
 
@@ -302,7 +307,7 @@ def get_sum_of_delta_angles(coordinates: pd.DataFrame):
     delta_angles = get_delta_angles(coordinates)
     # print(f"Delta angles: {delta_angles}")
     filtered_delta_angles = remove_outlier_angles(delta_angles)
-    print(f"Filtered: {filtered_delta_angles}")
+    #print(f"Filtered: {filtered_delta_angles}")
     return sum(filtered_delta_angles)
 
 
@@ -410,7 +415,6 @@ def get_direction_of_vehicle(decoded_example, coordinates: pd.DataFrame):
     Returns:
         str: Label of the bucket to which the vehicle trajectory was assigned.
     """
-
     relative_displacement = get_relative_displacement(decoded_example, coordinates)
     total_angle = abs(get_sum_of_delta_angles(coordinates))
 
@@ -418,8 +422,7 @@ def get_direction_of_vehicle(decoded_example, coordinates: pd.DataFrame):
     gross_direction = get_gross_direction(coordinates)
 
     print(f"Relative displacement: {relative_displacement}")
-    print(f"Total angle: {total_angle}")
-    print(f"Gross direction: {gross_direction}")
+    print(f"Total angle: {total_angle}\n")
 
     if (relative_displacement < 0.05):
         direction = "Stationary"

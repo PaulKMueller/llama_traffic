@@ -45,9 +45,38 @@ def get_spline_for_coordinates(coordinates):
     # Get the x and y coordinates
     x = coordinates["X"]
     y = coordinates["Y"]
+
+    filtered_x = [x[0]]
+    filtered_y = [y[0]]
+
+    threshold = 1e-5
+    for i in range(1, len(x)):
+        if np.sqrt((x[i] - x[i-1])**2 + (y[i] - y[i-1])**2) > threshold:
+            filtered_x.append(x[i])
+            filtered_y.append(y[i])
+
+    # Check if there are more data points than the minimum required for a spline
+    if len(filtered_x) < 4 or len(filtered_y) < 4:
+        print("Not enough data points to fit a spline.")
+        return coordinates
+
+    # Check if the coordinates are constant
+
+    if len(set(filtered_x)) <= 1 and len(set(filtered_y)) <= 1:
+        print("Both x and y are constant. Cannot fit a spline.")
+        return coordinates
+    elif len(set(filtered_x)) <= 1:
+        print("x is constant. Cannot fit a spline.")
+        return coordinates
+    elif len(set(filtered_y)) <= 1:
+        print("y is constant. Cannot fit a spline.")
+        return coordinates
+    else:
+        # Call splprep
+       tck, u = interpolate.splprep([filtered_x, filtered_y], s=120)
+
     
     # Get the spline for the x and y coordinates
-    tck, u = interpolate.splprep([x, y], s=5)
     unew = np.arange(0, 1.01, 0.01)
     spline = interpolate.splev(unew, tck)
 

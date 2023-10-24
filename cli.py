@@ -2,6 +2,8 @@ import cmd
 import argparse
 import os
 
+import pandas as pd
+
 from datetime import datetime
 
 from waymo_inform import (get_coordinates,
@@ -352,7 +354,7 @@ class SimpleShell(cmd.Cmd):
         timestamp = datetime.now()
         coordinates.to_csv(f"/home/pmueller/llama_traffic/output/{timestamp}.scsv")
 
-        print((f"\nThe coordinates of vehicle {vehicle_id}"
+        print((f"\nThe coordinates of vehicle {vehicle_id} "
               f"have been saved to /home/pmueller/llama_traffic/"
               f"output/{timestamp}.scsv\n"))
 
@@ -385,6 +387,10 @@ class SimpleShell(cmd.Cmd):
         vehicle_id = arg.split()[0]
         coordinates = get_coordinates(decoded_example = self.waymo_scenario,
                                       specific_id = vehicle_id)
+        
+        # Take every 5th coordinate to reduce the number of coordinates
+        # and therefore the number of calculations
+        coordinates = coordinates[::5]
         
         print(f"\n{get_direction_of_vehicle(self.waymo_scenario, coordinates)}!\n")
 
@@ -441,8 +447,6 @@ class SimpleShell(cmd.Cmd):
             direction = get_direction_of_vehicle(
                 self.waymo_scenario,
                 get_coordinates(self.waymo_scenario, vehicle_id))
-            delta_angle_sum = get_sum_of_delta_angles(
-                get_coordinates(self.waymo_scenario, vehicle_id))
 
 
             # \nAngle: {delta_angle_sum}\nDirection: {direction}"
@@ -451,6 +455,34 @@ class SimpleShell(cmd.Cmd):
                                               specific_id=vehicle_id)
             
             trajectory.savefig(f"/home/pmueller/llama_traffic/{direction}/{vehicle_id}.png")
+
+
+    def do_plot_spline(self, arg):
+        """Plots the spline for the given vehicle ID.
+
+        Args:
+            arg (str): The vehicle ID for which to plot the spline.
+        """        
+
+        # Checking if a scenario has been loaded already.
+        if not self.scenario_loaded:
+            print(("\nNo scenario has been initialized yet! \nPlease use 'load_scenario'"
+                  " to load a scenario before calling the 'plot_scenario' command.\n"))
+            return
+        
+        # Check for empty arguments (no ID provided)
+        if (arg == ""):
+            print(("\nYou have provided no ID for the vehicle "
+                    "whose trajectory you want to get.\nPlease provide a path!\n"))
+            return
+        
+        vehicle_id = arg.split()[0]
+        coordinates = get_coordinates(decoded_example = self.waymo_scenario,
+                                      specific_id = vehicle_id)
+
+        spline = get_spline_for_coordinates(coordinates)
+        spline_plot = visualize_coordinates(self.waymo_scenario, spline)
+        spline_plot.savefig(f"/home/pmueller/llama_traffic/output/{vehicle_id}_spline.png")
 
 
     def do_get_vehicles_in_loaded_scenario(self, arg):
@@ -488,9 +520,12 @@ class SimpleShell(cmd.Cmd):
         coordinates = get_coordinates(decoded_example = self.waymo_scenario,
                                       specific_id = vehicle_id)
         angles = get_delta_angles(coordinates)
+
+        output_df = pd.DataFrame(angles, columns = ["Delta Angle"])
+        output_df.to_csv(f"/home/pmueller/llama_traffic/output/{vehicle_id}_delta_angles.csv")
         
         print(f"The total heading change is: {angles} degrees!")
-        print(sum(angles))
+        # print(sum(angles))
         
         
 
