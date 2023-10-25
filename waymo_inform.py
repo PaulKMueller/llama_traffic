@@ -270,13 +270,12 @@ def get_delta_angles(coordinates: pd.DataFrame):
         # Compute the angle between the current and previous direction vectors
         angle = get_angle_between_vectors(current_vector, previous_vector)
         
-        direction = get_gross_direction_for_two_points(coordinates.iloc[i], coordinates.iloc[i + 1])
+        direction = get_gross_direction_for_three_points(coordinates.iloc[i-1], coordinates.iloc[i], coordinates.iloc[i + 1])
 
         if direction == "Right":
             angle = -angle
         
         delta_angles.append(angle)
-        delta_angles.append(direction)
     
     return delta_angles
 
@@ -311,31 +310,31 @@ def get_sum_of_delta_angles(coordinates: pd.DataFrame):
     return sum(filtered_delta_angles)
 
 
-def get_gross_direction_for_two_points(point_one: pd.DataFrame, point_two: pd.DataFrame):
+def get_gross_direction_for_three_points(start: pd.DataFrame, intermediate: pd.DataFrame, end: pd.DataFrame):
     """Returns left, right, or straight depending on the direction of the trajectory.
 
     Args:
-        point_one (pd.DataFrame): The coordinates of the first point.
-        point_two (pd.DataFrame): The coordinates of the second point.
+        start (pd.DataFrame): The coordinates of the starting point.
+        intermediate (pd.DataFrame): The coordinates of the intermediate point.
+        end (pd.DataFrame): The coordinates of the ending point.
     """    
-    starting_X = point_one["X"]
-    starting_Y = point_one["Y"]
+    # Calculate vectors
+    vector1 = (intermediate["X"] - start["X"], intermediate["Y"] - start["Y"])
+    vector2 = (end["X"] - intermediate["X"], end["Y"] - intermediate["Y"])
 
-    ending_X = point_two["X"]
-    ending_Y = point_two["Y"]
+    # Calculate the cross product of the two vectors
+    cross_product = vector1[0] * vector2[1] - vector1[1] * vector2[0]
 
-    if (ending_X > starting_X and ending_Y < starting_Y):
-        direction = "Right"
-    elif (ending_X > starting_X and ending_Y > starting_Y):
+    # Determine direction based on cross product
+    if cross_product > 0:
         direction = "Left"
-    elif (ending_X < starting_X and ending_Y > starting_Y):
+    elif cross_product < 0:
         direction = "Right"
-    elif (ending_X < starting_X and ending_Y < starting_Y):
-        direction = "Left"
     else:
         direction = "Straight"
 
     return direction
+
 
 
 def get_total_trajectory_angle(coordinates: pd.DataFrame):
@@ -357,39 +356,8 @@ def get_total_trajectory_angle(coordinates: pd.DataFrame):
     angle = get_point_angle(
         {"X": 0, "Y": 0}, {"X": last_vector[0], "Y": last_vector[1]}, first_vector)
     
-    if get_gross_direction(coordinates) == "Right":
-        angle = -angle
-    
     return angle
-
-
-def get_gross_direction(coordinates: pd.DataFrame):
-    """Returns left, right, or straight depending on the direction of the trajectory.
-
-    Args:
-        coordinates (pd.DataFrame): The coordinates of the vehicle trajectory.
-    """    
-    starting_point = coordinates.iloc[0]
-    ending_point = coordinates.iloc[-1]
-
-    starting_X = starting_point["X"]
-    starting_Y = starting_point["Y"]
-
-    ending_X = ending_point["X"]
-    ending_Y = ending_point["Y"]
-
-    if (ending_X > starting_X and ending_Y < starting_Y):
-        direction = "Right"
-    elif (ending_X > starting_X and ending_Y > starting_Y):
-        direction = "Left"
-    elif (ending_X < starting_X and ending_Y > starting_Y):
-        direction = "Right"
-    elif (ending_X < starting_X and ending_Y < starting_Y):
-        direction = "Left"
-    else:
-        direction = "Straight"
-
-    return direction
+    
 
 
 def get_direction_of_vehicle(decoded_example, coordinates: pd.DataFrame):
@@ -416,34 +384,57 @@ def get_direction_of_vehicle(decoded_example, coordinates: pd.DataFrame):
         str: Label of the bucket to which the vehicle trajectory was assigned.
     """
     relative_displacement = get_relative_displacement(decoded_example, coordinates)
-    total_angle = abs(get_sum_of_delta_angles(coordinates))
+    total_delta_angle = get_sum_of_delta_angles(coordinates)
+    direction = ""
+    bucket = ""
 
-    # total_angle = abs(get_total_trajectory_angle(coordinates))
-    gross_direction = get_gross_direction(coordinates)
 
-    print(f"Relative displacement: {relative_displacement}")
-    print(f"Total angle: {total_angle}\n")
-
-    if (relative_displacement < 0.05):
-        direction = "Stationary"
-    elif total_angle < 20 and total_angle > -20:
-        direction = "Straight"
-    elif total_angle <= 40 and gross_direction == "Right":
-        direction = "Straight-Right"
-    elif total_angle <= 40 and gross_direction == "Left":
-        direction = "Straight-Left"
-    elif total_angle > 40 and total_angle <= 130 and gross_direction == "Right":
+    if total_delta_angle < 0:
         direction = "Right"
-    elif total_angle > 40 and total_angle <= 130 and gross_direction == "Left":
+    elif total_delta_angle > 0:
         direction = "Left"
-    elif total_angle > 130 and gross_direction == "Right":
-        direction = "Right-U-Turn"
-    elif total_angle > 130 and gross_direction == "Left":
-        direction = "Left-U-Turn"
     else:
         direction = "Straight"
 
-    return direction
+    absolute_total_delta_angle = abs(total_delta_angle)
+
+
+    print(f"Relative displacement: {relative_displacement}")
+    print(f"Total delta angle: {total_delta_angle}\n")
+
+    if (relative_displacement < 0.05):
+        bucket = "Stationary"
+        return bucket
+    elif absolute_total_delta_angle < 20 and absolute_total_delta_angle > -20:
+        bucket = "Straight"
+        return bucket
+    elif absolute_total_delta_angle <= 40 and direction == "Right":
+        bucket = "Straight-Right"
+        return bucket
+    elif absolute_total_delta_angle <= 40 and direction == "Left":
+        bucket = "Straight-Left"
+        return bucket
+    elif absolute_total_delta_angle > 40 and absolute_total_delta_angle <= 130 and direction == "Right":
+        bucket = "Right"
+        return bucket
+    elif absolute_total_delta_angle > 40 and absolute_total_delta_angle <= 130 and direction == "Left":
+        bucket = "Left"
+        return bucket
+    elif absolute_total_delta_angle > 130 and direction == "Right" and relative_displacement >= 0.10:
+        bucket = "Right"
+        return bucket
+    elif absolute_total_delta_angle > 130 and direction == "Left" and relative_displacement >= 0.10:
+        bucket = "Left"
+        return bucket
+    elif absolute_total_delta_angle > 130 and direction == "Right":
+        bucket = "Right-U-Turn"
+        return bucket
+    elif absolute_total_delta_angle > 130 and direction == "Left":
+        bucket = "Left-U-Turn"
+        return bucket
+    else:
+        bucket = "Straight"
+        return bucket
 
 
 def get_vehicles_for_scenario(decoded_example):

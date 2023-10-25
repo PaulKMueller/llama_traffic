@@ -390,7 +390,6 @@ class SimpleShell(cmd.Cmd):
         
         # Take every 5th coordinate to reduce the number of coordinates
         # and therefore the number of calculations
-        coordinates = coordinates[::5]
         
         print(f"\n{get_direction_of_vehicle(self.waymo_scenario, coordinates)}!\n")
 
