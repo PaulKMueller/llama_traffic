@@ -23,6 +23,8 @@ from waymo_initialize import init_waymo
 
 from waymo_utils import get_scenario_list, get_spline_for_coordinates, get_scenario_id
 
+from trajectory_encoder import get_trajectory_embedding
+
 
 class SimpleShell(cmd.Cmd):
     prompt = '(waymo_cli) '
@@ -622,6 +624,30 @@ class SimpleShell(cmd.Cmd):
             os.remove(f"/home/pmueller/llama_traffic/output/{file}")
 
         print("\nSuccessfully cleared the output folder!\n")
+
+
+    def do_get_trajectory_embedding(self, arg):
+
+        # Checking if a scenario has been loaded already.
+        if not self.scenario_loaded:
+            print(("\nNo scenario has been initialized yet! \nPlease use 'load_scenario'"
+                  " to load a scenario before calling the 'plot_scenario' command.\n"))
+            return
+        
+        # Check for empty arguments (no ID provided)
+        if (arg == ""):
+            print(("\nYou have provided no ID for the vehicle "
+                    "whose trajectory you want to get.\nPlease provide a path!\n"))
+            return
+        
+
+        print("\nCalculating the trajectory embedding...")
+
+        vehicle_id = arg.split()[0]
+        coordinates = get_coordinates(decoded_example = self.waymo_scenario,
+                                      specific_id = vehicle_id)
+        trajectory_embedding = get_trajectory_embedding(coordinates)
+        print(trajectory_embedding)
 
 
     # Basic command to exit the shell
