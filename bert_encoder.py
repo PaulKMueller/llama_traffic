@@ -11,6 +11,14 @@ def get_bert_embedding(input_text: str):
         input_text (str): The text for which to generate the embedding.
     """    
 
+    print("Generating BERT embedding for text: " + input_text)
+
     tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
     model = TFBertModel.from_pretrained("bert-base-uncased")
+
+
+    encoded_input = tokenizer(input_text, return_tensors='tf')
+    output_embeddings = model(encoded_input)
+
+    return output_embeddings
 
