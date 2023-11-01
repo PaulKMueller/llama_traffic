@@ -556,6 +556,8 @@ class SimpleShell(cmd.Cmd):
 
 
     def do_get_spline(self, arg):
+        """Prints the spline for the given vehicle ID.
+        """        
 
         # Checking if a scenario has been loaded already.
         if not self.scenario_loaded:
