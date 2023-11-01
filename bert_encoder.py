@@ -18,7 +18,7 @@ def get_bert_embedding(input_text: str):
 
 
     encoded_input = tokenizer(input_text, return_tensors='tf')
-    output_embeddings = model(encoded_input)
+    output_embeddings = model(encoded_input).pooler_output.numpy()
 
     return output_embeddings
 

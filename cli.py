@@ -677,8 +677,6 @@ class SimpleShell(cmd.Cmd):
         print("\nCalculating the BERT embedding...")
         embedding = get_bert_embedding(arg)
         print(embedding)
-        
-
 
 
     # Basic command to exit the shell
