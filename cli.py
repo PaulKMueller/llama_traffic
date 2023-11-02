@@ -28,6 +28,9 @@ from trajectory_encoder import get_trajectory_embedding
 from bert_encoder import get_bert_embedding
 
 
+
+
+
 class SimpleShell(cmd.Cmd):
     prompt = '(waymo_cli) '
     waymo_scenario = {}
@@ -632,6 +635,42 @@ class SimpleShell(cmd.Cmd):
             os.remove(f"/home/pmueller/llama_traffic/output/{file}")
 
         print("\nSuccessfully cleared the output folder!\n")
+
+
+    def do_get_filter_dict_for_loaded_scenario(self, arg):
+        """Returns a dictionary with the buckets 
+        Stationary, Left, Right, Straight-Left, Straight-Right, 
+        Left-U-Turn, Right-U-Turn, Straight as keys 
+        and the corresponding vehicle IDs as values.
+
+        Args:
+            arg (str): No arguments are required.
+        """        
+
+        # Checking if a scenario has been loaded already.
+        if not self.scenario_loaded:
+            print(("\nNo scenario has been initialized yet! \nPlease use 'load_scenario'"
+                  " to load a scenario before calling the 'plot_scenario' command.\n"))
+            return
+
+        print("\nGetting the filter dictionary...")
+        vehicle_ids = get_vehicles_for_scenario(self.waymo_scenario)
+        filter_dict = {}
+        for vehicle_id in vehicle_ids:
+            direction = get_direction_of_vehicle(
+                self.waymo_scenario,
+                get_coordinates(self.waymo_scenario, vehicle_id))
+            if direction in filter_dict.keys():
+                filter_dict[direction].append(vehicle_id)
+            else:
+                filter_dict[direction] = [vehicle_id]
+        
+        print(filter_dict)
+        print("\n")
+
+        # Save the filter dict to a txt file in the output folder
+        with open(f"/home/pmueller/llama_traffic/output/{get_scenario_id(self.scenario_name)}_filter_dict.txt", "w") as file:
+            file.write(str(filter_dict))
 
 
     def do_get_trajectory_embedding(self, arg):
