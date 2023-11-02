@@ -1,10 +1,13 @@
 import cmd
 import argparse
 import os
+import yaml
 
 import pandas as pd
 
 from datetime import datetime
+
+import random
 
 from waymo_inform import (get_coordinates,
                           get_direction_of_vehicle,
@@ -12,7 +15,8 @@ from waymo_inform import (get_coordinates,
                           get_relative_displacement,
                           get_vehicles_for_scenario,
                           get_delta_angles,
-                          get_sum_of_delta_angles)
+                          get_sum_of_delta_angles,
+                          do_get_filter_dict_for_scenario)
 
 from waymo_visualize import (visualize_all_agents_smooth,
                               create_animation,
@@ -21,7 +25,7 @@ from waymo_visualize import (visualize_all_agents_smooth,
                               visualize_map)
 from waymo_initialize import init_waymo
 
-from waymo_utils import get_scenario_list, get_spline_for_coordinates, get_scenario_id
+from waymo_utils import get_scenario_list, get_spline_for_coordinates, get_scenario_index
 
 from trajectory_encoder import get_trajectory_embedding
 
@@ -36,6 +40,10 @@ class SimpleShell(cmd.Cmd):
     waymo_scenario = {}
     scenario_loaded = False
     scenario_name = ""
+
+    with open("config.yaml", "r") as file:
+        config = yaml.safe_load(file)
+        scenario_data_folder = config["scenario_data_folder"]
 
 
     def arg_parser(self):
@@ -75,7 +83,7 @@ class SimpleShell(cmd.Cmd):
             return
         
         image = visualize_map(self.waymo_scenario)
-        image.savefig(f"/home/pmueller/llama_traffic/output/roadgraph_{get_scenario_id(self.scenario_name)}.png")
+        image.savefig(f"/home/pmueller/llama_traffic/output/roadgraph_{get_scenario_index(self.scenario_name)}.png")
 
 
     def do_visualize_trajectory(self, arg):
@@ -654,23 +662,34 @@ class SimpleShell(cmd.Cmd):
             return
 
         print("\nGetting the filter dictionary...")
-        vehicle_ids = get_vehicles_for_scenario(self.waymo_scenario)
-        filter_dict = {}
-        for vehicle_id in vehicle_ids:
-            direction = get_direction_of_vehicle(
-                self.waymo_scenario,
-                get_coordinates(self.waymo_scenario, vehicle_id))
-            if direction in filter_dict.keys():
-                filter_dict[direction].append(vehicle_id)
-            else:
-                filter_dict[direction] = [vehicle_id]
-        
-        print(filter_dict)
-        print("\n")
+        filter_dict = do_get_filter_dict_for_scenario(self.waymo_scenario)
 
         # Save the filter dict to a txt file in the output folder
-        with open(f"/home/pmueller/llama_traffic/output/{get_scenario_id(self.scenario_name)}_filter_dict.txt", "w") as file:
+        with open(f"/home/pmueller/llama_traffic/output/{get_scenario_index(self.scenario_name)}_filter_dict.txt", "w") as file:
             file.write(str(filter_dict))
+
+
+    def do_prepare_trajectory_bucket_data_for_training(self, arg):
+        """Prepares the trajectory bucket data for training.
+
+        Args:
+            arg (str): No arguments are required.
+        """        
+
+        print("\nPreparing the trajectory bucket data for training...")
+
+        scenarios = get_scenario_list()
+
+        for scenario in scenarios:
+            print(f"Preparing the data for scenario {scenario}...")
+            scenario_index = get_scenario_index(scenario)
+            filter_dict = do_get_filter_dict_for_scenario(init_waymo(('/mrtstorage/datasets/tmp/waymo_open_motion_v_1_2_0'
+                                   '/uncompressed/tf_example/training/') + 
+                                   scenario))
+            with open(f"/home/pmueller/llama_traffic/output/{scenario_index}_filter_dict.txt", "w") as file:
+                file.write(str(filter_dict))
+
+        print("Successfully prepared the trajectory bucket data for training!\n")
 
 
     def do_get_trajectory_embedding(self, arg):
@@ -716,6 +735,55 @@ class SimpleShell(cmd.Cmd):
         print("\nCalculating the BERT embedding...")
         embedding = get_bert_embedding(arg)
         print(embedding)
+
+
+    def do_get_scenario_index(self, arg):
+        """Returns the ID of the loaded scenario.
+
+        Args:
+            arg (str): No arguments are required.
+        """        
+
+        print(f"\nThe ID of the loaded scenario is: {get_scenario_index(self.scenario_name)}\n")
+
+
+    def do_test_trajectory_bucketing(self, arg):
+        """Generates the buckets for 20 random trajectories from random scenarios.
+        Plot them and save them in the corresponding folders.
+        Store the plotted trajectories with the corresponding trajectory bucket,
+        the scenario index and the vehicle ID as the file name.
+        
+        <bucket_scenarioindex_vehicleid.png>
+
+        Args:
+            arg (str): No arguments are required.
+        """
+
+        print("\nTesting the trajectory bucketing...")
+        scenarios = get_scenario_list()
+        number_of_scenarios = len(scenarios)
+
+        for i in range(20):
+            # Get random scenario
+            random_scenario_index =  random.randint(0, number_of_scenarios)
+            random_scenario = init_waymo("/mrtstorage/datasets/tmp/waymo_open_motion_v_1_2_0/uncompressed/tf_example/training/" + scenarios[random_scenario_index])
+
+            # Get random vehicle ID
+            vehicles_for_scenario = get_vehicles_for_scenario(random_scenario)
+            number_of_vehicles_in_scenario = len(vehicles_for_scenario)
+            random_vehicle_id = vehicles_for_scenario[random.randint(0, number_of_vehicles_in_scenario-1)]
+
+            # Plot the vehicle trajectory
+            visualized_trajectory = visualize_trajectory(random_scenario, specific_id=random_vehicle_id)
+
+            # Get direction of the chosen vehicle in the chosen scenario
+            direction = get_direction_of_vehicle(random_scenario,get_coordinates(random_scenario, random_vehicle_id))
+
+            # Safe trajectory with the defined name convention
+            visualized_trajectory.savefig(f"/home/pmueller/llama_traffic/output/{direction}_{random_scenario_index}_{random_vehicle_id}.png")
+
+
+        print("Successfully prepared the trajectory bucket data for training!\n")
 
 
     # Basic command to exit the shell

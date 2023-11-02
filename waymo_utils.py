@@ -24,6 +24,18 @@ def get_scenario_list():
             return f"Error: An unexpected error occurred - {str(e)}."
         
 
+def get_scenario_index(scenario_name):
+    """Returns the scenario id for the given scenario name.
+
+    Args:
+        scenario_name (str): The name of the scenario
+    """
+    scenario_list = get_scenario_list()
+
+    scenario_index = scenario_list.index(scenario_name)
+    return scenario_index
+
+
 def get_scenario_id(scenario_name):
     """Returns the scenario id for the given scenario name.
 

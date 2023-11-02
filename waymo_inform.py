@@ -256,7 +256,7 @@ def get_delta_angles(coordinates: pd.DataFrame):
     """    
     delta_angles = []
 
-    coordinates = get_spline_for_coordinates(coordinates)
+    #coordinates = get_spline_for_coordinates(coordinates)
     
     for i in range(1, len(coordinates) - 1):
         # Calculate the direction vector of the current segment
@@ -405,7 +405,7 @@ def get_direction_of_vehicle(decoded_example, coordinates: pd.DataFrame):
     if (relative_displacement < 0.05):
         bucket = "Stationary"
         return bucket
-    elif absolute_total_delta_angle < 20 and absolute_total_delta_angle > -20:
+    elif absolute_total_delta_angle < 15 and absolute_total_delta_angle > -15:
         bucket = "Straight"
         return bucket
     elif absolute_total_delta_angle <= 40 and direction == "Right":
@@ -447,3 +447,26 @@ def get_vehicles_for_scenario(decoded_example):
     return filtered_ids
 
 
+def do_get_filter_dict_for_scenario(waymo_scenario):
+    """Returns a dictionary with the buckets 
+    Stationary, Left, Right, Straight-Left, Straight-Right, 
+    Left-U-Turn, Right-U-Turn, Straight as keys 
+    and the corresponding vehicle IDs as values.
+
+    Args:
+        arg (str): No arguments are required.
+    """        
+
+    print("\nGetting the filter dictionary...")
+    vehicle_ids = get_vehicles_for_scenario(waymo_scenario)
+    filter_dict = {}
+    for vehicle_id in vehicle_ids:
+        direction = get_direction_of_vehicle(
+            waymo_scenario,
+            get_coordinates(waymo_scenario, vehicle_id))
+        if direction in filter_dict.keys():
+            filter_dict[direction].append(vehicle_id)
+        else:
+            filter_dict[direction] = [vehicle_id]
+    
+    return filter_dict

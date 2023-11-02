@@ -1,2 +1,2 @@
 numpy_data_path : "/mrtstorage/datasets/tmp/waymo_open_motion_processed/train-2e6"
-raw_data_path: 
+scenario_data_folder: "/mrtstorage/datasets/tmp/waymo_open_motion_v_1_2_0/uncompressed/tf_example/training"
