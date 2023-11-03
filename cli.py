@@ -773,6 +773,9 @@ class SimpleShell(cmd.Cmd):
             number_of_vehicles_in_scenario = len(vehicles_for_scenario)
             random_vehicle_id = vehicles_for_scenario[random.randint(0, number_of_vehicles_in_scenario-1)]
 
+            # Get trajectory coordinates
+            trajectory_coordinates = get_coordinates(random_scenario, random_vehicle_id)
+
             # Plot the vehicle trajectory
             visualized_trajectory = visualize_trajectory(random_scenario, specific_id=random_vehicle_id)
 
@@ -781,6 +784,9 @@ class SimpleShell(cmd.Cmd):
 
             # Safe trajectory with the defined name convention
             visualized_trajectory.savefig(f"/home/pmueller/llama_traffic/output/{direction}_{random_scenario_index}_{random_vehicle_id}.png")
+
+            # Safe trajectory coordinates to csv with same naming convention as trajectory visualization
+            trajectory_coordinates.to_csv(f"/home/pmueller/llama_traffic/output/{direction}_{random_scenario_index}_{random_vehicle_id}.scsv")
 
 
         print("Successfully prepared the trajectory bucket data for training!\n")
