@@ -93,6 +93,10 @@ def get_coordinates(
     Args:
         decoded_example: Dictionary containing agent info about all modeled agents.
         specific_id: The idea for which to store the coordinates.
+
+    Returns:
+        pandas.dataframe: The coordinates of the vehicle identified by its
+        specific_id.
     """
 
     output_df = pd.DataFrame(columns=["X", "Y"])
@@ -256,7 +260,7 @@ def get_delta_angles(coordinates: pd.DataFrame):
     """    
     delta_angles = []
 
-    #coordinates = get_spline_for_coordinates(coordinates)
+    coordinates = get_spline_for_coordinates(coordinates)
     
     for i in range(1, len(coordinates) - 1):
         # Calculate the direction vector of the current segment
@@ -447,14 +451,14 @@ def get_vehicles_for_scenario(decoded_example):
     return filtered_ids
 
 
-def do_get_filter_dict_for_scenario(waymo_scenario):
+def get_filter_dict_for_scenario(waymo_scenario):
     """Returns a dictionary with the buckets 
     Stationary, Left, Right, Straight-Left, Straight-Right, 
     Left-U-Turn, Right-U-Turn, Straight as keys 
     and the corresponding vehicle IDs as values.
 
     Args:
-        arg (str): No arguments are required.
+        waymo_scenario (): # TODO: Add description
     """        
 
     print("\nGetting the filter dictionary...")
@@ -470,3 +474,27 @@ def do_get_filter_dict_for_scenario(waymo_scenario):
             filter_dict[direction] = [vehicle_id]
     
     return filter_dict
+
+
+def get_labeled_trajectories_for_scenario(waymo_scenario):
+    """Returns a dictionary with the trajectories of all vehicles in the scenario
+    and their corresponding labels (buckets).
+
+    Args:
+        arg (str): # TODO: Add description
+    """        
+
+    print("\nGetting the filter dictionary...")
+
+    vehicle_ids = get_vehicles_for_scenario(waymo_scenario)
+    trajectory_dict = {}
+    for vehicle_id in vehicle_ids:
+        coordinates = get_coordinates(waymo_scenario, vehicle_id)
+        x_coordinates = coordinates["X"].to_numpy()
+        y_coordinates = coordinates["Y"].to_numpy()
+        direction = get_direction_of_vehicle(
+            waymo_scenario,
+            coordinates)
+        trajectory_dict[vehicle_id] = {"X": x_coordinates, "Y": y_coordinates, "Direction": direction}
+    
+    return trajectory_dict

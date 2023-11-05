@@ -16,7 +16,8 @@ from waymo_inform import (get_coordinates,
                           get_vehicles_for_scenario,
                           get_delta_angles,
                           get_sum_of_delta_angles,
-                          do_get_filter_dict_for_scenario)
+                          get_filter_dict_for_scenario,
+                          get_labeled_trajectories_for_scenario)
 
 from waymo_visualize import (visualize_all_agents_smooth,
                               create_animation,
@@ -662,7 +663,7 @@ class SimpleShell(cmd.Cmd):
             return
 
         print("\nGetting the filter dictionary...")
-        filter_dict = do_get_filter_dict_for_scenario(self.waymo_scenario)
+        filter_dict = get_filter_dict_for_scenario(self.waymo_scenario)
 
         # Save the filter dict to a txt file in the output folder
         with open(f"/home/pmueller/llama_traffic/output/{get_scenario_index(self.scenario_name)}_filter_dict.txt", "w") as file:
@@ -683,13 +684,41 @@ class SimpleShell(cmd.Cmd):
         for scenario in scenarios:
             print(f"Preparing the data for scenario {scenario}...")
             scenario_index = get_scenario_index(scenario)
-            filter_dict = do_get_filter_dict_for_scenario(init_waymo(('/mrtstorage/datasets/tmp/waymo_open_motion_v_1_2_0'
-                                   '/uncompressed/tf_example/training/') + 
-                                   scenario))
-            with open(f"/home/pmueller/llama_traffic/output/{scenario_index}_filter_dict.txt", "w") as file:
-                file.write(str(filter_dict))
+
+            #filter_dict = do_get_filter_dict_for_scenario(init_waymo(('/mrtstorage/datasets/tmp/waymo_open_motion_v_1_2_0'
+                                   #'/uncompressed/tf_example/training/') + 
+                                   #scenario))
+            #with open(f"/home/pmueller/llama_traffic/output/{scenario_index}_filter_dict.txt", "w") as file:
+                #file.write(str(filter_dict))
+
+            return
 
         print("Successfully prepared the trajectory bucket data for training!\n")
+
+
+
+    def do_get_scenario_labeled_trajectories(self, arg):
+        """Returns a dictionary with the vehicle IDs of the loaded scenario as
+        keys and the corresponding trajectories (as numpy arrays of X and Y coordinates) and labels as values.
+
+        Args:
+            arg (str): No arguments are required.
+        """
+
+        # Checking if a scenario has been loaded already.
+        if not self.scenario_loaded:
+            print(("\nNo scenario has been initialized yet! \nPlease use 'load_scenario'"
+                  " to load a scenario before calling the 'plot_scenario' command.\n"))
+            return
+
+        print("\nGetting the labeled trajectories...")
+        labeled_trajectories = get_labeled_trajectories_for_scenario(self.waymo_scenario)
+
+        # Save the labeled trajectories to a txt file in the output folder
+        with open(f"/home/pmueller/llama_traffic/output/{get_scenario_index(self.scenario_name)}_labeled_trajectories.txt", "w") as file:
+            file.write(str(labeled_trajectories))
+
+
 
 
     def do_get_trajectory_embedding(self, arg):
