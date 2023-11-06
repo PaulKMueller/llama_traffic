@@ -69,20 +69,19 @@ def get_spline_for_coordinates(coordinates):
 
     # Check if there are more data points than the minimum required for a spline
     if len(filtered_x) < 4 or len(filtered_y) < 4:
-        print("Not enough data points to fit a spline.")
-        return coordinates
+        return get_adjusted_coordinates(coordinates)
 
     # Check if the coordinates are constant
 
     if len(set(filtered_x)) <= 1 and len(set(filtered_y)) <= 1:
         print("Both x and y are constant. Cannot fit a spline.")
-        return coordinates
+        return get_adjusted_coordinates(coordinates)
     elif len(set(filtered_x)) <= 1:
         print("x is constant. Cannot fit a spline.")
-        return coordinates
+        return get_adjusted_coordinates(coordinates)
     elif len(set(filtered_y)) <= 1:
         print("y is constant. Cannot fit a spline.")
-        return coordinates
+        return get_adjusted_coordinates(coordinates)
     else:
         # Call splprep
        tck, u = interpolate.splprep([filtered_x, filtered_y], s=120)
@@ -95,3 +94,23 @@ def get_spline_for_coordinates(coordinates):
     result = pd.DataFrame({"X": spline[0], "Y": spline[1]})
     
     return result
+
+
+def get_adjusted_coordinates(coordinates):
+    """For given coordinates returns their adjusted coordinates.
+    This means that the coordinates are adapted to have 101 X coordinates and 101 Y coordinates.
+
+    Args:
+        coordinates (pd.DataFrame): The coordinates of a vehicle represented as a DataFrame
+    """    
+
+    adjusted_coordinates = pd.DataFrame(columns=["X", "Y"])
+    x = coordinates["X"]
+    y = coordinates["Y"]
+
+    # Copy the first X coordinate 101 times
+    adjusted_coordinates["X"] = [x[0]] * 101
+    # Copy the first Y coordinate 101 times
+    adjusted_coordinates["Y"] = [y[0]] * 101
+
+    return adjusted_coordinates

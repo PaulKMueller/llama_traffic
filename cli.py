@@ -462,7 +462,6 @@ class SimpleShell(cmd.Cmd):
         vehicle_ids = get_vehicles_for_scenario(self.waymo_scenario)
 
         for vehicle_id in vehicle_ids:
-            print(f"Vehicle ID: {vehicle_id}")
             direction = get_direction_of_vehicle(
                 self.waymo_scenario,
                 get_coordinates(self.waymo_scenario, vehicle_id))
@@ -712,11 +711,13 @@ class SimpleShell(cmd.Cmd):
             return
 
         print("\nGetting the labeled trajectories...")
-        labeled_trajectories = get_labeled_trajectories_for_scenario(self.waymo_scenario)
+        labeled_trajectories = get_labeled_trajectories_for_scenario(self.waymo_scenario, self.scenario_name)
 
         # Save the labeled trajectories to a txt file in the output folder
         with open(f"/home/pmueller/llama_traffic/output/{get_scenario_index(self.scenario_name)}_labeled_trajectories.txt", "w") as file:
             file.write(str(labeled_trajectories))
+
+        print("Successfully got the labeled trajectories!\n")
 
 
 
