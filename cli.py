@@ -17,7 +17,8 @@ from waymo_inform import (get_coordinates,
                           get_delta_angles,
                           get_sum_of_delta_angles,
                           get_filter_dict_for_scenario,
-                          get_labeled_trajectories_for_scenario)
+                          get_labeled_trajectories_for_scenario,
+                          get_labeled_trajectories_for_all_scenarios)
 
 from waymo_visualize import (visualize_all_agents_smooth,
                               create_animation,
@@ -718,6 +719,26 @@ class SimpleShell(cmd.Cmd):
             file.write(str(labeled_trajectories))
 
         print("Successfully got the labeled trajectories!\n")
+
+
+    def do_get_trajectory_data_for_all_scenarios(self, arg):
+        """Creates a dictionary with the scenario IDs as keys and the corresponding
+        labeled trajectories for each vehicle as values.
+        'Labeled' in this context refers to the direction buckets that the trajectories
+        are sorted into.
+
+        Args:
+            arg (str): No arguments are required.
+        """
+
+        print("\nGetting the labeled trajectories for all scenarios...")
+        labeled_trajectories = get_labeled_trajectories_for_all_scenarios()
+
+        # Save the labeled trajectories to a txt file in the output folder
+        with open(f"/home/pmueller/llama_traffic/output/all_labeled_trajectories.txt", "w") as file:
+            file.write(str(labeled_trajectories))
+
+        print("Successfully got the labeled trajectories for all scenarios!\n")
 
 
 

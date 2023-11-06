@@ -3,7 +3,9 @@ import tensorflow as tf
 import pandas as pd
 import math
 
-from waymo_utils import get_spline_for_coordinates, get_scenario_index
+from waymo_initialize import init_waymo
+
+from waymo_utils import get_spline_for_coordinates, get_scenario_index, get_scenario_list
 
 
 def dotproduct(v1, v2):
@@ -106,15 +108,11 @@ def get_coordinates(decoded_example, specific_id: float = None):
 
     agent_ids = decoded_example["state/id"].numpy()
 
-    print("Checkpoint 1")
-
     # [num_agents, num_past_steps, 2] float32.
     past_states = tf.stack(
         [decoded_example["state/past/x"], decoded_example["state/past/y"]], -1
     ).numpy()
     past_states_mask = decoded_example["state/past/valid"].numpy() > 0.0
-
-    print("Checkpoint 2")
 
     # [num_agents, 1, 2] float32.
     current_states = tf.stack(
@@ -122,15 +120,11 @@ def get_coordinates(decoded_example, specific_id: float = None):
     ).numpy()
     current_states_mask = decoded_example["state/current/valid"].numpy() > 0.0
 
-    print("Checkpoint 3")
-
     # [num_agents, num_future_steps, 2] float32.
     future_states = tf.stack(
         [decoded_example["state/future/x"], decoded_example["state/future/y"]], -1
     ).numpy()
     future_states_mask = decoded_example["state/future/valid"].numpy() > 0.0
-
-    print("Checkpoint 4")
 
     _, num_past_steps, _ = past_states.shape
     num_future_steps = future_states.shape[1]
@@ -147,8 +141,6 @@ def get_coordinates(decoded_example, specific_id: float = None):
         coordinates_for_step_df = pd.DataFrame([coordinates_for_step])
         output_df = pd.concat([output_df, coordinates_for_step_df], ignore_index=True)
 
-    print("Checkpoint 5")
-
     # Generate one image for the current time step.
     s = current_states
     m = current_states_mask
@@ -159,8 +151,6 @@ def get_coordinates(decoded_example, specific_id: float = None):
     coordinates_for_step_df = pd.DataFrame([coordinates_for_step])
 
     output_df = pd.concat([output_df, coordinates_for_step_df], ignore_index=True)
-
-    print("Checkpoint 6")
 
     # Generate images from future time steps.
     for _, (s, m) in enumerate(
@@ -175,14 +165,10 @@ def get_coordinates(decoded_example, specific_id: float = None):
         coordinates_for_step_df = pd.DataFrame([coordinates_for_step])
         output_df = pd.concat([output_df, coordinates_for_step_df], ignore_index=True)
 
-    print("Checkpoint 7")
-
     # Delete all rows where both X and Y are -1.0
     output_df = output_df[~((output_df["X"] == -1.0) & (output_df["Y"] == -1.0))]
 
     output_df = output_df.reset_index(drop=True)
-
-    print("Checkpoint 8")
 
     return output_df
 
@@ -543,5 +529,38 @@ def get_labeled_trajectories_for_scenario(waymo_scenario, scenario_name):
             "Y": y_coordinates,
             "Direction": direction,
         }
+
+    return trajectory_dict
+
+def get_labeled_trajectories_for_all_scenarios():
+    """Returns a dictionary with the trajectories of all vehicles in the scenario
+    and their corresponding labels (buckets).
+
+    Args:
+        arg (str): # TODO: Add description
+    """
+
+    trajectory_dict = {}
+
+    for scenario in get_scenario_list():
+        
+        print(f"\nGetting the data dictionary for {scenario}...")
+
+        decoded_scenario = init_waymo(('/mrtstorage/datasets/tmp/waymo_open_motion_v_1_2_0'
+                                   '/uncompressed/tf_example/training/') + scenario)
+
+
+        vehicle_ids = get_vehicles_for_scenario(decoded_scenario)
+        for vehicle_id in vehicle_ids:
+            coordinates = get_coordinates(decoded_scenario, vehicle_id)
+            spline_coordinates = get_spline_for_coordinates(coordinates)
+            x_coordinates = spline_coordinates["X"].to_numpy()
+            y_coordinates = spline_coordinates["Y"].to_numpy()
+            direction = get_direction_of_vehicle(decoded_scenario, spline_coordinates)
+            trajectory_dict[f"{get_scenario_index(scenario)}_{vehicle_id}"] = {
+                "X": x_coordinates,
+                "Y": y_coordinates,
+                "Direction": direction
+            }
 
     return trajectory_dict
