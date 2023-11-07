@@ -488,7 +488,7 @@ def get_filter_dict_for_scenario(waymo_scenario):
     and the corresponding vehicle IDs as values.
 
     Args:
-        waymo_scenario (): # TODO: Add description
+        waymo_scenario: Decoded scenario from the Waymo open dataset.
     """
 
     print("\nGetting the filter dictionary...")
@@ -509,9 +509,9 @@ def get_filter_dict_for_scenario(waymo_scenario):
 def get_labeled_trajectories_for_scenario(waymo_scenario, scenario_name):
     """Returns a dictionary with the trajectories of all vehicles in the scenario
     and their corresponding labels (buckets).
-
-    Args:
-        arg (str): # TODO: Add description
+    
+    Returns:
+        dictionary: {<vehicle_id>: {"X": <x_coordinates_of_trajectory>, "Y": <y_coordinates_of_trajectory>, "Direction": <direction_bucket_of_vehicle>}}
     """
 
     print("\nGetting the filter dictionary...")
@@ -536,9 +536,9 @@ def get_labeled_trajectories_for_all_scenarios():
     """Returns a dictionary with the trajectories of all vehicles in the scenario
     and their corresponding labels (buckets).
 
-    Args:
-        arg (str): # TODO: Add description
-    """
+    Returns:
+        dictionary: {<scenario_index>_<vehicle_id>: {"X": <x_coordinates_of_trajectory>, "Y": <y_coordinates_of_trajectory>, "Direction": <direction_bucket_of_vehicle>}}
+    """    
 
     trajectory_dict = {}
 

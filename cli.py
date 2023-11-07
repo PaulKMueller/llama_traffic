@@ -4,6 +4,7 @@ import os
 import yaml
 
 import pandas as pd
+from sklearn.decomposition import PCA
 
 from datetime import datetime
 
@@ -31,7 +32,7 @@ from waymo_utils import get_scenario_list, get_spline_for_coordinates, get_scena
 
 from trajectory_encoder import get_trajectory_embedding
 
-from bert_encoder import get_bert_embedding
+from bert_encoder import get_bert_embedding, get_reduced_bucket_embeddings
 
 
 
@@ -786,6 +787,19 @@ class SimpleShell(cmd.Cmd):
         print("\nCalculating the BERT embedding...")
         embedding = get_bert_embedding(arg)
         print(embedding)
+        print(len(embedding[0]))
+
+    
+    def do_get_reduced_bucket_embeddings(self, arg):
+        """Returns a BERT embedding for the given word which's dimensionality
+        has been reduced to 101 dimensions using PCA.
+
+        Args:
+            arg (str): _description_
+        """        
+
+        reduced_embeddings = get_reduced_bucket_embeddings()
+        print(reduced_embeddings)
 
 
     def do_get_scenario_index(self, arg):
