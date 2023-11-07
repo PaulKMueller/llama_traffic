@@ -19,7 +19,7 @@ from waymo_inform import (get_coordinates,
                           get_sum_of_delta_angles,
                           get_filter_dict_for_scenario,
                           get_labeled_trajectories_for_scenario,
-                          get_labeled_trajectories_for_all_scenarios)
+                          get_labeled_trajectories_for_all_scenarios_json)
 
 from waymo_visualize import (visualize_all_agents_smooth,
                               create_animation,
@@ -33,6 +33,8 @@ from waymo_utils import get_scenario_list, get_spline_for_coordinates, get_scena
 from trajectory_encoder import get_trajectory_embedding
 
 from bert_encoder import get_bert_embedding, get_reduced_bucket_embeddings
+
+from trajectory_classifier import train_classifier
 
 
 
@@ -733,7 +735,7 @@ class SimpleShell(cmd.Cmd):
         """
 
         print("\nGetting the labeled trajectories for all scenarios...")
-        labeled_trajectories = get_labeled_trajectories_for_all_scenarios()
+        labeled_trajectories = get_labeled_trajectories_for_all_scenarios_json()
 
         # Save the labeled trajectories to a txt file in the output folder
         with open(f"/home/pmueller/llama_traffic/output/all_labeled_trajectories.txt", "w") as file:
@@ -855,6 +857,16 @@ class SimpleShell(cmd.Cmd):
 
 
         print("Successfully prepared the trajectory bucket data for training!\n")
+
+
+    def do_classification(self, arg):
+        """Trains a classification model and tests for its accuracy.
+
+        Args:
+            arg (str): No arguments required.
+        """
+        train_classifier()
+
 
 
     # Basic command to exit the shell
