@@ -21,6 +21,8 @@ from waymo_inform import (get_coordinates,
                           get_labeled_trajectories_for_scenario,
                           get_labeled_trajectories_for_all_scenarios_json)
 
+from trajectory_generator import create_neural_network, infer_with_neural_network
+
 from waymo_visualize import (visualize_all_agents_smooth,
                               create_animation,
                               visualize_trajectory,
@@ -866,6 +868,37 @@ class SimpleShell(cmd.Cmd):
             arg (str): No arguments required.
         """
         train_classifier()
+
+
+    def do_create_neural_network(self, arg):
+        """Creates a neural network for the purpose of trajectory prediction.
+
+        Args:
+            arg (str): No arguments required.
+        """        
+
+        create_neural_network()
+
+    
+    def do_infer_with_neural_network(self, arg):
+        """Infer with the neural network.
+
+        Args:
+            arg (str): Bucket for which to predict embedding.
+        """        
+
+        # Check for empty arguments (no bucket provided)
+        if (arg == ""):
+            print(("\nYou have provided no bucket for which to predict the embedding.\nPlease provide a bucket!\n"))
+            return
+        
+        bucket = arg.split()[0]
+
+        input_data = get_reduced_bucket_embeddings()[bucket]
+        prediction = infer_with_neural_network(input_data)
+        print(prediction)
+        print(prediction.shape)
+        
 
 
 

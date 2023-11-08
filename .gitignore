@@ -170,3 +170,9 @@ Stationary/
 Straight/
 Straight-Left/
 Straight-Right/
+
+# Datasets
+datasets/
+
+# Models
+models/
