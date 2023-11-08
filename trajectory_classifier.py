@@ -30,7 +30,7 @@ def train_classifier():
         return data_dict  
 
     # Assuming the file is named 'trajectories.txt'
-    data_dict = load_data('./output/labeled_trajectories.txt')
+    data_dict = load_data('./dataset/labeled_trajectories.json')
 
     # Step 2: Preprocess the data
     def preprocess_data(data_dict):
