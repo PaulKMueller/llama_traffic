@@ -894,13 +894,11 @@ class SimpleShell(cmd.Cmd):
         
         bucket = arg.split()[0]
 
-        input_data = get_reduced_bucket_embeddings()[bucket]
+        input_data = get_bert_embedding(bucket)
         prediction = infer_with_neural_network(input_data)
         print(prediction)
         print(prediction.shape)
         
-
-
 
     # Basic command to exit the shell
     def do_exit(self, arg):

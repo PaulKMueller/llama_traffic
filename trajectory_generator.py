@@ -7,10 +7,11 @@ import numpy as np
 
 def create_neural_network():
     model = Sequential()
-    model.add(Dense(101, activation='relu', input_shape=(101,)))  # Input layer
-    model.add(Dense(64, activation='relu'))  # Hidden layer 1
+    model.add(Dense(768, activation='relu', input_shape=(768,)))  # Input layer
+    model.add(Dense(101, activation='relu'))  # Hidden layer 1
     model.add(Dense(64, activation='relu'))  # Hidden layer 2
     model.add(Dense(64, activation='relu'))  # Hidden layer 3
+    model.add(Dense(64, activation='relu'))  # Hidden layer 4
     model.add(Dense(101, activation='linear'))  # Output layer for regression
     model.compile(optimizer='adam', loss='mean_squared_error')  # Loss function for regression
     model.save('models/my_model.h5')
