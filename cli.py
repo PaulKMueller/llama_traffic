@@ -27,7 +27,8 @@ from waymo_visualize import (visualize_all_agents_smooth,
                               create_animation,
                               visualize_trajectory,
                               visualize_coordinates,
-                              visualize_map)
+                              visualize_map,
+                              visualize_raw_coordinates_without_scenario)
 from waymo_initialize import init_waymo
 
 from waymo_utils import get_scenario_list, get_spline_for_coordinates, get_scenario_index
@@ -320,6 +321,35 @@ class SimpleShell(cmd.Cmd):
         trajectory.savefig(f"/home/pmueller/llama_traffic/output/{vehicle_id}_{sum_of_delta_angles}.png")
         print(("Successfully created trajectory plot in "
               f"/home/pmueller/llama_traffic/output/{timestamp}.png"))
+        
+
+    def do_plot_raw_coordinates_without_scenario(self, arg):
+        """Saves a trajectory (represented as a line) for the given vehicle.
+        Format should be: get_trajectory <ID>
+        Pleas make sure, that you have loaded a scenario before.
+
+        Args:
+            arg (string): The vehicle ID for which to plot the trajectory.
+        """        
+
+        # Checking if a scenario has been loaded already.
+        if not self.scenario_loaded:
+            print(("\nNo scenario has been initialized yet! \nPlease use 'load_scenario'"
+                  " to load a scenario before calling the 'plot_scenario' command.\n"))
+            return
+        
+        # Check for empty arguments (no ID provided)
+        if (arg == ""):
+            print(("\nYou have provided no ID for the vehicle "
+                    "whose trajectory you want to get.\nPlease provide a path!\n"))
+            return
+
+        vehicle_id = arg.split()[0]
+        print(f"\nPlotting trajectory for vehicle {vehicle_id}...")
+        timestamp = datetime.now()
+        coordinates = get_coordinates(decoded_example = self.waymo_scenario, specific_id=vehicle_id)
+        trajectory = visualize_raw_coordinates_without_scenario(coordinates)
+        trajectory.savefig(f"/home/pmueller/llama_traffic/output/{timestamp}.png")
 
 
     def do_plot_all_trajectories(self, arg):

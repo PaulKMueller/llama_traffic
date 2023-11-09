@@ -12,7 +12,7 @@ def create_neural_network():
     model.add(Dense(64, activation='relu'))  # Hidden layer 2
     model.add(Dense(64, activation='relu'))  # Hidden layer 3
     model.add(Dense(64, activation='relu'))  # Hidden layer 4
-    model.add(Dense(101, activation='linear'))  # Output layer for regression
+    model.add(Dense(202, activation='linear'))  # Output layer for regression
     model.compile(optimizer='adam', loss='mean_squared_error')  # Loss function for regression
     model.save('models/my_model.h5')
     return model
