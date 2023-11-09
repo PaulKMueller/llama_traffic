@@ -225,13 +225,12 @@ class SimpleShell(cmd.Cmd):
             images = visualize_all_agents_smooth(
                 scenario, with_ids=False)
 
-
+        scenario_name = get_scenario_index(self.scenario_name)
         anim = create_animation(images[::5])
-        timestamp = datetime.now()
-        anim.save(f'/home/pmueller/llama_traffic/output/{timestamp}.mp4',
+        anim.save(f'/home/pmueller/llama_traffic/output/{scenario_name}.mp4',
                     writer='ffmpeg', fps=10)
         print(("Successfully created animation in"
-                f" /home/pmueller/llama_traffic/output/{timestamp}.mp4!\n"))
+                f" /home/pmueller/llama_traffic/output/{scenario_name}.mp4!\n"))
 
 
     def do_list_scenarios(self, arg):
@@ -346,10 +345,9 @@ class SimpleShell(cmd.Cmd):
 
         vehicle_id = arg.split()[0]
         print(f"\nPlotting trajectory for vehicle {vehicle_id}...")
-        timestamp = datetime.now()
         coordinates = get_coordinates(decoded_example = self.waymo_scenario, specific_id=vehicle_id)
         trajectory = visualize_raw_coordinates_without_scenario(coordinates)
-        trajectory.savefig(f"/home/pmueller/llama_traffic/output/{timestamp}.png")
+        trajectory.savefig(f"/home/pmueller/llama_traffic/output/raw_trajectory_{vehicle_id}.png")
 
 
     def do_plot_all_trajectories(self, arg):
@@ -407,12 +405,11 @@ class SimpleShell(cmd.Cmd):
         coordinates = get_coordinates(decoded_example = self.waymo_scenario,
                                       specific_id = vehicle_id)
 
-        timestamp = datetime.now()
-        coordinates.to_csv(f"/home/pmueller/llama_traffic/output/{timestamp}.scsv")
+        coordinates.to_csv(f"/home/pmueller/llama_traffic/output/coordinates_for_{vehicle_id}.scsv")
 
         print((f"\nThe coordinates of vehicle {vehicle_id} "
               f"have been saved to /home/pmueller/llama_traffic/"
-              f"output/{timestamp}.scsv\n"))
+              f"output/coordinates_for_{vehicle_id}.scsv\n"))
 
 
     def do_get_direction(self, arg):
