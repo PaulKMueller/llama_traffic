@@ -8,6 +8,7 @@ from sklearn.decomposition import PCA
 
 from datetime import datetime
 
+import numpy as np
 import random
 
 from waymo_inform import (get_coordinates,
@@ -21,7 +22,7 @@ from waymo_inform import (get_coordinates,
                           get_labeled_trajectories_for_scenario,
                           get_labeled_trajectories_for_all_scenarios_json)
 
-from trajectory_generator import create_neural_network, infer_with_neural_network
+from trajectory_generator import create_neural_network, infer_with_neural_network, train_neural_network
 
 from waymo_visualize import (visualize_all_agents_smooth,
                               create_animation,
@@ -35,12 +36,11 @@ from waymo_utils import get_scenario_list, get_spline_for_coordinates, get_scena
 
 from trajectory_encoder import get_trajectory_embedding
 
-from bert_encoder import get_bert_embedding, get_reduced_bucket_embeddings
+from bert_encoder import (get_bert_embedding,
+                          get_reduced_bucket_embeddings,
+                          init_bucket_embeddings)
 
 from trajectory_classifier import train_classifier
-
-
-
 
 
 class SimpleShell(cmd.Cmd):
@@ -349,6 +349,9 @@ class SimpleShell(cmd.Cmd):
         trajectory = visualize_raw_coordinates_without_scenario(coordinates)
         trajectory.savefig(f"/home/pmueller/llama_traffic/output/raw_trajectory_{vehicle_id}.png")
 
+        print(("Successfully created trajectory plot in "),
+                f"/home/pmueller/llama_traffic/output/raw_trajectory_{vehicle_id}.png")
+
 
     def do_plot_all_trajectories(self, arg):
         """Saves a trajectory (represented as a line) for all vehicles in the scenario.
@@ -440,9 +443,6 @@ class SimpleShell(cmd.Cmd):
         vehicle_id = arg.split()[0]
         coordinates = get_coordinates(decoded_example = self.waymo_scenario,
                                       specific_id = vehicle_id)
-        
-        # Take every 5th coordinate to reduce the number of coordinates
-        # and therefore the number of calculations
         
         print(f"\n{get_direction_of_vehicle(self.waymo_scenario, coordinates)}!\n")
 
@@ -925,6 +925,61 @@ class SimpleShell(cmd.Cmd):
         prediction = infer_with_neural_network(input_data)
         print(prediction)
         print(prediction.shape)
+
+
+    def do_train_neural_network(self, arg):
+        """Train the neural network.
+
+        Args:
+            arg (str): No arguments required.
+        """        
+
+        train_neural_network()
+
+
+    def do_init_bucket_embeddings(self, arg):
+        """Initialize the bucket embeddings.
+
+        Args:
+            arg (str): No arguments required.
+        """        
+
+        print("\nInitializing the bucket embeddings...")
+        init_bucket_embeddings()
+        print("Successfully initialized the bucket embeddings!\n")
+
+    
+    def do_plot_predicted_trajectory(self, arg):
+        """Plot the predicted trajectory for the given bucket.
+
+        Args:
+            arg (str): No arguments required.
+        """        
+        # Load predicted trajectory JSON from file
+        with open("/home/pmueller/llama_traffic/predicted_trajectory.json", "r") as file:
+            prediction = file.read()
+
+        # Parse loaded data to numpy array
+        prediction = prediction.replace("[", "")
+        prediction = prediction.replace("]", "")
+        prediction = prediction.replace("\n", "")
+        prediction = prediction.split(",")
+        prediction = [float(i) for i in prediction]
+        prediction = np.array(prediction)
+
+
+
+        # Parse loaded data (first 101 dimensions are the predicted x coordinates, the last 101 dimensions are the predicted y coordinates)
+        print(prediction.shape)
+        x_coordinates = prediction[:101]
+        y_coordinates = prediction[101:]
+        complete_coordinates = {"X": x_coordinates, "Y": y_coordinates}
+
+        trajectory = visualize_raw_coordinates_without_scenario(complete_coordinates)
+        trajectory.savefig(f"/home/pmueller/llama_traffic/predicted_trajectory.png")
+
+        print(("Successfully created trajectory plot in "),
+                f"/home/pmueller/llama_traffic/output/predicted_trajectory.png")
         
 
     # Basic command to exit the shell
