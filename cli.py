@@ -22,7 +22,11 @@ from waymo_inform import (get_coordinates,
                           get_labeled_trajectories_for_scenario,
                           get_labeled_trajectories_for_all_scenarios_json)
 
-from trajectory_generator import create_neural_network, infer_with_neural_network, train_neural_network
+from trajectory_generator import (create_neural_network,
+                                  infer_with_neural_network,
+                                  train_neural_network,
+                                  create_transformer_model,
+                                  train_transformer_network)
 
 from waymo_visualize import (visualize_all_agents_smooth,
                               create_animation,
@@ -976,10 +980,32 @@ class SimpleShell(cmd.Cmd):
         complete_coordinates = {"X": x_coordinates, "Y": y_coordinates}
 
         trajectory = visualize_raw_coordinates_without_scenario(complete_coordinates)
-        trajectory.savefig(f"/home/pmueller/llama_traffic/predicted_trajectory.png")
+        trajectory.savefig(f"/home/pmueller/llama_traffic/output/predicted_trajectory.png")
 
         print(("Successfully created trajectory plot in "),
                 f"/home/pmueller/llama_traffic/output/predicted_trajectory.png")
+
+
+    def do_create_transformer_model(self, arg):
+        """Create a transformer model.
+
+        Args:
+            arg (str): No arguments required.
+        """        
+
+        print("\nCreating the transformer model...")
+        create_transformer_model()
+        print("Successfully created the transformer model!\n")
+
+    
+    def do_train_transformer_network(self, arg):
+        """Train the transformer network.
+
+        Args:
+            arg (str): No arguments required.
+        """        
+
+        train_transformer_network()
         
 
     # Basic command to exit the shell
