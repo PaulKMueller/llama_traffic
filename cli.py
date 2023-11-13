@@ -20,7 +20,8 @@ from waymo_inform import (get_coordinates,
                           get_sum_of_delta_angles,
                           get_filter_dict_for_scenario,
                           get_labeled_trajectories_for_scenario,
-                          get_labeled_trajectories_for_all_scenarios_json)
+                          get_labeled_trajectories_for_all_scenarios_json,
+                          get_zipped_labeled_trajectories_for_all_scenarios_json)
 
 from trajectory_generator import (create_neural_network,
                                   infer_with_neural_network,
@@ -87,6 +88,12 @@ class SimpleShell(cmd.Cmd):
     def do_plot_map(self, arg):
         """Plots the map for the loaded scenario.
         """        
+
+        # Load config file
+        with open("config.yaml", "r") as file:
+            config = yaml.safe_load(file)
+            output_folder = config["output_folder"]
+
         # Checking if a scenario has been loaded already.
         if not self.scenario_loaded:
             print(("\nNo scenario has been initialized yet!"
@@ -95,12 +102,17 @@ class SimpleShell(cmd.Cmd):
             return
         
         image = visualize_map(self.waymo_scenario)
-        image.savefig(f"/home/pmueller/llama_traffic/output/roadgraph_{get_scenario_index(self.scenario_name)}.png")
+        image.savefig(f"{output_folder}roadgraph_{get_scenario_index(self.scenario_name)}.png")
 
 
     def do_visualize_trajectory(self, arg):
         """Plots the trajectory for the given vehicle ID.
         """        
+
+        # Load config file
+        with open("config.yaml", "r") as file:
+            config = yaml.safe_load(file)
+            output_folder = config["output_folder"]
 
         # Checking if a scenario has been loaded already.
         if not self.scenario_loaded:
@@ -122,7 +134,7 @@ class SimpleShell(cmd.Cmd):
                                         specific_id = arg)
         trajectory = visualize_coordinates(self.waymo_scenario, coordinates)
 
-        trajectory.savefig(f"/home/pmueller/llama_traffic/output/{vehicle_id}.png")
+        trajectory.savefig(f"{output_folder}{vehicle_id}.png")
 
 
 
@@ -137,10 +149,13 @@ class SimpleShell(cmd.Cmd):
             arg (str): The path to the scenario that should be loaded.
             Alternatively, the flag --example or -e can be used to load
             a pre-defined example scenario.
-        """        
+        """
 
-        # For testing purposes you can use the following paths
-        # /mrtstorage/datasets/tmp/waymo_open_motion_v_1_2_0/uncompressed/tf_example/training/training_tfexample.tfrecord-00499-of-01000
+        # Load config file
+        with open("config.yaml", "r") as file:
+            config = yaml.safe_load(file)
+            scenario_data_folder = config["scenario_data_folder"]
+            output_folder = config["output_folder"]
 
         args = arg.split()
 
@@ -168,9 +183,7 @@ class SimpleShell(cmd.Cmd):
         elif (args[0] == "-i" or args[0] == "--index"):
             scenario_name = get_scenario_list()[int(args[1])]
             print(f"The scenario {scenario_name} is being loaded...")
-            self.waymo_scenario = init_waymo(('/mrtstorage/datasets/tmp/waymo_open_motion_v_1_2_0'
-                                   '/uncompressed/tf_example/training/') + 
-                                   scenario_name)
+            self.waymo_scenario = init_waymo(scenario_data_folder + scenario_name)
             self.scenario_name = scenario_name
             self.scenario_loaded = True
             print("\nSuccessfully initialized the given scenario!\n")
@@ -202,15 +215,19 @@ class SimpleShell(cmd.Cmd):
             arg (str): No arguments are required.
         """        
 
+        # Load config file
+        with open("config.yaml", "r") as file:
+            config = yaml.safe_load(file)
+            scenario_data_folder = config["scenario_data_folder"]
+            output_folder = config["output_folder"]
+
         parser = self.arg_parser()
         args = parser.parse_args(arg.split())
 
         if args.index is not None:
             scenario_name = get_scenario_list()[int(args.index)]
             print(scenario_name)
-            scenario = init_waymo(('/mrtstorage/datasets/tmp/waymo_open_motion_v_1_2_0'
-                                   '/uncompressed/tf_example/training/') + 
-                                   scenario_name)
+            scenario = init_waymo(scenario_data_folder + scenario_name)
         elif self.scenario_loaded:
                 scenario = self.waymo_scenario
         else:
@@ -233,23 +250,27 @@ class SimpleShell(cmd.Cmd):
         anim = create_animation(images[::5])
         anim.save(f'/home/pmueller/llama_traffic/output/{scenario_name}.mp4',
                     writer='ffmpeg', fps=10)
-        print(("Successfully created animation in"
-                f" /home/pmueller/llama_traffic/output/{scenario_name}.mp4!\n"))
+        print(f"Successfully created animation in {output_folder}{scenario_name}.mp4!\n")
 
 
     def do_list_scenarios(self, arg):
         """Lists all available scenarios in the training folder.
-        See:
-        /mrtstorage/datasets/tmp/waymo_open_motion_v_1_2_0/uncompressed/tf_example/training
+        See: config.yaml under "scenario_data_folder".
 
         Args:
             arg (str): No arguments are required.
-        """        
+        """
+
+        # Load config file
+        with open("config.yaml", "r") as file:
+            config = yaml.safe_load(file)
+            scenario_data_folder = config["scenario_data_folder"]
+
         scenarios = get_scenario_list()
         print("\n")
         counter = 0
         for file in scenarios:
-            print(f"{counter}: /mrtstorage/datasets/tmp/waymo_open_motion_v_1_2_0/uncompressed/tf_example/training/{file}")
+            print(f"{counter}: {scenario_data_folder}{file}")
             counter += 1
 
         print("\n")
@@ -264,6 +285,12 @@ class SimpleShell(cmd.Cmd):
         Args:
             arg (str): the vehicle ID for which to plot the trajectory.
         """        
+
+        # Load config file
+        with open("config.yaml", "r") as file:
+            config = yaml.safe_load(file)
+            scenario_data_folder = config["scenario_data_folder"]
+            output_folder = config["output_folder"]
 
         # Checking if a scenario has been loaded already.
         if not self.scenario_loaded:
@@ -286,10 +313,10 @@ class SimpleShell(cmd.Cmd):
                 specific_id=vehicle_id)
         anim = create_animation(images[::5])
         timestamp = datetime.now()
-        anim.save(f'/home/pmueller/llama_traffic/output/{timestamp}.mp4',
+        anim.save(f'{output_folder}{timestamp}.mp4',
                       writer='ffmpeg', fps=10)
         print(("Successfully created animation in "
-              f"/home/pmueller/llama_traffic/output/{timestamp}.mp4!\n"))
+              f"{output_folder}{timestamp}.mp4!\n"))
 
     
     def do_plot_trajectory(self, arg):
@@ -300,6 +327,12 @@ class SimpleShell(cmd.Cmd):
         Args:
             arg (string): The vehicle ID for which to plot the trajectory.
         """        
+
+        # Load config file
+        with open("config.yaml", "r") as file:
+            config = yaml.safe_load(file)
+            scenario_data_folder = config["scenario_data_folder"]
+            output_folder = config["output_folder"]
 
         # Checking if a scenario has been loaded already.
         if not self.scenario_loaded:
@@ -321,9 +354,9 @@ class SimpleShell(cmd.Cmd):
         # trajectory.savefig(f"/home/pmueller/llama_traffic/output/{timestamp}.png")
         sum_of_delta_angles = get_sum_of_delta_angles(
             get_coordinates(self.waymo_scenario, vehicle_id))
-        trajectory.savefig(f"/home/pmueller/llama_traffic/output/{vehicle_id}_{sum_of_delta_angles}.png")
+        trajectory.savefig(f"{output_folder}{vehicle_id}_{sum_of_delta_angles}.png")
         print(("Successfully created trajectory plot in "
-              f"/home/pmueller/llama_traffic/output/{timestamp}.png"))
+              f"{output_folder}{timestamp}.png"))
         
 
     def do_plot_raw_coordinates_without_scenario(self, arg):
@@ -334,6 +367,12 @@ class SimpleShell(cmd.Cmd):
         Args:
             arg (string): The vehicle ID for which to plot the trajectory.
         """        
+
+        # Load config file
+        with open("config.yaml", "r") as file:
+            config = yaml.safe_load(file)
+            scenario_data_folder = config["scenario_data_folder"]
+            output_folder = config["output_folder"]
 
         # Checking if a scenario has been loaded already.
         if not self.scenario_loaded:
@@ -351,10 +390,10 @@ class SimpleShell(cmd.Cmd):
         print(f"\nPlotting trajectory for vehicle {vehicle_id}...")
         coordinates = get_coordinates(decoded_example = self.waymo_scenario, specific_id=vehicle_id)
         trajectory = visualize_raw_coordinates_without_scenario(coordinates)
-        trajectory.savefig(f"/home/pmueller/llama_traffic/output/raw_trajectory_{vehicle_id}.png")
+        trajectory.savefig(f"{output_folder}raw_trajectory_{vehicle_id}.png")
 
         print(("Successfully created trajectory plot in "),
-                f"/home/pmueller/llama_traffic/output/raw_trajectory_{vehicle_id}.png")
+                f"{output_folder}raw_trajectory_{vehicle_id}.png")
 
 
     def do_plot_all_trajectories(self, arg):
@@ -365,6 +404,12 @@ class SimpleShell(cmd.Cmd):
         Args:
             arg (str): No arguments are required.
         """        
+
+        # Load config file
+        with open("config.yaml", "r") as file:
+            config = yaml.safe_load(file)
+            scenario_data_folder = config["scenario_data_folder"]
+            output_folder = config["output_folder"]
 
         # Checking if a scenario has been loaded already.
         if not self.scenario_loaded:
@@ -382,10 +427,10 @@ class SimpleShell(cmd.Cmd):
                                               specific_id=vehicle_id)
             sum_of_delta_angles = get_sum_of_delta_angles(
                 get_coordinates(self.waymo_scenario, vehicle_id))
-            trajectory.savefig(f"/home/pmueller/llama_traffic/output/{vehicle_id}_{sum_of_delta_angles}.png")
+            trajectory.savefig(f"{output_folder}{vehicle_id}_{sum_of_delta_angles}.png")
 
         print(("Plotting complete.\n"
-              "You can find the plots in /home/pmueller/llama_traffic/output/"))
+              f"You can find the plots in {output_folder}"))
 
     
     def do_get_coordinates(self, arg):
@@ -396,6 +441,13 @@ class SimpleShell(cmd.Cmd):
         Args:
             arg (str): The vehicle ID for which to get the coordinates.
         """        
+
+        # Load config file
+        with open("config.yaml", "r") as file:
+            config = yaml.safe_load(file)
+            scenario_data_folder = config["scenario_data_folder"]
+            output_folder = config["output_folder"]
+
         # Checking if a scenario has been loaded already.
         if not self.scenario_loaded:
             print(("\nNo scenario has been initialized yet! \nPlease use 'load_scenario'"
@@ -412,11 +464,10 @@ class SimpleShell(cmd.Cmd):
         coordinates = get_coordinates(decoded_example = self.waymo_scenario,
                                       specific_id = vehicle_id)
 
-        coordinates.to_csv(f"/home/pmueller/llama_traffic/output/coordinates_for_{vehicle_id}.scsv")
+        coordinates.to_csv(f"{output_folder}coordinates_for_{vehicle_id}.scsv")
 
         print((f"\nThe coordinates of vehicle {vehicle_id} "
-              f"have been saved to /home/pmueller/llama_traffic/"
-              f"output/coordinates_for_{vehicle_id}.scsv\n"))
+              f"have been saved to {output_folder}coordinates_for_{vehicle_id}.scsv\n"))
 
 
     def do_get_direction(self, arg):
@@ -517,7 +568,13 @@ class SimpleShell(cmd.Cmd):
 
         Args:
             arg (str): The vehicle ID for which to plot the spline.
-        """        
+        """
+
+        # Load config file
+        with open("config.yaml", "r") as file:
+            config = yaml.safe_load(file)
+            scenario_data_folder = config["scenario_data_folder"]
+            output_folder = config["output_folder"]
 
         # Checking if a scenario has been loaded already.
         if not self.scenario_loaded:
@@ -537,7 +594,7 @@ class SimpleShell(cmd.Cmd):
 
         spline = get_spline_for_coordinates(coordinates)
         spline_plot = visualize_coordinates(self.waymo_scenario, spline)
-        spline_plot.savefig(f"/home/pmueller/llama_traffic/output/{vehicle_id}_spline.png")
+        spline_plot.savefig(f"{output_folder}{vehicle_id}_spline.png")
 
 
     def do_get_vehicles_in_loaded_scenario(self, arg):
@@ -565,6 +622,11 @@ class SimpleShell(cmd.Cmd):
         """Returns the delta angles of the trajectory of the given vehicle.
         """
 
+        # Load config file
+        with open("config.yaml", "r") as file:
+            config = yaml.safe_load(file)
+            output_folder = config["output_folder"]
+
         # Check for empty arguments (no vehicle ID provided)
         if (arg == ""):
             print(("\nYou have provided no ID for the vehicle "
@@ -577,7 +639,7 @@ class SimpleShell(cmd.Cmd):
         angles = get_delta_angles(coordinates)
 
         output_df = pd.DataFrame(angles, columns = ["Delta Angle"])
-        output_df.to_csv(f"/home/pmueller/llama_traffic/output/{vehicle_id}_delta_angles.csv")
+        output_df.to_csv(f"{output_folder}{vehicle_id}_delta_angles.csv")
         
         print(f"The total heading change is: {angles} degrees!")
         # print(sum(angles))
@@ -706,32 +768,6 @@ class SimpleShell(cmd.Cmd):
             file.write(str(filter_dict))
 
 
-    def do_prepare_trajectory_bucket_data_for_training(self, arg):
-        """Prepares the trajectory bucket data for training.
-
-        Args:
-            arg (str): No arguments are required.
-        """        
-
-        print("\nPreparing the trajectory bucket data for training...")
-
-        scenarios = get_scenario_list()
-
-        for scenario in scenarios:
-            print(f"Preparing the data for scenario {scenario}...")
-            scenario_index = get_scenario_index(scenario)
-
-            #filter_dict = do_get_filter_dict_for_scenario(init_waymo(('/mrtstorage/datasets/tmp/waymo_open_motion_v_1_2_0'
-                                   #'/uncompressed/tf_example/training/') + 
-                                   #scenario))
-            #with open(f"/home/pmueller/llama_traffic/output/{scenario_index}_filter_dict.txt", "w") as file:
-                #file.write(str(filter_dict))
-
-            return
-
-        print("Successfully prepared the trajectory bucket data for training!\n")
-
-
 
     def do_get_scenario_labeled_trajectories(self, arg):
         """Returns a dictionary with the vehicle IDs of the loaded scenario as
@@ -740,6 +776,11 @@ class SimpleShell(cmd.Cmd):
         Args:
             arg (str): No arguments are required.
         """
+
+        # Load config file
+        with open("config.yaml", "r") as file:
+            config = yaml.safe_load(file)
+            output_folder = config["output_folder"]
 
         # Checking if a scenario has been loaded already.
         if not self.scenario_loaded:
@@ -751,7 +792,7 @@ class SimpleShell(cmd.Cmd):
         labeled_trajectories = get_labeled_trajectories_for_scenario(self.waymo_scenario, self.scenario_name)
 
         # Save the labeled trajectories to a txt file in the output folder
-        with open(f"/home/pmueller/llama_traffic/output/{get_scenario_index(self.scenario_name)}_labeled_trajectories.txt", "w") as file:
+        with open(f"{output_folder}{get_scenario_index(self.scenario_name)}_labeled_trajectories.txt", "w") as file:
             file.write(str(labeled_trajectories))
 
         print("Successfully got the labeled trajectories!\n")
@@ -767,12 +808,39 @@ class SimpleShell(cmd.Cmd):
             arg (str): No arguments are required.
         """
 
+        # Load output file
+        with open("config.yaml", "r") as file:
+            config = yaml.safe_load(file)
+            output_folder = config["output_folder"]
+
         print("\nGetting the labeled trajectories for all scenarios...")
         labeled_trajectories = get_labeled_trajectories_for_all_scenarios_json()
 
         # Save the labeled trajectories to a txt file in the output folder
-        with open(f"/home/pmueller/llama_traffic/output/all_labeled_trajectories.txt", "w") as file:
+        with open(f"{output_folder}all_labeled_trajectories.txt", "w") as file:
             file.write(str(labeled_trajectories))
+
+        print("Successfully got the labeled trajectories for all scenarios!\n")
+
+
+    
+    def do_get_zipped_data(self, arg):
+        """Returns a dictionary with the scenario IDs as keys and the corresponding
+        labeled trajectories for each vehicle as values.
+        'Labeled' in this context refers to the direction buckets that the trajectories
+        are sorted into.
+
+        Args:
+            arg (str): No arguments are required.
+        """
+
+        # Load config file
+        with open("config.yaml", "r") as file:
+            config = yaml.safe_load(file)
+            output_folder = config["output_folder"]
+
+        print("\nGetting the labeled trajectories for all scenarios...")
+        get_zipped_labeled_trajectories_for_all_scenarios_json()
 
         print("Successfully got the labeled trajectories for all scenarios!\n")
 
@@ -863,10 +931,16 @@ class SimpleShell(cmd.Cmd):
         scenarios = get_scenario_list()
         number_of_scenarios = len(scenarios)
 
+        # Load config file
+        with open("config.yaml", "r") as file:
+            config = yaml.safe_load(file)
+            scenario_data_folder = config["scenario_data_folder"]
+            output_folder = config["output_folder"]
+
         for i in range(20):
             # Get random scenario
             random_scenario_index =  random.randint(0, number_of_scenarios)
-            random_scenario = init_waymo("/mrtstorage/datasets/tmp/waymo_open_motion_v_1_2_0/uncompressed/tf_example/training/" + scenarios[random_scenario_index])
+            random_scenario = init_waymo(scenario_data_folder + scenarios[random_scenario_index])
 
             # Get random vehicle ID
             vehicles_for_scenario = get_vehicles_for_scenario(random_scenario)
@@ -883,10 +957,10 @@ class SimpleShell(cmd.Cmd):
             direction = get_direction_of_vehicle(random_scenario,get_coordinates(random_scenario, random_vehicle_id))
 
             # Safe trajectory with the defined name convention
-            visualized_trajectory.savefig(f"/home/pmueller/llama_traffic/output/{direction}_{random_scenario_index}_{random_vehicle_id}.png")
+            visualized_trajectory.savefig(f"{output_folder}{direction}_{random_scenario_index}_{random_vehicle_id}.png")
 
             # Safe trajectory coordinates to csv with same naming convention as trajectory visualization
-            trajectory_coordinates.to_csv(f"/home/pmueller/llama_traffic/output/{direction}_{random_scenario_index}_{random_vehicle_id}.scsv")
+            trajectory_coordinates.to_csv(f"{output_folder}{direction}_{random_scenario_index}_{random_vehicle_id}.scsv")
 
 
         print("Successfully prepared the trajectory bucket data for training!\n")
@@ -959,8 +1033,14 @@ class SimpleShell(cmd.Cmd):
         Args:
             arg (str): No arguments required.
         """        
+
+        # Load config file
+        with open("config.yaml", "r") as file:
+            config = yaml.safe_load(file)
+            output_folder = config["output_folder"]
+
         # Load predicted trajectory JSON from file
-        with open("/home/pmueller/llama_traffic/predicted_trajectory.json", "r") as file:
+        with open(f"{output_folder}predicted_trajectory.json", "r") as file:
             prediction = file.read()
 
         # Parse loaded data to numpy array
@@ -980,10 +1060,10 @@ class SimpleShell(cmd.Cmd):
         complete_coordinates = {"X": x_coordinates, "Y": y_coordinates}
 
         trajectory = visualize_raw_coordinates_without_scenario(complete_coordinates)
-        trajectory.savefig(f"/home/pmueller/llama_traffic/output/predicted_trajectory.png")
+        trajectory.savefig(f"{output_folder}predicted_trajectory.png")
 
         print(("Successfully created trajectory plot in "),
-                f"/home/pmueller/llama_traffic/output/predicted_trajectory.png")
+                f"{output_folder}predicted_trajectory.png")
 
 
     def do_create_transformer_model(self, arg):

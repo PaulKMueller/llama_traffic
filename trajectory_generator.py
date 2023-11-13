@@ -180,7 +180,7 @@ def infer_with_transformer_network(embedding, model_path='models/my_trained_tran
 
 def train_transformer_network():
     # Load labeled trajectory data
-    with open('datasets/labeled_trajectories.json', 'r') as file:
+    with open('/home/pmueller/llama_traffic/datasets/labeled_trajectories.json', 'r') as file:
         trajectories_data = json.load(file)
 
     bucket_embeddings = init_bucket_embeddings()
@@ -219,7 +219,7 @@ def train_transformer_network():
     model.compile(optimizer='adam', loss='mean_squared_error')
     model.fit(X_train, Y_train, epochs=10, batch_size=32, validation_split=0.1, verbose=0, callbacks=[TqdmCallback(verbose=2)])
 
-    model.save('models/my_trained_transformer_model.h5')
+    model.save('/home/pmueller/llama_traffic/models/my_trained_transformer_model.h5')
     test_loss = model.evaluate(X_test, Y_test)
     print(f'Test Loss: {test_loss}')
 

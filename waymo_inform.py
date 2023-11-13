@@ -600,3 +600,41 @@ def get_labeled_trajectories_for_all_scenarios_json():
     # Save to JSON file
     with open('labeled_trajectories.json', 'w') as json_file:
         json.dump(trajectory_dict, json_file, indent=4)
+
+
+def get_zipped_labeled_trajectories_for_all_scenarios_json():
+    """Saves a JSON file with the trajectories of all vehicles in the scenario
+    and their corresponding labels (buckets), with a progress bar.
+    """
+
+    # Load config file
+    with open('config.json', 'r') as file:
+        config = json.load(file)
+        dataset_folder = config['dataset_folder']
+
+    trajectory_dict = {}
+
+    scenario_list = get_scenario_list()
+    for scenario in tqdm(scenario_list, desc="Processing scenarios"):
+        
+        tqdm.write(f"\nGetting the data dictionary for {scenario}...")
+
+        decoded_scenario = init_waymo(('/mrtstorage/datasets/tmp/waymo_open_motion_v_1_2_0'
+                                   '/uncompressed/tf_example/training/') + scenario)
+
+        vehicle_ids = get_vehicles_for_scenario(decoded_scenario)
+        for vehicle_id in tqdm(vehicle_ids, desc=f"Processing vehicles in scenario {scenario}", leave=False):
+            coordinates = get_coordinates(decoded_scenario, vehicle_id)
+            spline_coordinates = get_spline_for_coordinates(coordinates)
+            x_coordinates = spline_coordinates["X"].tolist()  # Convert to list for JSON serialization
+            y_coordinates = spline_coordinates["Y"].tolist()  # Convert to list for JSON serialization
+            direction = get_direction_of_vehicle(decoded_scenario, spline_coordinates)
+            zipped_coordinates = list(zip(x_coordinates, y_coordinates))
+            trajectory_dict[f"{get_scenario_index(scenario)}_{vehicle_id}"] = {
+                "Coordinates": zipped_coordinates,
+                "Direction": direction
+            }
+
+    # Save to JSON file
+    with open(f'{dataset_folder}labeled_trajectories.json', 'w') as json_file:
+        json.dump(trajectory_dict, json_file, indent=4)
