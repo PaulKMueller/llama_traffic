@@ -29,6 +29,8 @@ from trajectory_generator import (create_neural_network,
                                   create_transformer_model,
                                   train_transformer_network)
 
+from transformer_model import get_positional_encoding
+
 from waymo_visualize import (visualize_all_agents_smooth,
                               create_animation,
                               visualize_trajectory,
@@ -984,13 +986,23 @@ class SimpleShell(cmd.Cmd):
 
         create_neural_network()
 
+
+    def do_infer_with_transformer_network():
+        # TODO
+        return
+
     
     def do_infer_with_neural_network(self, arg):
         """Infer with the neural network.
 
         Args:
             arg (str): Bucket for which to predict embedding.
-        """        
+        """
+
+        # Load config file
+        with open("config.yaml", "r") as file:
+            config = yaml.safe_load(file)
+            output_folder = config["output_folder"]
 
         # Check for empty arguments (no bucket provided)
         if (arg == ""):
@@ -1001,8 +1013,17 @@ class SimpleShell(cmd.Cmd):
 
         input_data = get_bert_embedding(bucket)
         prediction = infer_with_neural_network(input_data)
-        print(prediction)
-        print(prediction.shape)
+
+        # First 101 dimensions are the predicted x coordinates, the last 101 dimensions are the predicted y coordinates
+        x_coords = prediction[0][:101]
+        y_coords = prediction[0][101:]
+
+        # Store the coordinates in coordinate dictionary
+        coordinates = {"X": x_coords, "Y": y_coords}
+
+        visualize_raw_coordinates_without_scenario(coordinates)
+        trajectory = visualize_raw_coordinates_without_scenario(coordinates)
+        trajectory.savefig(f"{output_folder}predicted_trajectory.png")
 
 
     def do_train_neural_network(self, arg):
@@ -1064,6 +1085,50 @@ class SimpleShell(cmd.Cmd):
 
         print(("Successfully created trajectory plot in "),
                 f"{output_folder}predicted_trajectory.png")
+        
+
+    def do_get_positional_encoding(self, arg):
+        """Get the positional encoding for the given bucket.
+
+        Args:
+            arg (str): vehicle ID
+        """        
+
+                # Load config file
+        with open("config.yaml", "r") as file:
+            config = yaml.safe_load(file)
+            scenario_data_folder = config["scenario_data_folder"]
+            output_folder = config["output_folder"]
+
+        # Checking if a scenario has been loaded already.
+        if not self.scenario_loaded:
+            print(("\nNo scenario has been initialized yet! \nPlease use 'load_scenario'"
+                  " to load a scenario before calling the 'plot_scenario' command.\n"))
+            return
+        
+        # Check for empty arguments (no ID provided)
+        if (arg == ""):
+            print(("\nYou have provided no ID for the vehicle "
+                    "whose trajectory you want to get.\nPlease provide a path!\n"))
+            return
+
+        vehicle_id = arg.split()[0]
+
+        trajectory = get_coordinates(decoded_example = self.waymo_scenario,
+                                      specific_id = vehicle_id)
+        trajectory = get_spline_for_coordinates(trajectory)
+        x_coordinates = trajectory["X"]
+        y_coordinates = trajectory["Y"]
+        reshaped_coordinates = []
+        for i in range(len(x_coordinates)):
+            x = x_coordinates[i]
+            y = y_coordinates[i]
+            reshaped_coordinates.append([x, y])
+        reshaped_coordinates = np.array(reshaped_coordinates)
+        print(reshaped_coordinates)
+
+        positional_encoding = get_positional_encoding(reshaped_coordinates)
+        print(positional_encoding)
 
 
     def do_create_transformer_model(self, arg):
