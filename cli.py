@@ -4,7 +4,6 @@ import os
 import yaml
 
 import pandas as pd
-from sklearn.decomposition import PCA
 
 from datetime import datetime
 
@@ -157,7 +156,6 @@ class SimpleShell(cmd.Cmd):
         with open("config.yaml", "r") as file:
             config = yaml.safe_load(file)
             scenario_data_folder = config["scenario_data_folder"]
-            output_folder = config["output_folder"]
 
         args = arg.split()
 
@@ -196,7 +194,7 @@ class SimpleShell(cmd.Cmd):
                 self.scenario_loaded = True
                 print("\nSuccessfully initialized the given scenario!\n")
                 return
-            except:
+            except Exception:
                 print("\nYou have provided no path for the scenario you want to load. Please use the -p flag to indicate the path.\n")
 
     def do_print_current_raw_scenario(self, arg):
@@ -291,7 +289,6 @@ class SimpleShell(cmd.Cmd):
         # Load config file
         with open("config.yaml", "r") as file:
             config = yaml.safe_load(file)
-            scenario_data_folder = config["scenario_data_folder"]
             output_folder = config["output_folder"]
 
         # Checking if a scenario has been loaded already.
@@ -333,7 +330,6 @@ class SimpleShell(cmd.Cmd):
         # Load config file
         with open("config.yaml", "r") as file:
             config = yaml.safe_load(file)
-            scenario_data_folder = config["scenario_data_folder"]
             output_folder = config["output_folder"]
 
         # Checking if a scenario has been loaded already.
@@ -373,7 +369,6 @@ class SimpleShell(cmd.Cmd):
         # Load config file
         with open("config.yaml", "r") as file:
             config = yaml.safe_load(file)
-            scenario_data_folder = config["scenario_data_folder"]
             output_folder = config["output_folder"]
 
         # Checking if a scenario has been loaded already.
@@ -410,7 +405,6 @@ class SimpleShell(cmd.Cmd):
         # Load config file
         with open("config.yaml", "r") as file:
             config = yaml.safe_load(file)
-            scenario_data_folder = config["scenario_data_folder"]
             output_folder = config["output_folder"]
 
         # Checking if a scenario has been loaded already.
@@ -447,7 +441,6 @@ class SimpleShell(cmd.Cmd):
         # Load config file
         with open("config.yaml", "r") as file:
             config = yaml.safe_load(file)
-            scenario_data_folder = config["scenario_data_folder"]
             output_folder = config["output_folder"]
 
         # Checking if a scenario has been loaded already.
@@ -575,7 +568,6 @@ class SimpleShell(cmd.Cmd):
         # Load config file
         with open("config.yaml", "r") as file:
             config = yaml.safe_load(file)
-            scenario_data_folder = config["scenario_data_folder"]
             output_folder = config["output_folder"]
 
         # Checking if a scenario has been loaded already.
@@ -836,11 +828,6 @@ class SimpleShell(cmd.Cmd):
             arg (str): No arguments are required.
         """
 
-        # Load config file
-        with open("config.yaml", "r") as file:
-            config = yaml.safe_load(file)
-            output_folder = config["output_folder"]
-
         print("\nGetting the labeled trajectories for all scenarios...")
         get_zipped_labeled_trajectories_for_all_scenarios_json()
 
@@ -1100,7 +1087,6 @@ class SimpleShell(cmd.Cmd):
                 # Load config file
         with open("config.yaml", "r") as file:
             config = yaml.safe_load(file)
-            scenario_data_folder = config["scenario_data_folder"]
             output_folder = config["output_folder"]
 
         # Checking if a scenario has been loaded already.
@@ -1131,7 +1117,9 @@ class SimpleShell(cmd.Cmd):
         print(reshaped_coordinates)
 
         positional_encoding = get_positional_encoding(reshaped_coordinates)
-        print(positional_encoding)
+        # Store positional encoding in file
+        with open(f"{output_folder}positional_encoding.txt", "w") as file:
+            file.write(str(positional_encoding))
 
 
     def do_create_transformer_model(self, arg):
