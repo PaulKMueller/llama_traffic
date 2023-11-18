@@ -987,7 +987,10 @@ class SimpleShell(cmd.Cmd):
         create_neural_network()
 
 
-    def do_infer_with_transformer_network():
+    def do_infer_with_transformer_network(self, arg):
+        """Infers with the transformer network.
+        """
+
         # TODO
         return
 
