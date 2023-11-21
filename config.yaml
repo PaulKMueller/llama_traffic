@@ -3,3 +3,4 @@ scenario_data_folder: "/mrtstorage/datasets/tmp/waymo_open_motion_v_1_2_0/uncomp
 output_folder: "/home/pmueller/llama_traffic/output/"
 models_folder: "/home/pmueller/llama_traffic/models"
 datasets_folder: "/home/pmueller/llama_traffic/datasets/"
+example_scenario_path: "/mrtstorage/datasets/tmp/waymo_open_motion_v_1_2_0/uncompressed/tf_example/training/training_tfexample.tfrecord-00499-of-01000"

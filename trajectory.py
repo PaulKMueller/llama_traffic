@@ -2,13 +2,15 @@ import numpy as np
 import pandas as pd
 import tensorflow as tf
 from scipy import interpolate
+import math
 
 
 class Trajectory:
     def __init__(self, decoded_example, specific_id):
         self.coordinates = self.get_coordinates(decoded_example, specific_id)
         self.splined_coordinates = self.get_spline_for_coordinates(self.coordinates)
-
+        self.x_coordinates = self.splined_coordinates["X"]
+        self.y_coordinates = self.splined_coordinates["Y"]
 
     @staticmethod
     def get_coordinates_one_step(
@@ -126,7 +128,7 @@ class Trajectory:
 
         Args:
             coordinates (pd.DataFrame): The coordinates of a vehicle represented as a DataFrame
-        """     
+        """
         # Get the x and y coordinates
         x = coordinates["X"]
         y = coordinates["Y"]
@@ -136,7 +138,7 @@ class Trajectory:
 
         threshold = 1e-5
         for i in range(1, len(x)):
-            if np.sqrt((x[i] - x[i-1])**2 + (y[i] - y[i-1])**2) > threshold:
+            if np.sqrt((x[i] - x[i - 1]) ** 2 + (y[i] - y[i - 1]) ** 2) > threshold:
                 filtered_x.append(x[i])
                 filtered_y.append(y[i])
 
@@ -159,15 +161,13 @@ class Trajectory:
             # Call splprep
             tck, u = interpolate.splprep([filtered_x, filtered_y], s=120)
 
-        
         # Get the spline for the x and y coordinates
         unew = np.arange(0, 1.01, 0.01)
         spline = interpolate.splev(unew, tck)
 
         result = pd.DataFrame({"X": spline[0], "Y": spline[1]})
-        
+
         return result
-    
 
     @staticmethod
     def get_adjusted_coordinates(coordinates):
@@ -176,7 +176,7 @@ class Trajectory:
 
         Args:
             coordinates (pd.DataFrame): The coordinates of a vehicle represented as a DataFrame
-        """    
+        """
 
         adjusted_coordinates = pd.DataFrame(columns=["X", "Y"])
         x = coordinates["X"]
@@ -188,3 +188,124 @@ class Trajectory:
         adjusted_coordinates["Y"] = [y[0]] * 101
 
         return adjusted_coordinates
+
+    def get_sum_of_delta_angles(self, coordinates: pd.DataFrame):
+        """Returns the sum of the angles between each segment in the trajectory.
+
+        Args:
+            coordinates (pd.DataFrame): A dataframe containing the coordinates
+                                        of the vehicle trajectory.
+        """
+        delta_angles = self.get_delta_angles(coordinates)
+        filtered_delta_angles = self.remove_outlier_angles(delta_angles)
+        return sum(filtered_delta_angles)
+
+    def get_delta_angles(self, coordinates: pd.DataFrame):
+        """Returns the angle between each segment in the trajectory.
+
+        Args:
+            coordinates (pd.DataFrame): A dataframe containing the coordinates
+                                        of the vehicle trajectory.
+        """
+        delta_angles = []
+
+        for i in range(1, len(coordinates) - 1):
+            # Calculate the direction vector of the current segment
+            current_vector = np.array((
+                coordinates.iloc[i + 1]["X"] - coordinates.iloc[i]["X"],
+                coordinates.iloc[i + 1]["Y"] - coordinates.iloc[i]["Y"],
+            ))
+
+            # Calculate the direction vector of the previous segment
+            previous_vector = np.array((
+                coordinates.iloc[i]["X"] - coordinates.iloc[i - 1]["X"],
+                coordinates.iloc[i]["Y"] - coordinates.iloc[i - 1]["Y"],
+            ))
+
+            # Compute the angle between the current and previous direction vectors
+            angle = self.get_angle_between_vectors(current_vector, previous_vector)
+
+            direction = self.get_gross_direction_for_three_points(
+                coordinates.iloc[i - 1], coordinates.iloc[i], coordinates.iloc[i + 1]
+            )
+
+            if direction == "Right":
+                angle = -angle
+
+            delta_angles.append(angle)
+
+        return delta_angles
+
+
+    @staticmethod
+    def remove_outlier_angles(delta_angles: list):
+        """Removes outlier angles from a list of angles.
+
+        Args:
+            delta_angles (list): A list of angles.
+        """
+
+        filtered_delta_angles = []
+
+        for angle in delta_angles:
+            if angle < 20 and angle > -20:
+                filtered_delta_angles.append(angle)
+
+        return filtered_delta_angles
+
+
+    @staticmethod
+    def get_gross_direction_for_three_points(
+        start: pd.DataFrame, intermediate: pd.DataFrame, end: pd.DataFrame
+    ):
+        """Returns left, right, or straight depending on the direction of the trajectory.
+
+        Args:
+            start (pd.DataFrame): The coordinates of the starting point.
+            intermediate (pd.DataFrame): The coordinates of the intermediate point.
+            end (pd.DataFrame): The coordinates of the ending point.
+        """
+        # Calculate vectors
+        vector1 = np.array((intermediate["X"] - start["X"], intermediate["Y"] - start["Y"]))
+        vector2 = np.array((end["X"] - intermediate["X"], end["Y"] - intermediate["Y"]))
+
+        # Calculate the cross product of the two vectors
+        cross_product = np.cross(vector1, vector2)
+
+        # Determine direction based on cross product
+        if cross_product > 0:
+            direction = "Left"
+        elif cross_product < 0:
+            direction = "Right"
+        else:
+            direction = "Straight"
+
+        return direction
+
+    def get_angle_between_vectors(self, v1, v2):
+        """Returns the angle between two vectors.
+
+        Args:
+            v1 (np.array): The first vector.
+            v2 (np.array): The second vector.
+        """
+        v1_length = np.linalg.norm(v1)
+        v2_length = np.linalg.norm(v2)
+        if v1_length == 0 or v2_length == 0:
+            return 0
+
+        product = (v1 @ v2) / (
+            v1_length * v2_length
+        )
+
+        if product > 1:
+            return 0
+        if product < -1:
+            return 180
+
+        acos = math.acos(product)
+        result_angle = acos * (180 / math.pi)
+
+        if result_angle > 180:
+            result_angle = 360 - result_angle
+        return result_angle
