@@ -7,6 +7,9 @@ import pandas as pd
 
 from datetime import datetime
 
+from training_dataclass import TrainingData
+from trajectory import Trajectory
+
 import numpy as np
 import random
 
@@ -28,7 +31,7 @@ from trajectory_generator import (create_neural_network,
                                   create_transformer_model,
                                   train_transformer_network)
 
-from transformer_model import get_positional_encoding
+from multi_head_attention import get_positional_encoding
 
 from waymo_visualize import (visualize_all_agents_smooth,
                               create_animation,
@@ -955,6 +958,17 @@ class SimpleShell(cmd.Cmd):
         print("Successfully prepared the trajectory bucket data for training!\n")
 
 
+    def do_training_data_length(self, arg):
+        """Returns the length of the labeled training data.
+
+        Args:
+            arg (str): No arguments required.
+        """        
+
+        training_data = TrainingData("/home/pmueller/llama_traffic/datasets/zipped_labeled_trajectories.json")
+        print(training_data.get_size())
+
+
     def do_classification(self, arg):
         """Trains a classification model and tests for its accuracy.
 
@@ -1103,17 +1117,12 @@ class SimpleShell(cmd.Cmd):
 
         vehicle_id = arg.split()[0]
 
-        trajectory = get_coordinates(decoded_example = self.waymo_scenario,
-                                      specific_id = vehicle_id)
-        trajectory = get_spline_for_coordinates(trajectory)
-        x_coordinates = trajectory["X"]
-        y_coordinates = trajectory["Y"]
-        reshaped_coordinates = []
-        for i in range(len(x_coordinates)):
-            x = x_coordinates[i]
-            y = y_coordinates[i]
-            reshaped_coordinates.append([x, y])
-        reshaped_coordinates = np.array(reshaped_coordinates)
+        trajectory = Trajectory(decoded_example=self.waymo_scenario, specific_id=vehicle_id)
+        splined_coordinates = trajectory.splined_coordinates
+
+        x_coordinates = splined_coordinates["X"]
+        y_coordinates = splined_coordinates["Y"]
+        reshaped_coordinates = np.array([[x, y] for x, y in zip(x_coordinates, y_coordinates)])
         print(reshaped_coordinates)
 
         positional_encoding = get_positional_encoding(reshaped_coordinates)
@@ -1142,6 +1151,24 @@ class SimpleShell(cmd.Cmd):
         """        
 
         train_transformer_network()
+
+
+    def do_store_raw_scenario(self, arg):
+        """Store the raw scenario in a JSON file.
+
+        Args:
+            arg (str): No arguments required.
+        """        
+
+        # Checking if a scenario has been loaded already.
+        if not self.scenario_loaded:
+            print(("\nNo scenario has been initialized yet! \nPlease use 'load_scenario'"
+                  " to load a scenario before calling the 'plot_scenario' command.\n"))
+            return
+        
+        # Store the raw scenario in a JSON file
+        with open("/home/pmueller/llama_traffic/datasets/raw_scenario.json", "w") as file:
+            file.write(str(self.waymo_scenario))
         
 
     # Basic command to exit the shell
