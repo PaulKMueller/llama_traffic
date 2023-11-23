@@ -126,6 +126,7 @@ dependencies:
   - lz4-c=1.9.4=h6a678d5_0
   - markdown=3.4.1=py310h06a4308_0
   - markupsafe=2.1.1=py310h7f8727e_0
+  - matplotlib-base=3.7.2=py310h1128e8f_0
   - matplotlib-inline=0.1.6=pyhd8ed1ab_0
   - mkl=2023.1.0=h213fc3f_46343
   - mkl-service=2.4.0=py310h5eee18b_1
@@ -137,6 +138,8 @@ dependencies:
   - multidict=6.0.2=py310h5eee18b_0
   - multiprocess=0.70.14=py310h06a4308_0
   - munkres=1.1.4=py_0
+  - mypy=1.5.1=py310h06a4308_0
+  - mypy_extensions=1.0.0=py310h06a4308_0
   - ncurses=6.4=h6a678d5_0
   - nest-asyncio=1.5.6=pyhd8ed1ab_0
   - networkx=3.1=py310h06a4308_0
@@ -145,6 +148,7 @@ dependencies:
   - nspr=4.35=h6a678d5_0
   - nss=3.89.1=h6a678d5_0
   - numexpr=2.8.4=py310h85018f9_1
+  - numpy-base=1.26.0=py310hb5e798b_0
   - oauthlib=3.2.2=py310h06a4308_0
   - openssl=1.1.1w=h7f8727e_0
   - opt_einsum=3.3.0=pyhd3eb1b0_1
@@ -210,6 +214,7 @@ dependencies:
   - tk=8.6.12=h1ccaba5_0
   - tokenizers=0.13.2=py310he7d60b5_1
   - toml=0.10.2=pyhd3eb1b0_0
+  - tomli=2.0.1=py310h06a4308_0
   - tornado=6.1=py310h5764c6d_3
   - tqdm=4.65.0=py310h2f386ee_0
   - traitlets=5.9.0=pyhd8ed1ab_0
@@ -232,7 +237,9 @@ dependencies:
   - zstd=1.5.5=hc292b87_0
   - pip:
       - array-record==0.4.1
+      - backoff==2.2.1
       - cloudpickle==2.2.1
+      - cohere==4.36
       - dacite==1.8.1
       - dask==2023.3.1
       - dataclass-array==1.5.1
@@ -240,10 +247,12 @@ dependencies:
       - einops==0.6.1
       - einsum==0.3.0
       - etils==1.4.1
+      - fastavro==1.8.2
       - google-auth==2.16.2
       - googleapis-common-protos==1.60.0
       - imageio==2.31.3
       - immutabledict==2.2.0
+      - importlib-metadata==6.8.0
       - importlib-resources==6.0.1
       - lark==1.1.7
       - lazy-loader==0.3
