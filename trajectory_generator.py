@@ -18,11 +18,13 @@ from bert_encoder import init_bucket_embeddings
 
 import numpy as np
 import json
+import os
 
 
 def create_neural_network():
     model = Sequential()
-    model.add(Dense(768, activation='relu', input_shape=(768,)))  # Input layer
+    # Bert Embedding of size768 and two dimensions for the starting point
+    model.add(Dense(770, activation='relu', input_shape=(770,)))  # Input layer
     model.add(Dense(101, activation='relu'))  # Hidden layer 1
     model.add(Dense(64, activation='relu'))  # Hidden layer 2
     model.add(Dense(64, activation='relu'))  # Hidden layer 3
@@ -41,6 +43,7 @@ def infer_with_neural_network(input_data):
         input_data = np.expand_dims(input_data, axis=0)
 
     predictions = model.predict(input_data)
+    print()
     return predictions
 
 
@@ -49,29 +52,51 @@ def train_neural_network():
     with open('datasets/labeled_trajectories.json', 'r') as file:
         trajectories_data = json.load(file)
 
-    bucket_embeddings = init_bucket_embeddings()
+    bucket_embeddings = {}
+
+    # Check if embeddings have already been initialized
+    if not os.path.exists('bucket_embeddings.json'):
+        bucket_embeddings = init_bucket_embeddings()
+    else:
+        with open('bucket_embeddings.json', 'r') as file:
+            bucket_embeddings = json.load(file)
+
+    # for key, value in bucket_embeddings.items():
+    #     print(len(value))
 
     X, Y = [], []
-    for key, value in trajectories_data.items():
+    for value in trajectories_data.values():
+        embedding = []
+
         bucket = value['Direction']
+        # print(bucket)
+        # Bucket embedding as list
+        embedding = bucket_embeddings[bucket].copy()
+
+        starting_x = value['X'][0]
+        starting_y = value['Y'][0]
+        embedding.append(starting_x)
+        embedding.append(starting_y)
+
+        # Coordinates as Numpy array
         coordinates = np.column_stack((value['X'], value['Y']))
-        embedding = bucket_embeddings[bucket]
         X.append(embedding)
         Y.append(coordinates.flatten())
+
 
     X = np.array(X)
     Y = np.array(Y)
 
     X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2, random_state=42)
 
-    X_train = X_train.reshape(-1, 768)
-    X_test = X_test.reshape(-1, 768)
+    X_train = X_train.reshape(-1, 770)
+    X_test = X_test.reshape(-1, 770)
 
     model = create_neural_network()
 
     model.fit(X_train, Y_train, epochs=10, batch_size=32, validation_split=0.1, verbose=0, callbacks=[TqdmCallback(verbose=2)])
 
-    model.save('models/my_trained_model.h5')
+    model.save('models/my_model.h5')
     test_loss = model.evaluate(X_test, Y_test)
     print(f'Test Loss: {test_loss}')
 
@@ -183,6 +208,7 @@ def train_transformer_network():
     with open('/home/pmueller/llama_traffic/datasets/labeled_trajectories.json', 'r') as file:
         trajectories_data = json.load(file)
 
+    # Dictionary with buckets as key
     bucket_embeddings = init_bucket_embeddings()
 
     X, Y = [], []

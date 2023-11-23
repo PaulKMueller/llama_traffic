@@ -2,12 +2,12 @@ import torch
 from transformers import BertTokenizer, BertModel
 
 # Load BERT tokenizer and model
-tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
-model = BertModel.from_pretrained('bert-base-uncased')
+tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
+model = BertModel.from_pretrained("bert-base-uncased")
 
 # Encode the input text
 input_text = "Hello, BE!"
-encoded_input = tokenizer(input_text, return_tensors='pt')
+encoded_input = tokenizer(input_text, return_tensors="pt")
 
 # Get BERT embeddings
 with torch.no_grad():

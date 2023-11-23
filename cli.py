@@ -2,6 +2,7 @@ import cmd
 import argparse
 import os
 import yaml
+import json
 
 import pandas as pd
 
@@ -1033,6 +1034,7 @@ class SimpleShell(cmd.Cmd):
 
         print("Successfully prepared the trajectory bucket data for training!\n")
 
+
     def do_training_data_length(self, arg):
         """Returns the length of the labeled training data.
 
@@ -1083,10 +1085,24 @@ class SimpleShell(cmd.Cmd):
             )
             return
 
-        bucket = arg.split()[0]
+        # Split the argument once
+        args = arg.split()
+        bucket = args[0]
+        starting_x = int(args[1])
+        starting_y = int(args[2])
 
-        input_data = get_bert_embedding(bucket)
-        prediction = infer_with_neural_network(input_data)
+        starting_x_array = np.array([[starting_x]])  # Shape becomes (1, 1)
+        starting_y_array = np.array([[starting_y]])  # Shape becomes (1, 1)
+
+        # Get BERT embedding
+        embedding = get_bert_embedding(bucket)
+
+        # Convert starting_x and starting_y to arrays and concatenate
+        # Assuming you want to append these as new elements along an existing axis (e.g., axis 0)
+        embedding = np.concatenate([embedding, starting_x_array, starting_y_array], axis=1)
+
+
+        prediction = infer_with_neural_network(embedding)
 
         # First 101 dimensions are the predicted x coordinates, the last 101 dimensions are the predicted y coordinates
         x_coords = prediction[0][:101]
@@ -1118,6 +1134,31 @@ class SimpleShell(cmd.Cmd):
         print("\nInitializing the bucket embeddings...")
         init_bucket_embeddings()
         print("Successfully initialized the bucket embeddings!\n")
+
+    
+    def do_get_bucket_embedding(self, arg):
+        """Returns the bucket embedding for the given bucket.
+
+        Args:
+            arg (str): Bucket for which to predict embedding.
+        """
+
+        # Check for empty arguments (no bucket provided)
+        if arg == "":
+            print(
+                (
+                    "\nYou have provided no bucket for which to predict the embedding.\nPlease provide a bucket!\n"
+                )
+            )
+            return
+
+        bucket = arg.split()[0]
+        bucket_embeddings = {}
+        with open('bucket_embeddings.json', 'r') as file:
+            bucket_embeddings = json.load(file)
+
+        print(bucket_embeddings[bucket])
+        print(len(bucket_embeddings[bucket]))
 
     def do_plot_predicted_trajectory(self, arg):
         """Plot the predicted trajectory for the given bucket.

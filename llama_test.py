@@ -1,8 +1,8 @@
 from transformers import LlamaForCausalLM, LlamaTokenizer
 
 # Load model and tokenizer
-model = LlamaForCausalLM.from_pretrained('meta-llama/Llama-2-13b-chat-hf')
-tokenizer = LlamaTokenizer.from_pretrained('meta-llama/Llama-2-13b-chat-hf')
+model = LlamaForCausalLM.from_pretrained("meta-llama/Llama-2-13b-chat-hf")
+tokenizer = LlamaTokenizer.from_pretrained("meta-llama/Llama-2-13b-chat-hf")
 
 # Text to generate from
 input_text = "Produce a set of Vectors in the following format: \n V: 1, 3, 6, 2, 5 \n Generated Vectors:"
@@ -15,4 +15,3 @@ print(input_ids)
 # output_text = tokenizer.decode(output_ids[0], skip_special_tokens=True)
 
 # print(output_text)
-
