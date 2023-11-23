@@ -14,6 +14,10 @@ from trajectory import Trajectory
 import numpy as np
 import random
 
+from llama_test import get_llama_embedding
+
+from cohere_encoder import get_cohere_encoding
+
 from waymo_inform import (
     get_coordinates,
     get_direction_of_vehicle,
@@ -189,9 +193,7 @@ class SimpleShell(cmd.Cmd):
 
         elif args[0] == "-e" or args[0] == "--example":
             self.scenario_name = "training_tfexample.tfrecord-00499-of-01000"
-            self.waymo_scenario = init_waymo(
-                example_scenario_path
-            )
+            self.waymo_scenario = init_waymo(example_scenario_path)
             self.scenario_loaded = True
             print("Successfully initialized the example scenario!")
             return
@@ -282,6 +284,85 @@ class SimpleShell(cmd.Cmd):
         print(
             f"Successfully created animation in {output_folder}{scenario_name}.mp4!\n"
         )
+
+    def do_get_similarity(self, arg):
+        """Returns the cosine similarity between the given text input and the
+        different direction buckets.
+
+        Args:
+            arg (str): The text input for which to get the similarity.
+        """
+
+        # Check for empty arguments (no text input provided)
+        if arg == "":
+            print(
+                (
+                    "\nYou have provided no text input for which to get the similarity.\nPlease provide a text input!\n"
+                )
+            )
+            return
+
+        text_input = arg
+        input_embedding = get_bert_embedding(text_input)
+        bucket_embeddings = init_bucket_embeddings()
+        # buckets = [
+        #     "Left",
+        #     "Right",
+        #     "Stationary",
+        #     "Straight",
+        #     "Straight-Left",
+        #     "Straight-Right",
+        #     "Right-U-Turn",
+        #     "Left-U-Turn",
+        # ]
+
+        # for bucket in buckets:
+        #     bucket_embeddings[bucket] = get_llama_embedding(bucket)
+        similarities = {}
+
+        for bucket, embedding in bucket_embeddings.items():
+            # Calculate cosine similarity between input_text and bucket
+            similarity = np.dot(input_embedding, np.array(embedding))
+            similarities[bucket] = similarity
+
+        print("\n")
+        print(*similarities.items(), sep="\n")
+        print("\n")
+
+    def do_get_scenarios_for_text_input(self, arg):
+        """Returns a list of the scenarios that contain the given text input in their name.
+
+        Args:
+            arg (str): The text input for which to get the scenarios.
+        """
+
+        # Check for empty arguments (no text input provided)
+        if arg == "":
+            print(
+                (
+                    "\nYou have provided no text input for which to get the scenarios.\nPlease provide a text input!\n"
+                )
+            )
+            return
+
+        text_input = arg
+        print(text_input)
+        input_embedding = get_bert_embedding(text_input)
+        print(input_embedding.shape)
+        bucket_embeddings = init_bucket_embeddings()
+        most_similar_bucket = ""
+        highest_similarity = 0
+
+        for bucket, embedding in bucket_embeddings.items():
+            # Calculate cosine similarity between input_text and bucket
+            similarity = np.dot(input_embedding, np.array(embedding)) / (
+                np.linalg.norm(input_embedding) * np.linalg.norm(np.array(embedding))
+            )
+            if similarity > highest_similarity:
+                highest_similarity = similarity
+                most_similar_bucket = bucket
+
+        print(f"\nThe most similar bucket is: {most_similar_bucket}\n")
 
     def do_list_scenarios(self, arg):
         """Lists all available scenarios in the training folder.
@@ -951,6 +1032,23 @@ class SimpleShell(cmd.Cmd):
         print(embedding)
         print(len(embedding[0]))
 
+    def do_get_llama_embedding(self, arg):
+        input_text = arg
+
+        embedding = get_llama_embedding(input_text)
+        print(type(embedding))
+
+        print(embedding)
+
+    def do_get_cohere_similarities(self, arg):
+        """Returns the similarities of the available buckets to the given text input.
+
+        Args:
+            arg (str): The text input for which to get the similarities.
+        """
+        bucket_similarities = get_cohere_encoding(arg)
+        print(bucket_similarities)
+
     def do_get_reduced_bucket_embeddings(self, arg):
         """Returns a BERT embedding for the given word which's dimensionality
         has been reduced to 101 dimensions using PCA.
@@ -1034,7 +1132,6 @@ class SimpleShell(cmd.Cmd):
 
         print("Successfully prepared the trajectory bucket data for training!\n")
 
-
     def do_training_data_length(self, arg):
         """Returns the length of the labeled training data.
 
@@ -1099,8 +1196,9 @@ class SimpleShell(cmd.Cmd):
 
         # Convert starting_x and starting_y to arrays and concatenate
         # Assuming you want to append these as new elements along an existing axis (e.g., axis 0)
-        embedding = np.concatenate([embedding, starting_x_array, starting_y_array], axis=1)
-
+        embedding = np.concatenate(
+            [embedding, starting_x_array, starting_y_array], axis=1
+        )
 
         prediction = infer_with_neural_network(embedding)
 
@@ -1135,7 +1233,6 @@ class SimpleShell(cmd.Cmd):
         init_bucket_embeddings()
         print("Successfully initialized the bucket embeddings!\n")
 
-    
     def do_get_bucket_embedding(self, arg):
         """Returns the bucket embedding for the given bucket.
 
@@ -1154,7 +1251,7 @@ class SimpleShell(cmd.Cmd):
 
         bucket = arg.split()[0]
         bucket_embeddings = {}
-        with open('bucket_embeddings.json', 'r') as file:
+        with open("bucket_embeddings.json", "r") as file:
             bucket_embeddings = json.load(file)
 
         print(bucket_embeddings[bucket])

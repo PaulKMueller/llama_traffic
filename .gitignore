@@ -176,3 +176,7 @@ datasets/
 
 # Models
 models/
+
+# Config
+*.yaml
+

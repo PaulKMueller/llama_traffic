@@ -7,6 +7,7 @@ import numpy as np
 from sklearn.decomposition import PCA
 
 import json
+import os
 
 
 def get_bert_embedding(input_text: str):
@@ -18,6 +19,9 @@ def get_bert_embedding(input_text: str):
 
     print("Generating BERT embedding for text: " + input_text)
 
+    input_text = input_text.lower()
+    input_text = remove_stopwords(input_text)
+
     tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
     model = TFBertModel.from_pretrained("bert-base-uncased")
 
@@ -27,8 +31,24 @@ def get_bert_embedding(input_text: str):
     return output_embeddings
 
 
+def remove_stopwords(input_text: str):
+    """Removes stopwords from the input text.
+
+    Args:
+        input_text (str): The text from which to remove stopwords.
+    """
+
+    print("Removing stopwords from text: " + input_text)
+    stopwords = ["a", "an", "the", "is", "are", "was", "were", "has", "have", "had"]
+    for stopword in stopwords:
+        input_text = input_text.replace(stopword, "")
+
+    return input_text
+
+
 def get_reduced_bucket_embeddings():
     """_summary_"""
+    # TODO: Add docstring
 
     buckets = [
         "Left",
@@ -92,14 +112,24 @@ def init_bucket_embeddings():
         "Right-U-Turn",
         "Left-U-Turn",
     ]
-    embeddings = {}
-    for bucket in buckets:
-        embedding = get_bert_embedding(bucket)
-        # Convert ndarray to a list
-        embeddings[bucket] = embedding.tolist()[0]
-        print(len(embeddings[bucket]))
+    # TODO Change magic paths to get paths from config file
 
-    # Save to JSON file
-    with open("bucket_embeddings.json", "w") as json_file:
-        json.dump(embeddings, json_file, indent=4)
-    return embeddings
+    bucket_embeddings = {}
+
+    # Check if embeddings have already been initialized
+    if not os.path.exists("datasets/bucket_embeddings.json"):
+        bucket_embeddings = {}
+        for bucket in buckets:
+            embedding = get_bert_embedding(bucket.lower())
+            # Convert ndarray to a list
+            bucket_embeddings[bucket] = embedding.tolist()[0]
+            print(len(bucket_embeddings[bucket]))
+
+        # Save to JSON file
+        with open("datasets/bucket_embeddings.json", "w") as json_file:
+            json.dump(bucket_embeddings, json_file, indent=4)
+    else:
+        with open("datasets/bucket_embeddings.json", "r") as file:
+            bucket_embeddings = json.load(file)
+
+    return bucket_embeddings
