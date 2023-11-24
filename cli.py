@@ -3,6 +3,10 @@ import argparse
 import os
 import yaml
 import json
+import math
+
+import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
 
 import pandas as pd
 
@@ -19,7 +23,6 @@ from llama_test import get_llama_embedding
 from cohere_encoder import get_cohere_encoding
 
 from waymo_inform import (
-    get_coordinates,
     get_direction_of_vehicle,
     get_total_trajectory_angle,
     get_relative_displacement,
@@ -52,15 +55,11 @@ from waymo_initialize import init_waymo
 
 from waymo_utils import (
     get_scenario_list,
-    get_spline_for_coordinates,
     get_scenario_index,
 )
 
-from trajectory_encoder import get_trajectory_embedding
-
 from bert_encoder import (
     get_bert_embedding,
-    get_reduced_bucket_embeddings,
     init_bucket_embeddings,
 )
 
@@ -155,13 +154,13 @@ class SimpleShell(cmd.Cmd):
             return
 
         vehicle_id = arg.split()[0]
+        trajectory = Trajectory(self.waymo_scenario, vehicle_id)
 
-        coordinates = get_coordinates(
-            decoded_example=self.waymo_scenario, specific_id=arg
+        trajectory_plot = visualize_coordinates(
+            self.waymo_scenario, trajectory.coordinates
         )
-        trajectory = visualize_coordinates(self.waymo_scenario, coordinates)
 
-        trajectory.savefig(f"{output_folder}{vehicle_id}.png")
+        trajectory_plot.savefig(f"{output_folder}{vehicle_id}.png")
 
     def do_load_scenario(self, arg):
         """Loads the scenario from the given path.
@@ -329,12 +328,18 @@ class SimpleShell(cmd.Cmd):
         print(*similarities.items(), sep="\n")
         print("\n")
 
-    def do_get_scenarios_for_text_input(self, arg):
+    def do_get_trajectories_for_text_input(self, arg):
         """Returns a list of the scenarios that contain the given text input in their name.
 
         Args:
             arg (str): The text input for which to get the scenarios.
         """
+
+        # Load config file
+        with open("config.yaml", "r") as file:
+            config = yaml.safe_load(file)
+            scenario_data_folder = config["scenario_data_folder"]
+            output_folder = config["output_folder"]
 
         # Check for empty arguments (no text input provided)
         if arg == "":
@@ -345,24 +350,76 @@ class SimpleShell(cmd.Cmd):
             )
             return
 
-        text_input = arg
-        print(text_input)
-        input_embedding = get_bert_embedding(text_input)
-        print(input_embedding.shape)
-        bucket_embeddings = init_bucket_embeddings()
-        most_similar_bucket = ""
-        highest_similarity = 0
-
-        for bucket, embedding in bucket_embeddings.items():
-            # Calculate cosine similarity between input_text and bucket
-            similarity = np.dot(input_embedding, np.array(embedding)) / (
-                np.linalg.norm(input_embedding) * np.linalg.norm(np.array(embedding))
-            )
-            if similarity > highest_similarity:
-                highest_similarity = similarity
-                most_similar_bucket = bucket
+        similarity_dict = get_cohere_encoding(arg)
+        most_similar_bucket = max(similarity_dict, key=similarity_dict.get)
 
         print(f"\nThe most similar bucket is: {most_similar_bucket}\n")
+
+        # List all trajectories by their IDs that fall into the most similar bucket
+        # Load labeled trajectory data
+        with open("datasets/labeled_trajectories.json", "r") as file:
+            trajectories_data = json.load(file)
+
+        filtered_ids = []
+        for key, value in trajectories_data.items():
+            if value["Direction"] == most_similar_bucket:
+                filtered_ids.append(key)
+
+        # Format output and print the trajectoriy IDs
+
+        print("\n")
+        print(*filtered_ids, sep="\n")
+        print("\n")
+
+        for index, trajectory_id in enumerate(filtered_ids):
+            scenario_index = trajectory_id.split("_")[0]
+            vehicle_id = trajectory_id.split("_")[1]
+            scenario_path = (
+                scenario_data_folder + get_scenario_list()[int(scenario_index)]
+            )
+            print(f"Scenario path: {scenario_path}")
+            trajectory_plot = visualize_trajectory(
+                decoded_example=init_waymo(scenario_path), specific_id=vehicle_id
+            )
+
+            trajectory_plot.savefig(f"{output_folder}{scenario_index}_{vehicle_id}.png")
+            # trajectory_plot.close()
+
+        # List of image paths
+        image_folder = "/home/pmueller/llama_traffic/output/"  # Update this with your image folder path
+        image_files = [
+            os.path.join(image_folder, f)
+            for f in os.listdir(image_folder)
+            if f.endswith(".png")
+        ]
+
+        # Total number of images
+        total_images = len(image_files)
+
+        # Define the number of rows and columns you want in your grid
+        num_rows = 3  # Adjust as needed
+        num_cols = math.ceil(total_images / num_rows)
+
+        # Create a figure and a set of subplots
+        fig, axs = plt.subplots(num_rows, num_cols, figsize=(20, 10))
+
+        # Flatten the axis array for easy iteration
+        axs = axs.flatten()
+
+        # Loop through images and add them to the subplots
+        for idx, img_path in enumerate(image_files):
+            img = mpimg.imread(img_path)
+            axs[idx].imshow(img)
+            axs[idx].axis("off")  # Hide axis
+
+        # Hide any unused subplots
+        for ax in axs[total_images:]:
+            ax.axis("off")
+
+        plt.tight_layout()
+
+        # Save total plot
+        plt.savefig("/home/pmueller/llama_traffic/output/total.png")
 
     def do_list_scenarios(self, arg):
         """Lists all available scenarios in the training folder.
@@ -471,14 +528,15 @@ class SimpleShell(cmd.Cmd):
         vehicle_id = arg.split()[0]
         print(f"\nPlotting trajectory for vehicle {vehicle_id}...")
         timestamp = datetime.now()
-        trajectory = visualize_trajectory(
+        trajectory = Trajectory(self.waymo_scenario, vehicle_id)
+        trajectory_plot = visualize_trajectory(
             decoded_example=self.waymo_scenario, specific_id=vehicle_id
         )
         # trajectory.savefig(f"/home/pmueller/llama_traffic/output/{timestamp}.png")
-        sum_of_delta_angles = get_sum_of_delta_angles(
-            get_coordinates(self.waymo_scenario, vehicle_id)
+        sum_of_delta_angles = get_sum_of_delta_angles(trajectory.splined_coordinates)
+        trajectory_plot.savefig(
+            f"{output_folder}{vehicle_id}_{sum_of_delta_angles}.png"
         )
-        trajectory.savefig(f"{output_folder}{vehicle_id}_{sum_of_delta_angles}.png")
         print(
             (
                 "Successfully created trajectory plot in "
@@ -522,11 +580,11 @@ class SimpleShell(cmd.Cmd):
 
         vehicle_id = arg.split()[0]
         print(f"\nPlotting trajectory for vehicle {vehicle_id}...")
-        coordinates = get_coordinates(
-            decoded_example=self.waymo_scenario, specific_id=vehicle_id
+        trajectory = Trajectory(self.waymo_scenario, vehicle_id)
+        trajectory_plot = visualize_raw_coordinates_without_scenario(
+            trajectory.splined_coordinates
         )
-        trajectory = visualize_raw_coordinates_without_scenario(coordinates)
-        trajectory.savefig(f"{output_folder}raw_trajectory_{vehicle_id}.png")
+        trajectory_plot.savefig(f"{output_folder}raw_trajectory_{vehicle_id}.png")
 
         print(
             ("Successfully created trajectory plot in "),
@@ -562,13 +620,16 @@ class SimpleShell(cmd.Cmd):
 
         for vehicle_id in vehicle_ids:
             print(f"Plotting trajectory for vehicle {vehicle_id}...")
-            trajectory = visualize_trajectory(
+            trajectory = Trajectory(self.waymo_scenario, vehicle_id)
+            trajectory_plot = visualize_trajectory(
                 decoded_example=self.waymo_scenario, specific_id=vehicle_id
             )
             sum_of_delta_angles = get_sum_of_delta_angles(
-                get_coordinates(self.waymo_scenario, vehicle_id)
+                trajectory.splined_coordinates
             )
-            trajectory.savefig(f"{output_folder}{vehicle_id}_{sum_of_delta_angles}.png")
+            trajectory_plot.savefig(
+                f"{output_folder}{vehicle_id}_{sum_of_delta_angles}.png"
+            )
 
         print(("Plotting complete.\n" f"You can find the plots in {output_folder}"))
 
@@ -607,11 +668,10 @@ class SimpleShell(cmd.Cmd):
             return
 
         vehicle_id = arg.split()[0]
-        coordinates = get_coordinates(
-            decoded_example=self.waymo_scenario, specific_id=vehicle_id
+        trajectory = Trajectory(self.waymo_scenario, vehicle_id)
+        trajectory.splined_coordinates.to_csv(
+            f"{output_folder}coordinates_for_{vehicle_id}.scsv"
         )
-
-        coordinates.to_csv(f"{output_folder}coordinates_for_{vehicle_id}.scsv")
 
         print(
             (
@@ -650,11 +710,11 @@ class SimpleShell(cmd.Cmd):
             return
 
         vehicle_id = arg.split()[0]
-        coordinates = get_coordinates(
-            decoded_example=self.waymo_scenario, specific_id=vehicle_id
-        )
+        trajectory = Trajectory(self.waymo_scenario, vehicle_id)
 
-        print(f"\n{get_direction_of_vehicle(self.waymo_scenario, coordinates)}!\n")
+        print(
+            f"\n{get_direction_of_vehicle(self.waymo_scenario, trajectory.splined_coordinates)}!\n"
+        )
 
     def do_get_displacement(self, arg):
         """Calculates the total displacement of the vehicle with the given ID
@@ -677,11 +737,10 @@ class SimpleShell(cmd.Cmd):
             return
 
         vehicle_id = arg.split()[0]
+        trajectory = Trajectory(self.waymo_scenario, vehicle_id)
         displacement = get_relative_displacement(
             decoded_example=self.waymo_scenario,
-            coordinates=get_coordinates(
-                decoded_example=self.waymo_scenario, specific_id=vehicle_id
-            ),
+            coordinates=trajectory.splined_coordinates,
         )
 
         print(f"\nThe relative displacement is: {round(displacement*100, 2)} %\n")
@@ -711,17 +770,18 @@ class SimpleShell(cmd.Cmd):
         vehicle_ids = get_vehicles_for_scenario(self.waymo_scenario)
 
         for vehicle_id in vehicle_ids:
+            trajectory = Trajectory(self.waymo_scenario, vehicle_id)
             direction = get_direction_of_vehicle(
-                self.waymo_scenario, get_coordinates(self.waymo_scenario, vehicle_id)
+                self.waymo_scenario, trajectory.splined_coordinates
             )
 
             # \nAngle: {delta_angle_sum}\nDirection: {direction}"
 
-            trajectory = visualize_trajectory(
+            trajectory_plot = visualize_trajectory(
                 decoded_example=self.waymo_scenario, specific_id=vehicle_id
             )
 
-            trajectory.savefig(
+            trajectory_plot.savefig(
                 f"/home/pmueller/llama_traffic/{direction}/{vehicle_id}.png"
             )
 
@@ -758,12 +818,11 @@ class SimpleShell(cmd.Cmd):
             return
 
         vehicle_id = arg.split()[0]
-        coordinates = get_coordinates(
-            decoded_example=self.waymo_scenario, specific_id=vehicle_id
-        )
 
-        spline = get_spline_for_coordinates(coordinates)
-        spline_plot = visualize_coordinates(self.waymo_scenario, spline)
+        trajectory = Trajectory(self.waymo_scenario, vehicle_id)
+        spline_plot = visualize_coordinates(
+            self.waymo_scenario, trajectory.splined_coordinates
+        )
         spline_plot.savefig(f"{output_folder}{vehicle_id}_spline.png")
 
     def do_get_vehicles_in_loaded_scenario(self, arg):
@@ -809,9 +868,8 @@ class SimpleShell(cmd.Cmd):
             return
 
         vehicle_id = arg.split()[0]
-        coordinates = get_coordinates(
-            decoded_example=self.waymo_scenario, specific_id=vehicle_id
-        )
+        trajectory = Trajectory(self.waymo_scenario, vehicle_id)
+        coordinates = trajectory.splined_coordinates
         angles = get_delta_angles(coordinates)
 
         output_df = pd.DataFrame(angles, columns=["Delta Angle"])
@@ -834,10 +892,8 @@ class SimpleShell(cmd.Cmd):
             return
 
         vehicle_id = arg.split()[0]
-        coordinates = get_coordinates(
-            decoded_example=self.waymo_scenario, specific_id=vehicle_id
-        )
-        angle = get_sum_of_delta_angles(coordinates)
+        trajectory = Trajectory(self.waymo_scenario, vehicle_id)
+        angle = get_sum_of_delta_angles(trajectory.splined_coordinates)
 
         print(f"The total heading change is: {angle} degrees!")
 
@@ -869,6 +925,9 @@ class SimpleShell(cmd.Cmd):
         trajectory = Trajectory(self.waymo_scenario, vehicle_id)
         spline = trajectory.splined_coordinates
 
+        # Store spline from dataframe
+        spline.to_csv(f"/home/pmueller/llama_traffic/spline_{vehicle_id}.csv")
+
         print(spline)
 
     def do_get_total_angle_for_vehicle(self, arg):
@@ -885,10 +944,8 @@ class SimpleShell(cmd.Cmd):
             return
 
         vehicle_id = arg.split()[0]
-        coordinates = get_coordinates(
-            decoded_example=self.waymo_scenario, specific_id=vehicle_id
-        )
-        angle = get_total_trajectory_angle(coordinates)
+        trajectory = Trajectory(self.waymo_scenario, vehicle_id)
+        angle = get_total_trajectory_angle(trajectory.splined_coordinates)
 
         print(f"The total heading change is: {angle} degrees!")
 
@@ -978,42 +1035,6 @@ class SimpleShell(cmd.Cmd):
 
         print("Successfully got the labeled trajectories for all scenarios!\n")
 
-    def do_get_trajectory_embedding(self, arg):
-        """Returns an embedding of the vehicle which's ID has been provided.
-
-        Args:
-            arg (str): The vehicle ID for which to get the trajectory embedding.
-        """
-
-        # Checking if a scenario has been loaded already.
-        if not self.scenario_loaded:
-            print(
-                (
-                    "\nNo scenario has been initialized yet! \nPlease use 'load_scenario'"
-                    " to load a scenario before calling the 'plot_scenario' command.\n"
-                )
-            )
-            return
-
-        # Check for empty arguments (no ID provided)
-        if arg == "":
-            print(
-                (
-                    "\nYou have provided no ID for the vehicle "
-                    "whose trajectory you want to get.\nPlease provide a path!\n"
-                )
-            )
-            return
-
-        print("\nCalculating the trajectory embedding...")
-
-        vehicle_id = arg.split()[0]
-        coordinates = get_coordinates(
-            decoded_example=self.waymo_scenario, specific_id=vehicle_id
-        )
-        trajectory_embedding = get_trajectory_embedding(coordinates)
-        print(trajectory_embedding)
-
     def do_get_bert_embedding(self, arg):
         """Returns an embedding of the given string generated by BERT.
 
@@ -1048,17 +1069,6 @@ class SimpleShell(cmd.Cmd):
         """
         bucket_similarities = get_cohere_encoding(arg)
         print(bucket_similarities)
-
-    def do_get_reduced_bucket_embeddings(self, arg):
-        """Returns a BERT embedding for the given word which's dimensionality
-        has been reduced to 101 dimensions using PCA.
-
-        Args:
-            arg (str): _description_
-        """
-
-        reduced_embeddings = get_reduced_bucket_embeddings()
-        print(reduced_embeddings)
 
     def do_get_scenario_index(self, arg):
         """Returns the ID of the loaded scenario.
@@ -1106,9 +1116,7 @@ class SimpleShell(cmd.Cmd):
             random_vehicle_id = vehicles_for_scenario[
                 random.randint(0, number_of_vehicles_in_scenario - 1)
             ]
-
-            # Get trajectory coordinates
-            trajectory_coordinates = get_coordinates(random_scenario, random_vehicle_id)
+            trajectory = Trajectory(random_scenario, random_vehicle_id)
 
             # Plot the vehicle trajectory
             visualized_trajectory = visualize_trajectory(
@@ -1117,7 +1125,7 @@ class SimpleShell(cmd.Cmd):
 
             # Get direction of the chosen vehicle in the chosen scenario
             direction = get_direction_of_vehicle(
-                random_scenario, get_coordinates(random_scenario, random_vehicle_id)
+                random_scenario, trajectory.splined_coordinates
             )
 
             # Safe trajectory with the defined name convention
@@ -1126,7 +1134,7 @@ class SimpleShell(cmd.Cmd):
             )
 
             # Safe trajectory coordinates to csv with same naming convention as trajectory visualization
-            trajectory_coordinates.to_csv(
+            trajectory.splined_coordinates.to_csv(
                 f"{output_folder}{direction}_{random_scenario_index}_{random_vehicle_id}.scsv"
             )
 

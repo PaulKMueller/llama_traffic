@@ -6,9 +6,15 @@ import math
 import json
 from tqdm import tqdm
 
+from trajectory import Trajectory
+
 from waymo_initialize import init_waymo
 
-from waymo_utils import get_spline_for_coordinates, get_scenario_index, get_scenario_list
+from waymo_utils import (
+    get_spline_for_coordinates,
+    get_scenario_index,
+    get_scenario_list,
+)
 
 
 def dotproduct(v1, v2):
@@ -92,88 +98,6 @@ def get_coordinates_one_step(
     masked_y = states[:, 1][mask]
 
     return {"X": masked_x[0], "Y": masked_y[0]}
-
-
-def get_coordinates(decoded_example, specific_id: float = None):
-    """Returns the coordinates of the vehicle identified by its
-    specific_id and stores them as a CSV in the output folder.
-
-    Args:
-        decoded_example: Dictionary containing agent info about all modeled agents.
-        specific_id: The idea for which to store the coordinates.
-
-    Returns:
-        pandas.dataframe: The coordinates of the vehicle identified by its
-        specific_id.
-    """
-
-    output_df = pd.DataFrame(columns=["X", "Y"])
-
-    agent_ids = decoded_example["state/id"].numpy()
-
-    # [num_agents, num_past_steps, 2] float32.
-    past_states = tf.stack(
-        [decoded_example["state/past/x"], decoded_example["state/past/y"]], -1
-    ).numpy()
-    past_states_mask = decoded_example["state/past/valid"].numpy() > 0.0
-
-    # [num_agents, 1, 2] float32.
-    current_states = tf.stack(
-        [decoded_example["state/current/x"], decoded_example["state/current/y"]], -1
-    ).numpy()
-    current_states_mask = decoded_example["state/current/valid"].numpy() > 0.0
-
-    # [num_agents, num_future_steps, 2] float32.
-    future_states = tf.stack(
-        [decoded_example["state/future/x"], decoded_example["state/future/y"]], -1
-    ).numpy()
-    future_states_mask = decoded_example["state/future/valid"].numpy() > 0.0
-
-    _, num_past_steps, _ = past_states.shape
-    num_future_steps = future_states.shape[1]
-
-    for _, (s, m) in enumerate(
-        zip(
-            np.split(past_states, num_past_steps, 1),
-            np.split(past_states_mask, num_past_steps, 1),
-        )
-    ):
-        coordinates_for_step = get_coordinates_one_step(
-            s[:, 0], m[:, 0], agent_ids=agent_ids, specific_id=specific_id
-        )
-        coordinates_for_step_df = pd.DataFrame([coordinates_for_step])
-        output_df = pd.concat([output_df, coordinates_for_step_df], ignore_index=True)
-
-    # Generate one image for the current time step.
-    s = current_states
-    m = current_states_mask
-
-    coordinates_for_step = get_coordinates_one_step(
-        s[:, 0], m[:, 0], agent_ids=agent_ids, specific_id=specific_id
-    )
-    coordinates_for_step_df = pd.DataFrame([coordinates_for_step])
-
-    output_df = pd.concat([output_df, coordinates_for_step_df], ignore_index=True)
-
-    # Generate images from future time steps.
-    for _, (s, m) in enumerate(
-        zip(
-            np.split(future_states, num_future_steps, 1),
-            np.split(future_states_mask, num_future_steps, 1),
-        )
-    ):
-        coordinates_for_step = get_coordinates_one_step(
-            s[:, 0], m[:, 0], agent_ids=agent_ids, specific_id=specific_id
-        )
-        coordinates_for_step_df = pd.DataFrame([coordinates_for_step])
-        output_df = pd.concat([output_df, coordinates_for_step_df], ignore_index=True)
-
-    # Delete all rows where both X and Y are -1.0
-    output_df = output_df[~((output_df["X"] == -1.0) & (output_df["Y"] == -1.0))]
-
-    output_df = output_df.reset_index(drop=True)
-
-    return output_df
 
 
 def get_point_angle(point_one: pd.DataFrame, point_two: pd.DataFrame, reference_vector):
@@ -512,7 +436,7 @@ def get_filter_dict_for_scenario(waymo_scenario):
 def get_labeled_trajectories_for_scenario(waymo_scenario, scenario_name):
     """Returns a dictionary with the trajectories of all vehicles in the scenario
     and their corresponding labels (buckets).
-    
+
     Returns:
         dictionary: {<vehicle_id>: {"X": <x_coordinates_of_trajectory>, "Y": <y_coordinates_of_trajectory>, "Direction": <direction_bucket_of_vehicle>}}
     """
@@ -535,23 +459,27 @@ def get_labeled_trajectories_for_scenario(waymo_scenario, scenario_name):
 
     return trajectory_dict
 
+
 def get_labeled_trajectories_for_all_scenarios_dictionary():
     """Returns a dictionary with the trajectories of all vehicles in the scenario
     and their corresponding labels (buckets).
 
     Returns:
         dictionary: {<scenario_index>_<vehicle_id>: {"X": <x_coordinates_of_trajectory>, "Y": <y_coordinates_of_trajectory>, "Direction": <direction_bucket_of_vehicle>}}
-    """    
+    """
 
     trajectory_dict = {}
 
     for scenario in get_scenario_list():
-        
         print(f"\nGetting the data dictionary for {scenario}...")
 
-        decoded_scenario = init_waymo(('/mrtstorage/datasets/tmp/waymo_open_motion_v_1_2_0'
-                                   '/uncompressed/tf_example/training/') + scenario)
-
+        decoded_scenario = init_waymo(
+            (
+                "/mrtstorage/datasets/tmp/waymo_open_motion_v_1_2_0"
+                "/uncompressed/tf_example/training/"
+            )
+            + scenario
+        )
 
         vehicle_ids = get_vehicles_for_scenario(decoded_scenario)
         for vehicle_id in vehicle_ids:
@@ -563,7 +491,7 @@ def get_labeled_trajectories_for_all_scenarios_dictionary():
             trajectory_dict[f"{get_scenario_index(scenario)}_{vehicle_id}"] = {
                 "X": x_coordinates,
                 "Y": y_coordinates,
-                "Direction": direction
+                "Direction": direction,
             }
 
     return trajectory_dict
@@ -572,33 +500,43 @@ def get_labeled_trajectories_for_all_scenarios_dictionary():
 def get_labeled_trajectories_for_all_scenarios_json():
     """Saves a JSON file with the trajectories of all vehicles in the scenario
     and their corresponding labels (buckets), with a progress bar.
-    """    
+    """
 
     trajectory_dict = {}
 
     scenario_list = get_scenario_list()
     for scenario in tqdm(scenario_list, desc="Processing scenarios"):
-        
         tqdm.write(f"\nGetting the data dictionary for {scenario}...")
 
-        decoded_scenario = init_waymo(('/mrtstorage/datasets/tmp/waymo_open_motion_v_1_2_0'
-                                   '/uncompressed/tf_example/training/') + scenario)
+        decoded_scenario = init_waymo(
+            (
+                "/mrtstorage/datasets/tmp/waymo_open_motion_v_1_2_0"
+                "/uncompressed/tf_example/training/"
+            )
+            + scenario
+        )
 
         vehicle_ids = get_vehicles_for_scenario(decoded_scenario)
-        for vehicle_id in tqdm(vehicle_ids, desc=f"Processing vehicles in scenario {scenario}", leave=False):
+        for vehicle_id in tqdm(
+            vehicle_ids, desc=f"Processing vehicles in scenario {scenario}", leave=False
+        ):
             coordinates = get_coordinates(decoded_scenario, vehicle_id)
             spline_coordinates = get_spline_for_coordinates(coordinates)
-            x_coordinates = spline_coordinates["X"].tolist()  # Convert to list for JSON serialization
-            y_coordinates = spline_coordinates["Y"].tolist()  # Convert to list for JSON serialization
+            x_coordinates = spline_coordinates[
+                "X"
+            ].tolist()  # Convert to list for JSON serialization
+            y_coordinates = spline_coordinates[
+                "Y"
+            ].tolist()  # Convert to list for JSON serialization
             direction = get_direction_of_vehicle(decoded_scenario, spline_coordinates)
             trajectory_dict[f"{get_scenario_index(scenario)}_{vehicle_id}"] = {
                 "X": x_coordinates,
                 "Y": y_coordinates,
-                "Direction": direction
+                "Direction": direction,
             }
 
     # Save to JSON file
-    with open('labeled_trajectories.json', 'w') as json_file:
+    with open("labeled_trajectories.json", "w") as json_file:
         json.dump(trajectory_dict, json_file, indent=4)
 
 
@@ -608,33 +546,43 @@ def get_zipped_labeled_trajectories_for_all_scenarios_json():
     """
 
     # Load config file
-    with open('config.json', 'r') as file:
+    with open("config.json", "r") as file:
         config = json.load(file)
-        dataset_folder = config['dataset_folder']
+        dataset_folder = config["dataset_folder"]
 
     trajectory_dict = {}
 
     scenario_list = get_scenario_list()
     for scenario in tqdm(scenario_list, desc="Processing scenarios"):
-        
         tqdm.write(f"\nGetting the data dictionary for {scenario}...")
 
-        decoded_scenario = init_waymo(('/mrtstorage/datasets/tmp/waymo_open_motion_v_1_2_0'
-                                   '/uncompressed/tf_example/training/') + scenario)
+        decoded_scenario = init_waymo(
+            (
+                "/mrtstorage/datasets/tmp/waymo_open_motion_v_1_2_0"
+                "/uncompressed/tf_example/training/"
+            )
+            + scenario
+        )
 
         vehicle_ids = get_vehicles_for_scenario(decoded_scenario)
-        for vehicle_id in tqdm(vehicle_ids, desc=f"Processing vehicles in scenario {scenario}", leave=False):
-            coordinates = get_coordinates(decoded_scenario, vehicle_id)
-            spline_coordinates = get_spline_for_coordinates(coordinates)
-            x_coordinates = spline_coordinates["X"].tolist()  # Convert to list for JSON serialization
-            y_coordinates = spline_coordinates["Y"].tolist()  # Convert to list for JSON serialization
+        for vehicle_id in tqdm(
+            vehicle_ids, desc=f"Processing vehicles in scenario {scenario}", leave=False
+        ):
+            trajectory = Trajectory(decoded_scenario, vehicle_id)
+            spline_coordinates = trajectory.get_spline_coordinates()
+            x_coordinates = spline_coordinates[
+                "X"
+            ].tolist()  # Convert to list for JSON serialization
+            y_coordinates = spline_coordinates[
+                "Y"
+            ].tolist()  # Convert to list for JSON serialization
             direction = get_direction_of_vehicle(decoded_scenario, spline_coordinates)
             zipped_coordinates = list(zip(x_coordinates, y_coordinates))
             trajectory_dict[f"{get_scenario_index(scenario)}_{vehicle_id}"] = {
                 "Coordinates": zipped_coordinates,
-                "Direction": direction
+                "Direction": direction,
             }
 
     # Save to JSON file
-    with open(f'{dataset_folder}labeled_trajectories.json', 'w') as json_file:
+    with open(f"{dataset_folder}labeled_trajectories.json", "w") as json_file:
         json.dump(trajectory_dict, json_file, indent=4)

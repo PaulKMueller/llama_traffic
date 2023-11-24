@@ -5,7 +5,6 @@ import torch
 from torch import nn, Tensor
 
 
-
 def feed_forward(dim_input: int = 512, dim_feedforward: int = 2048) -> nn.Module:
     return nn.Sequential(
         nn.Linear(dim_input, dim_feedforward),
@@ -110,4 +109,3 @@ class EgoTrajectoryEncoder(nn.Module):
             src = layer(src, src, src)
 
         return self.linear(src)
-

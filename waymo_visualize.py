@@ -394,7 +394,6 @@ def visualize_trajectory_one_step(
 
 
 def visualize_coordinates(decoded_example, coordinates, size_pixels=1000):
-
     plot = visualize_map(decoded_example=decoded_example)
     print(type(coordinates))
     # Plot coordinates on map
@@ -472,7 +471,9 @@ def visualize_coordinates_one_step(
     ax.set_aspect("equal")
 
 
-def visualize_raw_coordinates_without_scenario(coordinates, title='Trajectory Visualization', padding=10):
+def visualize_raw_coordinates_without_scenario(
+    coordinates, title="Trajectory Visualization", padding=10
+):
     """
     Visualize the trajectory specified by coordinates, scaling to fit the trajectory size.
 
@@ -486,12 +487,14 @@ def visualize_raw_coordinates_without_scenario(coordinates, title='Trajectory Vi
 
     # Check if coordinates is a Pandas DataFrame and convert if necessary
     if isinstance(coordinates, np.ndarray):
-        coordinates = pd.DataFrame(coordinates, columns=['X', 'Y'])
+        coordinates = pd.DataFrame(coordinates, columns=["X", "Y"])
     elif isinstance(coordinates, list):
-        coordinates = pd.DataFrame(coordinates, columns=['X', 'Y'])
+        coordinates = pd.DataFrame(coordinates, columns=["X", "Y"])
 
     # Plot the trajectory
-    ax.plot(coordinates["X"], coordinates["Y"], "ro-", markersize=5, linewidth=2)  # 'ro-' creates a red line with circle markers
+    ax.plot(
+        coordinates["X"], coordinates["Y"], "ro-", markersize=5, linewidth=2
+    )  # 'ro-' creates a red line with circle markers
 
     # Determine the bounds of the trajectory
     x_min, x_max = coordinates["X"].min(), coordinates["X"].max()
@@ -502,13 +505,13 @@ def visualize_raw_coordinates_without_scenario(coordinates, title='Trajectory Vi
     ax.set_ylim(y_min - padding, y_max + padding)
 
     # Set aspect of the plot to be equal
-    ax.set_aspect('equal')
+    ax.set_aspect("equal")
 
     # Set title of the plot
     ax.set_title(title)
 
     # Remove axes for a cleaner look since there's no map
-    ax.axis('off')
+    ax.axis("off")
 
     return plt
 
@@ -619,9 +622,7 @@ def visualize_trajectory(
     return plt
 
 
-def visualize_map(
-    decoded_example, with_ids=False, specific_id=None, size_pixels=1000
-):
+def visualize_map(decoded_example, with_ids=False, specific_id=None, size_pixels=1000):
     """Visualizes all agent predicted trajectories in a single image.
 
     Args:

@@ -159,7 +159,7 @@ class Trajectory:
             return self.get_adjusted_coordinates(coordinates)
         else:
             # Call splprep
-            tck, u = interpolate.splprep([filtered_x, filtered_y], s=120)
+            tck, u = interpolate.splprep([filtered_x, filtered_y], s=12)
 
         # Get the spline for the x and y coordinates
         unew = np.arange(0, 1.01, 0.01)
@@ -211,16 +211,20 @@ class Trajectory:
 
         for i in range(1, len(coordinates) - 1):
             # Calculate the direction vector of the current segment
-            current_vector = np.array((
-                coordinates.iloc[i + 1]["X"] - coordinates.iloc[i]["X"],
-                coordinates.iloc[i + 1]["Y"] - coordinates.iloc[i]["Y"],
-            ))
+            current_vector = np.array(
+                (
+                    coordinates.iloc[i + 1]["X"] - coordinates.iloc[i]["X"],
+                    coordinates.iloc[i + 1]["Y"] - coordinates.iloc[i]["Y"],
+                )
+            )
 
             # Calculate the direction vector of the previous segment
-            previous_vector = np.array((
-                coordinates.iloc[i]["X"] - coordinates.iloc[i - 1]["X"],
-                coordinates.iloc[i]["Y"] - coordinates.iloc[i - 1]["Y"],
-            ))
+            previous_vector = np.array(
+                (
+                    coordinates.iloc[i]["X"] - coordinates.iloc[i - 1]["X"],
+                    coordinates.iloc[i]["Y"] - coordinates.iloc[i - 1]["Y"],
+                )
+            )
 
             # Compute the angle between the current and previous direction vectors
             angle = self.get_angle_between_vectors(current_vector, previous_vector)
@@ -235,7 +239,6 @@ class Trajectory:
             delta_angles.append(angle)
 
         return delta_angles
-
 
     @staticmethod
     def remove_outlier_angles(delta_angles: list):
@@ -253,7 +256,6 @@ class Trajectory:
 
         return filtered_delta_angles
 
-
     @staticmethod
     def get_gross_direction_for_three_points(
         start: pd.DataFrame, intermediate: pd.DataFrame, end: pd.DataFrame
@@ -266,7 +268,9 @@ class Trajectory:
             end (pd.DataFrame): The coordinates of the ending point.
         """
         # Calculate vectors
-        vector1 = np.array((intermediate["X"] - start["X"], intermediate["Y"] - start["Y"]))
+        vector1 = np.array(
+            (intermediate["X"] - start["X"], intermediate["Y"] - start["Y"])
+        )
         vector2 = np.array((end["X"] - intermediate["X"], end["Y"] - intermediate["Y"]))
 
         # Calculate the cross product of the two vectors
@@ -294,9 +298,7 @@ class Trajectory:
         if v1_length == 0 or v2_length == 0:
             return 0
 
-        product = (v1 @ v2) / (
-            v1_length * v2_length
-        )
+        product = (v1 @ v2) / (v1_length * v2_length)
 
         if product > 1:
             return 0

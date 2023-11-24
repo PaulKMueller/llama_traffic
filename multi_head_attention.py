@@ -9,16 +9,16 @@
 #     def __init__(self, d_model, num_heads):
 #         super(MultiHeadAttention, self).__init__()
 #         assert d_model % num_heads == 0, "d_model must be divisible by num_heads"
-        
+
 #         self.d_model = d_model
 #         self.num_heads = num_heads
 #         self.d_k = d_model // num_heads
-        
+
 #         self.W_q = nn.Linear(d_model, d_model)
 #         self.W_k = nn.Linear(d_model, d_model)
 #         self.W_v = nn.Linear(d_model, d_model)
 #         self.W_o = nn.Linear(d_model, d_model)
-        
+
 #     def scaled_dot_product_attention(self, Q, K, V, mask=None):
 #         attn_scores = torch.matmul(Q, K.transpose(-2, -1)) / math.sqrt(self.d_k)
 #         if mask is not None:
@@ -26,20 +26,20 @@
 #         attn_probs = torch.softmax(attn_scores, dim=-1)
 #         output = torch.matmul(attn_probs, V)
 #         return output
-        
+
 #     def split_heads(self, x):
 #         batch_size, seq_length, d_model = x.size()
 #         return x.view(batch_size, seq_length, self.num_heads, self.d_k).transpose(1, 2)
-        
+
 #     def combine_heads(self, x):
 #         batch_size, _, seq_length, d_k = x.size()
 #         return x.transpose(1, 2).contiguous().view(batch_size, seq_length, self.d_model)
-        
+
 #     def forward(self, Q, K, V, mask=None):
 #         Q = self.split_heads(self.W_q(Q))
 #         K = self.split_heads(self.W_k(K))
 #         V = self.split_heads(self.W_v(V))
-        
+
 #         attn_output = self.scaled_dot_product_attention(Q, K, V, mask)
 #         output = self.W_o(self.combine_heads(attn_output))
 #         return output
@@ -54,24 +54,24 @@
 
 #     def forward(self, x):
 #         return self.fc2(self.relu(self.fc1(x)))
-    
+
 
 # class PositionalEncoding(nn.Module):
 #     def __init__(self, d_model, max_seq_length):
 #         super(PositionalEncoding, self).__init__()
-        
+
 #         pe = torch.zeros(max_seq_length, d_model)
 #         position = torch.arange(0, max_seq_length, dtype=torch.float).unsqueeze(1)
 #         div_term = torch.exp(torch.arange(0, d_model, 2).float() * -(math.log(10000.0) / d_model))
-        
+
 #         pe[:, 0::2] = torch.sin(position * div_term)
 #         pe[:, 1::2] = torch.cos(position * div_term)
-        
+
 #         self.register_buffer('pe', pe.unsqueeze(0))
-        
+
 #     def forward(self, x):
 #         return x + self.pe[:, :x.size(1)]
-    
+
 
 # class EncoderLayer(nn.Module):
 #     def __init__(self, d_model, num_heads, d_ff, dropout):
@@ -81,14 +81,14 @@
 #         self.norm1 = nn.LayerNorm(d_model)
 #         self.norm2 = nn.LayerNorm(d_model)
 #         self.dropout = nn.Dropout(dropout)
-        
+
 #     def forward(self, x, mask):
 #         attn_output = self.self_attn(x, x, x, mask)
 #         x = self.norm1(x + self.dropout(attn_output))
 #         ff_output = self.feed_forward(x)
 #         x = self.norm2(x + self.dropout(ff_output))
 #         return x
-    
+
 
 # class DecoderLayer(nn.Module):
 #     def __init__(self, d_model, num_heads, d_ff, dropout):
@@ -100,7 +100,7 @@
 #         self.norm2 = nn.LayerNorm(d_model)
 #         self.norm3 = nn.LayerNorm(d_model)
 #         self.dropout = nn.Dropout(dropout)
-        
+
 #     def forward(self, x, enc_output, src_mask, tgt_mask):
 #         attn_output = self.self_attn(x, x, x, tgt_mask)
 #         x = self.norm1(x + self.dropout(attn_output))
@@ -109,7 +109,7 @@
 #         ff_output = self.feed_forward(x)
 #         x = self.norm3(x + self.dropout(ff_output))
 #         return x
-    
+
 
 # class Transformer(nn.Module):
 #     def __init__(self, src_vocab_size, tgt_vocab_size, d_model, num_heads, num_layers, d_ff, max_seq_length, dropout):
@@ -173,13 +173,11 @@ def get_positional_encoding(sequence):
                 pos_encoding[pos, i] = math.sin(pos / (10000 ** ((2 * i) / dimensions)))
             else:
                 pos_encoding[pos, i] = math.cos(pos / (10000 ** ((2 * i) / dimensions)))
-    
+
     return pos_encoding + sequence
 
 
 class PrepareForMultiHeadAttention(nn.Module):
-
-
     def __init__(self, d_model: int, heads: int, d_k: int, bias: bool):
         super().__init__()
 
@@ -188,7 +186,6 @@ class PrepareForMultiHeadAttention(nn.Module):
         # d_k is the number of dimensions in vectors in each head
         self.d_k = d_k
 
-    
     def forward(self, x: torch.Tensor):
         # Input has shape [seq_len, batch_size, d_model] or [batch_size, d_model]
         head_shape = x.shape[:-1]
@@ -200,12 +197,12 @@ class PrepareForMultiHeadAttention(nn.Module):
         # Output has shape [seq_len, batch_size, heads, d_k] or [batch_size, heads, d_model]
 
         return x
-    
+
 
 class MultiHeadAttention(nn.Module):
-
-
-    def __init__(self, heads:int, d_model: int, dropout_prob: float = 0.1, bias: bool = True):
+    def __init__(
+        self, heads: int, d_model: int, dropout_prob: float = 0.1, bias: bool = True
+    ):
         # heads is the number of heads.
         # d_model is the number of features in the query , key and value vectors.
 
@@ -224,13 +221,13 @@ class MultiHeadAttention(nn.Module):
         # We store attentions so that it can be used for logging, or other computations if needed
         self.attn = None
 
-    
     def get_scores(self, query: torch.Tensor, key: torch.Tensor):
         # Product of query and key matrix in Einstein Notation summation
-        return torch.einsum('ibhd,jbhd->ijbh', query, key)
-    
+        return torch.einsum("ibhd,jbhd->ijbh", query, key)
 
-    def prepare_mask(self, mask: torch.Tensor, query_shape: List[int], key_shape: List[int]):
+    def prepare_mask(
+        self, mask: torch.Tensor, query_shape: List[int], key_shape: List[int]
+    ):
         assert mask.shape[0] == 1 or mask.shape[0] == query_shape[0]
         assert mask.shape[1] == key_shape[0]
         assert mask.shape[2] == 1 or mask.shape[2] == query_shape[1]
@@ -241,12 +238,17 @@ class MultiHeadAttention(nn.Module):
 
         return mask
 
-    
-    def forward(self, *, query: torch.Tensor, key: torch.Tensor, value: torch.Tensor, mask: Optional[torch.Tensor] = None):
+    def forward(
+        self,
+        *,
+        query: torch.Tensor,
+        key: torch.Tensor,
+        value: torch.Tensor,
+        mask: Optional[torch.Tensor] = None
+    ):
         seq_len, batch_size, _ = query.shape
         if mask is not None:
             mask = self.prepare_mask(mask, query.shape, key.shape)
-
 
         # Preparing the different Tensors
         query = self.query(query)
@@ -260,7 +262,7 @@ class MultiHeadAttention(nn.Module):
         scores *= self.scale
 
         if mask is not None:
-            scores = scores.masked_fill(mask == 0, float('-inf'))
+            scores = scores.masked_fill(mask == 0, float("-inf"))
 
         attn = self.softmax(scores)
 
@@ -274,4 +276,3 @@ class MultiHeadAttention(nn.Module):
         x = x.reshape(seq_len, batch_size, -1)
 
         return self.output(x)
-
