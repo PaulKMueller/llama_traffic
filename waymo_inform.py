@@ -520,15 +520,18 @@ def get_labeled_trajectories_for_all_scenarios_json():
         for vehicle_id in tqdm(
             vehicle_ids, desc=f"Processing vehicles in scenario {scenario}", leave=False
         ):
-            coordinates = get_coordinates(decoded_scenario, vehicle_id)
-            spline_coordinates = get_spline_for_coordinates(coordinates)
-            x_coordinates = spline_coordinates[
+            trajectory = Trajectory(
+                decoded_example=decoded_scenario, specific_id=vehicle_id
+            )
+            x_coordinates = trajectory.splined_coordinates[
                 "X"
             ].tolist()  # Convert to list for JSON serialization
-            y_coordinates = spline_coordinates[
+            y_coordinates = trajectory.splined_coordinates[
                 "Y"
             ].tolist()  # Convert to list for JSON serialization
-            direction = get_direction_of_vehicle(decoded_scenario, spline_coordinates)
+            direction = get_direction_of_vehicle(
+                decoded_scenario, trajectory.splined_coordinates
+            )
             trajectory_dict[f"{get_scenario_index(scenario)}_{vehicle_id}"] = {
                 "X": x_coordinates,
                 "Y": y_coordinates,
