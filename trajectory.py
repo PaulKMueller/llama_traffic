@@ -3,11 +3,13 @@ import pandas as pd
 import tensorflow as tf
 from scipy import interpolate
 import math
+from scenario import Scenario
 
 
 class Trajectory:
-    def __init__(self, decoded_example, specific_id):
-        self.coordinates = self.get_coordinates(decoded_example, specific_id)
+    def __init__(self, scenario: Scenario, specific_id):
+        self.scenario = scenario
+        self.coordinates = self.get_coordinates(scenario.data, specific_id)
         self.splined_coordinates = self.get_spline_for_coordinates(self.coordinates)
         self.x_coordinates = self.splined_coordinates["X"]
         self.y_coordinates = self.splined_coordinates["Y"]

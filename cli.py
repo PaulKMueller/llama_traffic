@@ -44,9 +44,6 @@ from trajectory_generator import (
 from multi_head_attention import get_positional_encoding
 
 from waymo_visualize import (
-    visualize_all_agents_smooth,
-    create_animation,
-    visualize_trajectory,
     visualize_coordinates,
     visualize_map,
     visualize_raw_coordinates_without_scenario,
@@ -156,8 +153,8 @@ class SimpleShell(cmd.Cmd):
         vehicle_id = arg.split()[0]
         trajectory = Trajectory(self.loaded_scenario.data, vehicle_id)
 
-        trajectory_plot = visualize_coordinates(
-            self.loaded_scenario.data, trajectory.coordinates
+        trajectory_plot = self.loaded_scenario.visualize_coordinates(
+            trajectory.coordinates
         )
 
         trajectory_plot.savefig(f"{output_folder}{vehicle_id}.png")
@@ -183,6 +180,7 @@ class SimpleShell(cmd.Cmd):
         args = arg.split()
 
         # Check for empty arguments (no path provided)
+        print("The scenario is being loaded...")
         if arg == "":
             print(
                 "\nYou have provided no path for the scenario you want to load."
@@ -197,7 +195,6 @@ class SimpleShell(cmd.Cmd):
         elif args[0] == "-p" or args[0] == "--path":
             filename = args[1]
             self.loaded_scenario = Scenario(scenario_path=filename)
-            print(f"The scenario {filename} is being loaded.")
             print("\nSuccessfully initialized the given scenario!\n")
             return
         elif args[0] == "-i" or args[0] == "--index":
@@ -205,7 +202,6 @@ class SimpleShell(cmd.Cmd):
             self.loaded_scenario = Scenario(
                 scenario_path=scenario_data_folder + scenario_name
             )
-            print(f"The scenario {self.loaded_scenario.name} is being loaded...")
             print("\nSuccessfully initialized the given scenario!\n")
             return
         else:
@@ -219,10 +215,12 @@ class SimpleShell(cmd.Cmd):
         """Prints the current scenario that has been loaded in its decoded form.
         This function is for debugging purposes only.
 
-        Args:
-            arg (str): No arguments are required.
         """
         print(self.loaded_scenario.data)
+
+    def do_print_roadgraph(self):
+        pass
+        # print(self.loaded_scenario.data["roadgraph"])
 
     def do_plot_scenario(self, arg):
         """Plots the scenario that has previously been
@@ -354,8 +352,8 @@ class SimpleShell(cmd.Cmd):
                 scenario_data_folder + get_scenario_list()[int(scenario_index)]
             )
             print(f"Scenario path: {scenario_path}")
-            trajectory_plot = visualize_trajectory(
-                decoded_example=init_waymo(scenario_path), specific_id=vehicle_id
+            trajectory_plot = self.loaded_scenario.visualize_trajectory(
+                specific_id=vehicle_id
             )
 
             trajectory_plot.savefig(f"{output_folder}{scenario_index}_{vehicle_id}.png")
@@ -457,12 +455,11 @@ class SimpleShell(cmd.Cmd):
 
         vehicle_id = arg.split()[0]
         print(f"\nPlotting vehicle with the ID: {vehicle_id}...")
-        images = visualize_all_agents_smooth(
-            decoded_example=self.loaded_scenario.data,
+        images = self.loaded_scenario.visualize_all_agents_smooth(
             with_ids=False,
             specific_id=vehicle_id,
         )
-        anim = create_animation(images[::5])
+        anim = self.loaded_scenario.create_animation(images[::5])
         timestamp = datetime.now()
         anim.save(f"{output_folder}{timestamp}.mp4", writer="ffmpeg", fps=10)
         print(
@@ -506,15 +503,10 @@ class SimpleShell(cmd.Cmd):
         vehicle_id = arg.split()[0]
         print(f"\nPlotting trajectory for vehicle {vehicle_id}...")
         timestamp = datetime.now()
-        trajectory = Trajectory(self.loaded_scenario.data, vehicle_id)
-        trajectory_plot = visualize_trajectory(
-            decoded_example=self.loaded_scenario.data, specific_id=vehicle_id
+        trajectory_plot = self.loaded_scenario.visualize_trajectory(
+            specific_id=vehicle_id
         )
-        # trajectory.savefig(f"/home/pmueller/llama_traffic/output/{timestamp}.png")
-        sum_of_delta_angles = get_sum_of_delta_angles(trajectory.splined_coordinates)
-        trajectory_plot.savefig(
-            f"{output_folder}{vehicle_id}_{sum_of_delta_angles}.png"
-        )
+        trajectory_plot.savefig(f"{output_folder}{vehicle_id}.png")
         print(
             (
                 "Successfully created trajectory plot in "
