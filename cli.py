@@ -65,12 +65,12 @@ from bert_encoder import (
 
 from trajectory_classifier import train_classifier
 
+from scenario import Scenario
+
 
 class SimpleShell(cmd.Cmd):
     prompt = "(waymo_cli) "
-    waymo_scenario = {}
-    scenario_loaded = False
-    scenario_name = ""
+    loaded_scenario = None
 
     with open("config.yaml", "r") as file:
         config = yaml.safe_load(file)
@@ -109,7 +109,7 @@ class SimpleShell(cmd.Cmd):
             output_folder = config["output_folder"]
 
         # Checking if a scenario has been loaded already.
-        if not self.scenario_loaded:
+        if self.loaded_scenario is None:
             print(
                 (
                     "\nNo scenario has been initialized yet!"
@@ -119,9 +119,9 @@ class SimpleShell(cmd.Cmd):
             )
             return
 
-        image = visualize_map(self.waymo_scenario)
+        image = visualize_map(self.loaded_scenario.data)
         image.savefig(
-            f"{output_folder}roadgraph_{get_scenario_index(self.scenario_name)}.png"
+            f"{output_folder}roadgraph_{get_scenario_index(self.loaded_scenario.name)}.png"
         )
 
     def do_visualize_trajectory(self, arg):
@@ -133,7 +133,7 @@ class SimpleShell(cmd.Cmd):
             output_folder = config["output_folder"]
 
         # Checking if a scenario has been loaded already.
-        if not self.scenario_loaded:
+        if self.loaded_scenario is None:
             print(
                 (
                     "\nNo scenario has been initialized yet!"
@@ -154,10 +154,10 @@ class SimpleShell(cmd.Cmd):
             return
 
         vehicle_id = arg.split()[0]
-        trajectory = Trajectory(self.waymo_scenario, vehicle_id)
+        trajectory = Trajectory(self.loaded_scenario.data, vehicle_id)
 
         trajectory_plot = visualize_coordinates(
-            self.waymo_scenario, trajectory.coordinates
+            self.loaded_scenario.data, trajectory.coordinates
         )
 
         trajectory_plot.savefig(f"{output_folder}{vehicle_id}.png")
@@ -191,37 +191,29 @@ class SimpleShell(cmd.Cmd):
             return
 
         elif args[0] == "-e" or args[0] == "--example":
-            self.scenario_name = "training_tfexample.tfrecord-00499-of-01000"
-            self.waymo_scenario = init_waymo(example_scenario_path)
-            self.scenario_loaded = True
+            self.loaded_scenario = Scenario(example_scenario_path)
             print("Successfully initialized the example scenario!")
             return
         elif args[0] == "-p" or args[0] == "--path":
-            filename = arg.split()[0]
-            print(f"Das Szenario wird geladen: {filename}")
-            self.waymo_scenario = init_waymo(args[1])
-            self.scenario_name = filename
-            self.scenario_loaded = True
+            filename = args[1]
+            self.loaded_scenario = Scenario(scenario_path=filename)
+            print(f"The scenario {filename} is being loaded.")
             print("\nSuccessfully initialized the given scenario!\n")
             return
         elif args[0] == "-i" or args[0] == "--index":
             scenario_name = get_scenario_list()[int(args[1])]
-            print(f"The scenario {scenario_name} is being loaded...")
-            self.waymo_scenario = init_waymo(scenario_data_folder + scenario_name)
-            self.scenario_name = scenario_name
-            self.scenario_loaded = True
+            self.loaded_scenario = Scenario(
+                scenario_path=scenario_data_folder + scenario_name
+            )
+            print(f"The scenario {self.loaded_scenario.name} is being loaded...")
             print("\nSuccessfully initialized the given scenario!\n")
             return
         else:
-            try:
-                self.waymo_scenario = init_waymo(args[0])
-                self.scenario_loaded = True
-                print("\nSuccessfully initialized the given scenario!\n")
-                return
-            except Exception:
-                print(
-                    "\nYou have provided no path for the scenario you want to load. Please use the -p flag to indicate the path.\n"
-                )
+            print(
+                """Invalid input, please try again. 
+                Use -p to specify the scenario path, -i to specify the scenario index
+                or - e to load the example scenario chosen in your config.yaml."""
+            )
 
     def do_print_current_raw_scenario(self, arg):
         """Prints the current scenario that has been loaded in its decoded form.
@@ -230,7 +222,7 @@ class SimpleShell(cmd.Cmd):
         Args:
             arg (str): No arguments are required.
         """
-        print(self.waymo_scenario)
+        print(self.loaded_scenario.data)
 
     def do_plot_scenario(self, arg):
         """Plots the scenario that has previously been
@@ -243,18 +235,20 @@ class SimpleShell(cmd.Cmd):
         # Load config file
         with open("config.yaml", "r") as file:
             config = yaml.safe_load(file)
-            scenario_data_folder = config["scenario_data_folder"]
             output_folder = config["output_folder"]
 
         parser = self.arg_parser()
         args = parser.parse_args(arg.split())
-
-        if args.index is not None:
-            scenario_name = get_scenario_list()[int(args.index)]
-            print(scenario_name)
-            scenario = init_waymo(scenario_data_folder + scenario_name)
-        elif self.scenario_loaded:
-            scenario = self.waymo_scenario
+        if self.loaded_scenario is not None:
+            anim = self.loaded_scenario.get_animation(args.ids)
+            anim.save(
+                f"/home/pmueller/llama_traffic/output/{self.loaded_scenario.name}.mp4",
+                writer="ffmpeg",
+                fps=10,
+            )
+            print(
+                f"Successfully created animation in {output_folder}{self.loaded_scenario.name}.mp4!\n"
+            )
         else:
             print(
                 (
@@ -265,24 +259,6 @@ class SimpleShell(cmd.Cmd):
                 )
             )
             return
-
-        if args.ids:
-            print("\nPlotting scenario with agent ids...")
-            images = visualize_all_agents_smooth(scenario, with_ids=True)
-        else:
-            print("\nPlotting scenario without agent ids...")
-            images = visualize_all_agents_smooth(scenario, with_ids=False)
-
-        scenario_name = get_scenario_index(self.scenario_name)
-        anim = create_animation(images[::5])
-        anim.save(
-            f"/home/pmueller/llama_traffic/output/{scenario_name}.mp4",
-            writer="ffmpeg",
-            fps=10,
-        )
-        print(
-            f"Successfully created animation in {output_folder}{scenario_name}.mp4!\n"
-        )
 
     def do_get_similarity(self, arg):
         """Returns the cosine similarity between the given text input and the
@@ -459,7 +435,7 @@ class SimpleShell(cmd.Cmd):
             output_folder = config["output_folder"]
 
         # Checking if a scenario has been loaded already.
-        if not self.scenario_loaded:
+        if self.loaded_scenario is None:
             print(
                 (
                     "\nNo scenario has been initialized yet!"
@@ -482,7 +458,9 @@ class SimpleShell(cmd.Cmd):
         vehicle_id = arg.split()[0]
         print(f"\nPlotting vehicle with the ID: {vehicle_id}...")
         images = visualize_all_agents_smooth(
-            decoded_example=self.waymo_scenario, with_ids=False, specific_id=vehicle_id
+            decoded_example=self.loaded_scenario.data,
+            with_ids=False,
+            specific_id=vehicle_id,
         )
         anim = create_animation(images[::5])
         timestamp = datetime.now()
@@ -506,7 +484,7 @@ class SimpleShell(cmd.Cmd):
             output_folder = config["output_folder"]
 
         # Checking if a scenario has been loaded already.
-        if not self.scenario_loaded:
+        if self.loaded_scenario is None:
             print(
                 (
                     "\nNo scenario has been initialized yet! \nPlease use 'load_scenario'"
@@ -528,9 +506,9 @@ class SimpleShell(cmd.Cmd):
         vehicle_id = arg.split()[0]
         print(f"\nPlotting trajectory for vehicle {vehicle_id}...")
         timestamp = datetime.now()
-        trajectory = Trajectory(self.waymo_scenario, vehicle_id)
+        trajectory = Trajectory(self.loaded_scenario.data, vehicle_id)
         trajectory_plot = visualize_trajectory(
-            decoded_example=self.waymo_scenario, specific_id=vehicle_id
+            decoded_example=self.loaded_scenario.data, specific_id=vehicle_id
         )
         # trajectory.savefig(f"/home/pmueller/llama_traffic/output/{timestamp}.png")
         sum_of_delta_angles = get_sum_of_delta_angles(trajectory.splined_coordinates)
@@ -559,7 +537,7 @@ class SimpleShell(cmd.Cmd):
             output_folder = config["output_folder"]
 
         # Checking if a scenario has been loaded already.
-        if not self.scenario_loaded:
+        if self.loaded_scenario is None:
             print(
                 (
                     "\nNo scenario has been initialized yet! \nPlease use 'load_scenario'"
@@ -580,7 +558,7 @@ class SimpleShell(cmd.Cmd):
 
         vehicle_id = arg.split()[0]
         print(f"\nPlotting trajectory for vehicle {vehicle_id}...")
-        trajectory = Trajectory(self.waymo_scenario, vehicle_id)
+        trajectory = Trajectory(self.loaded_scenario.data, vehicle_id)
         trajectory_plot = visualize_raw_coordinates_without_scenario(
             trajectory.splined_coordinates
         )
@@ -606,7 +584,7 @@ class SimpleShell(cmd.Cmd):
             output_folder = config["output_folder"]
 
         # Checking if a scenario has been loaded already.
-        if not self.scenario_loaded:
+        if self.loaded_scenario is None:
             print(
                 (
                     "\nNo scenario has been initialized yet! \nPlease use 'load_scenario'"
@@ -616,13 +594,13 @@ class SimpleShell(cmd.Cmd):
             return
 
         print("\nPlotting trajectories for all vehicles...")
-        vehicle_ids = get_vehicles_for_scenario(self.waymo_scenario)
+        vehicle_ids = get_vehicles_for_scenario(self.loaded_scenario.data)
 
         for vehicle_id in vehicle_ids:
             print(f"Plotting trajectory for vehicle {vehicle_id}...")
-            trajectory = Trajectory(self.waymo_scenario, vehicle_id)
+            trajectory = Trajectory(self.loaded_scenario.data, vehicle_id)
             trajectory_plot = visualize_trajectory(
-                decoded_example=self.waymo_scenario, specific_id=vehicle_id
+                decoded_example=self.loaded_scenario.data, specific_id=vehicle_id
             )
             sum_of_delta_angles = get_sum_of_delta_angles(
                 trajectory.splined_coordinates
@@ -648,7 +626,7 @@ class SimpleShell(cmd.Cmd):
             output_folder = config["output_folder"]
 
         # Checking if a scenario has been loaded already.
-        if not self.scenario_loaded:
+        if self.loaded_scenario is None:
             print(
                 (
                     "\nNo scenario has been initialized yet! \nPlease use 'load_scenario'"
@@ -668,7 +646,7 @@ class SimpleShell(cmd.Cmd):
             return
 
         vehicle_id = arg.split()[0]
-        trajectory = Trajectory(self.waymo_scenario, vehicle_id)
+        trajectory = Trajectory(self.loaded_scenario.data, vehicle_id)
         trajectory.splined_coordinates.to_csv(
             f"{output_folder}coordinates_for_{vehicle_id}.scsv"
         )
@@ -710,10 +688,10 @@ class SimpleShell(cmd.Cmd):
             return
 
         vehicle_id = arg.split()[0]
-        trajectory = Trajectory(self.waymo_scenario, vehicle_id)
+        trajectory = Trajectory(self.loaded_scenario.data, vehicle_id)
 
         print(
-            f"\n{get_direction_of_vehicle(self.waymo_scenario, trajectory.splined_coordinates)}!\n"
+            f"\n{get_direction_of_vehicle(self.loaded_scenario.data, trajectory.splined_coordinates)}!\n"
         )
 
     def do_get_displacement(self, arg):
@@ -737,9 +715,9 @@ class SimpleShell(cmd.Cmd):
             return
 
         vehicle_id = arg.split()[0]
-        trajectory = Trajectory(self.waymo_scenario, vehicle_id)
+        trajectory = Trajectory(self.loaded_scenario.data, vehicle_id)
         displacement = get_relative_displacement(
-            decoded_example=self.waymo_scenario,
+            decoded_example=self.loaded_scenario.data,
             coordinates=trajectory.splined_coordinates,
         )
 
@@ -757,7 +735,7 @@ class SimpleShell(cmd.Cmd):
         """
 
         # Checking if a scenario has been loaded already.
-        if not self.scenario_loaded:
+        if self.loaded_scenario is None:
             print(
                 (
                     "\nNo scenario has been initialized yet!"
@@ -767,18 +745,18 @@ class SimpleShell(cmd.Cmd):
             )
             return
 
-        vehicle_ids = get_vehicles_for_scenario(self.waymo_scenario)
+        vehicle_ids = get_vehicles_for_scenario(self.loaded_scenario.data)
 
         for vehicle_id in vehicle_ids:
-            trajectory = Trajectory(self.waymo_scenario, vehicle_id)
+            trajectory = Trajectory(self.loaded_scenario.data, vehicle_id)
             direction = get_direction_of_vehicle(
-                self.waymo_scenario, trajectory.splined_coordinates
+                self.loaded_scenario.data, trajectory.splined_coordinates
             )
 
             # \nAngle: {delta_angle_sum}\nDirection: {direction}"
 
             trajectory_plot = visualize_trajectory(
-                decoded_example=self.waymo_scenario, specific_id=vehicle_id
+                decoded_example=self.loaded_scenario.data, specific_id=vehicle_id
             )
 
             trajectory_plot.savefig(
@@ -798,7 +776,7 @@ class SimpleShell(cmd.Cmd):
             output_folder = config["output_folder"]
 
         # Checking if a scenario has been loaded already.
-        if not self.scenario_loaded:
+        if self.loaded_scenario is None:
             print(
                 (
                     "\nNo scenario has been initialized yet! \nPlease use 'load_scenario'"
@@ -819,9 +797,9 @@ class SimpleShell(cmd.Cmd):
 
         vehicle_id = arg.split()[0]
 
-        trajectory = Trajectory(self.waymo_scenario, vehicle_id)
+        trajectory = Trajectory(self.loaded_scenario.data, vehicle_id)
         spline_plot = visualize_coordinates(
-            self.waymo_scenario, trajectory.splined_coordinates
+            self.loaded_scenario.data, trajectory.splined_coordinates
         )
         spline_plot.savefig(f"{output_folder}{vehicle_id}_spline.png")
 
@@ -833,7 +811,7 @@ class SimpleShell(cmd.Cmd):
         """
 
         # Checking if a scenario has been loaded already.
-        if not self.scenario_loaded:
+        if self.loaded_scenario is None:
             print(
                 (
                     "\nNo scenario has been initialized yet!"
@@ -843,7 +821,7 @@ class SimpleShell(cmd.Cmd):
             )
             return
 
-        filtered_ids = get_vehicles_for_scenario(self.waymo_scenario)
+        filtered_ids = get_vehicles_for_scenario(self.loaded_scenario.data)
 
         print("\n")
         print(*filtered_ids, sep="\n")
@@ -868,7 +846,7 @@ class SimpleShell(cmd.Cmd):
             return
 
         vehicle_id = arg.split()[0]
-        trajectory = Trajectory(self.waymo_scenario, vehicle_id)
+        trajectory = Trajectory(self.loaded_scenario.data, vehicle_id)
         coordinates = trajectory.splined_coordinates
         angles = get_delta_angles(coordinates)
 
@@ -892,7 +870,7 @@ class SimpleShell(cmd.Cmd):
             return
 
         vehicle_id = arg.split()[0]
-        trajectory = Trajectory(self.waymo_scenario, vehicle_id)
+        trajectory = Trajectory(self.loaded_scenario.data, vehicle_id)
         angle = get_sum_of_delta_angles(trajectory.splined_coordinates)
 
         print(f"The total heading change is: {angle} degrees!")
@@ -901,7 +879,7 @@ class SimpleShell(cmd.Cmd):
         """Prints the spline for the given vehicle ID."""
 
         # Checking if a scenario has been loaded already.
-        if not self.scenario_loaded:
+        if self.loaded_scenario is None:
             print(
                 (
                     "\nNo scenario has been initialized yet! \nPlease use 'load_scenario'"
@@ -922,7 +900,7 @@ class SimpleShell(cmd.Cmd):
 
         vehicle_id = arg.split()[0]
 
-        trajectory = Trajectory(self.waymo_scenario, vehicle_id)
+        trajectory = Trajectory(self.loaded_scenario.data, vehicle_id)
         spline = trajectory.splined_coordinates
 
         # Store spline from dataframe
@@ -944,7 +922,7 @@ class SimpleShell(cmd.Cmd):
             return
 
         vehicle_id = arg.split()[0]
-        trajectory = Trajectory(self.waymo_scenario, vehicle_id)
+        trajectory = Trajectory(self.loaded_scenario.data, vehicle_id)
         angle = get_total_trajectory_angle(trajectory.splined_coordinates)
 
         print(f"The total heading change is: {angle} degrees!")
@@ -997,7 +975,7 @@ class SimpleShell(cmd.Cmd):
             output_folder = config["output_folder"]
 
         # Checking if a scenario has been loaded already.
-        if not self.scenario_loaded:
+        if self.loaded_scenario is None:
             print(
                 (
                     "\nNo scenario has been initialized yet! \nPlease use 'load_scenario'"
@@ -1008,12 +986,12 @@ class SimpleShell(cmd.Cmd):
 
         print("\nGetting the labeled trajectories...")
         labeled_trajectories = get_labeled_trajectories_for_scenario(
-            self.waymo_scenario, self.scenario_name
+            self.loaded_scenario.data, self.loaded_scenario.name
         )
 
         # Save the labeled trajectories to a txt file in the output folder
         with open(
-            f"{output_folder}{get_scenario_index(self.scenario_name)}_labeled_trajectories.txt",
+            f"{output_folder}{get_scenario_index(self.loaded_scenario.name)}_labeled_trajectories.txt",
             "w",
         ) as file:
             file.write(str(labeled_trajectories))
@@ -1078,7 +1056,7 @@ class SimpleShell(cmd.Cmd):
         """
 
         print(
-            f"\nThe ID of the loaded scenario is: {get_scenario_index(self.scenario_name)}\n"
+            f"\nThe ID of the loaded scenario is: {get_scenario_index(self.loaded_scenario.name)}\n"
         )
 
     def do_test_trajectory_bucketing(self, arg):
@@ -1316,7 +1294,7 @@ class SimpleShell(cmd.Cmd):
             output_folder = config["output_folder"]
 
         # Checking if a scenario has been loaded already.
-        if not self.scenario_loaded:
+        if self.loaded_scenario is None:
             print(
                 (
                     "\nNo scenario has been initialized yet! \nPlease use 'load_scenario'"
@@ -1338,7 +1316,7 @@ class SimpleShell(cmd.Cmd):
         vehicle_id = arg.split()[0]
 
         trajectory = Trajectory(
-            decoded_example=self.waymo_scenario, specific_id=vehicle_id
+            decoded_example=self.loaded_scenario.data, specific_id=vehicle_id
         )
 
         reshaped_coordinates = np.array(
@@ -1379,7 +1357,7 @@ class SimpleShell(cmd.Cmd):
         """
 
         # Checking if a scenario has been loaded already.
-        if not self.scenario_loaded:
+        if self.loaded_scenario is None:
             print(
                 (
                     "\nNo scenario has been initialized yet! \nPlease use 'load_scenario'"
@@ -1392,7 +1370,7 @@ class SimpleShell(cmd.Cmd):
         with open(
             "/home/pmueller/llama_traffic/datasets/raw_scenario.json", "w"
         ) as file:
-            file.write(str(self.waymo_scenario))
+            file.write(str(self.loaded_scenario.data))
 
     # Basic command to exit the shell
     def do_exit(self, arg):
