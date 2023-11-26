@@ -19,6 +19,8 @@ class Trajectory:
         self.total_displacement = self.get_total_displacement()
         self.sum_of_delta_angles = self.get_sum_of_delta_angles()
         self.direction = self.get_direction_of_vehicle()
+        self.normalized_splined_coordinates = self.normalize_coordinates()
+        print(self.normalized_splined_coordinates)
 
     @staticmethod
     def get_coordinates_one_step(
@@ -131,6 +133,27 @@ class Trajectory:
 
         return output_df
 
+    def normalize_coordinates(self):
+        viewport = self.scenario.get_viewport()
+        center_y = viewport[0]
+        center_x = viewport[1]
+        width = viewport[2]
+        normalized_coordinates = pd.DataFrame(columns=["X", "Y"])
+
+        for i in range(len(self.splined_coordinates)):
+            normalized_x = (self.splined_coordinates["X"][i] - center_x) / width
+            normalized_y = (self.splined_coordinates["Y"][i] - center_y) / width
+            # Concatenate the normalized coordinates to the normalized_coordinates dataframe
+            normalized_coordinates = pd.concat(
+                [
+                    normalized_coordinates,
+                    pd.DataFrame({"X": [normalized_x], "Y": [normalized_y]}),
+                ],
+                ignore_index=True,
+            )
+        print(normalized_coordinates)
+        return normalized_coordinates
+
     def get_spline_for_coordinates(self, coordinates):
         """Returns the splined coordinates for the given trajectory coordinates.
 
@@ -197,14 +220,14 @@ class Trajectory:
 
         return adjusted_coordinates
 
-    def get_sum_of_delta_angles(self, coordinates: pd.DataFrame):
+    def get_sum_of_delta_angles(self):
         """Returns the sum of the angles between each segment in the trajectory.
 
         Args:
             coordinates (pd.DataFrame): A dataframe containing the coordinates
                                         of the vehicle trajectory.
         """
-        delta_angles = self.get_delta_angles(coordinates)
+        delta_angles = self.get_delta_angles(self.splined_coordinates)
         filtered_delta_angles = self.remove_outlier_angles(delta_angles)
         return sum(filtered_delta_angles)
 
@@ -448,8 +471,8 @@ class Trajectory:
             bucket = "Straight"
             return bucket
 
-    def get_relative_displacement(self, coordinates: pd.DataFrame):
-        total_displacement = self.get_total_displacement(coordinates)
+    def get_relative_displacement(self):
+        total_displacement = self.get_total_displacement()
         _, _, width = self.scenario.get_viewport()
 
         relative_displacement = total_displacement / width

@@ -248,7 +248,7 @@ class Scenario:
             [past_states_mask, current_states_mask, future_states_mask], 1
         )
 
-        center_y, center_x, width = self.get_viewport(all_states, all_states_mask)
+        center_y, center_x, width = self.get_viewport()
 
         images = []
 
@@ -423,21 +423,41 @@ class Scenario:
         data = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
         return data.reshape(fig.canvas.get_width_height()[::-1] + (3,))
 
-    @staticmethod
-    def get_viewport(all_states, all_states_mask):
+    def get_viewport(self):
         """Gets the region containing the data.
-
-        Args:
-            all_states: states of agents as an array of shape [num_agents, num_steps,
-            2].
-            all_states_mask: binary mask of shape [num_agents, num_steps] for
-            `all_states`.
 
         Returns:
             center_y: float. y coordinate for center of data.
             center_x: float. x coordinate for center of data.
             width: float. Width of data.
         """
+
+        # [num_agents, num_past_steps, 2] float32.
+        past_states = tf.stack(
+            [self.data["state/past/x"], self.data["state/past/y"]], -1
+        ).numpy()
+        past_states_mask = self.data["state/past/valid"].numpy() > 0.0
+
+        # [num_agents, 1, 2] float32.
+        current_states = tf.stack(
+            [self.data["state/current/x"], self.data["state/current/y"]], -1
+        ).numpy()
+        current_states_mask = self.data["state/current/valid"].numpy() > 0.0
+
+        # [num_agents, num_future_steps, 2] float32.
+        future_states = tf.stack(
+            [self.data["state/future/x"], self.data["state/future/y"]], -1
+        ).numpy()
+        future_states_mask = self.data["state/future/valid"].numpy() > 0.0
+
+        # [num_agens, num_past_steps + 1 + num_future_steps, depth] float32.
+        all_states = np.concatenate([past_states, current_states, future_states], 1)
+
+        # [num_agens, num_past_steps + 1 + num_future_steps] float32.
+        all_states_mask = np.concatenate(
+            [past_states_mask, current_states_mask, future_states_mask], 1
+        )
+
         valid_states = all_states[all_states_mask]
         all_y = valid_states[..., 1]
         all_x = valid_states[..., 0]
@@ -554,7 +574,7 @@ class Scenario:
             [past_states_mask, current_states_mask, future_states_mask], 1
         )
 
-        center_y, center_x, width = self.get_viewport(all_states, all_states_mask)
+        center_y, center_x, width = self.get_viewport()
 
         # Creating one figure and axis to visualize all steps on the same plot
         _, ax = self.create_figure_and_axes(size_pixels=size_pixels)
@@ -722,7 +742,7 @@ class Scenario:
             [past_states_mask, current_states_mask, future_states_mask], 1
         )
 
-        center_y, center_x, width = self.get_viewport(all_states, all_states_mask)
+        center_y, center_x, width = self.get_viewport()
 
         # Creating one figure and axis to visualize all steps on the same plot
         _, ax = self.create_figure_and_axes(size_pixels=size_pixels)

@@ -139,7 +139,7 @@ class SimpleShell(cmd.Cmd):
             return
 
         vehicle_id = arg.split()[0]
-        trajectory = Trajectory(self.loaded_scenario.data, vehicle_id)
+        trajectory = Trajectory(self.loaded_scenario, vehicle_id)
 
         trajectory_plot = self.loaded_scenario.visualize_coordinates(
             trajectory.coordinates
@@ -539,7 +539,7 @@ class SimpleShell(cmd.Cmd):
 
         vehicle_id = arg.split()[0]
         print(f"\nPlotting trajectory for vehicle {vehicle_id}...")
-        trajectory = Trajectory(self.loaded_scenario.data, vehicle_id)
+        trajectory = Trajectory(self.loaded_scenario, vehicle_id)
         trajectory_plot = trajectory.visualize_raw_coordinates_without_scenario()
         trajectory_plot.savefig(f"{output_folder}raw_trajectory_{vehicle_id}.png")
 
@@ -619,7 +619,7 @@ class SimpleShell(cmd.Cmd):
             return
 
         vehicle_id = arg.split()[0]
-        trajectory = Trajectory(self.loaded_scenario.data, vehicle_id)
+        trajectory = Trajectory(self.loaded_scenario, vehicle_id)
         trajectory.splined_coordinates.to_csv(
             f"{output_folder}coordinates_for_{vehicle_id}.scsv"
         )
@@ -628,6 +628,48 @@ class SimpleShell(cmd.Cmd):
             (
                 f"\nThe coordinates of vehicle {vehicle_id} "
                 f"have been saved to {output_folder}coordinates_for_{vehicle_id}.scsv\n"
+            )
+        )
+
+    def do_print_viewport(self, arg):
+        """Prints the viewport of the loaded scenario."""
+
+        print(self.loaded_scenario.viewport)
+
+    def do_save_normalized_coordinates(self, arg):
+        """Saves the normalized coordinates of the given vehicle as a csv file.
+        Format should be: get_normalized_coordinates <ID>
+        Pleas make sure, that you have loaded a scenario before.
+
+        Args:
+            arg (str): The vehicle ID for which to get the normalized coordinates.
+        """
+
+        # Load config file
+        with open("config.yaml", "r") as file:
+            config = yaml.safe_load(file)
+            output_folder = config["output_folder"]
+
+        # Check for empty arguments (no ID provided)
+        if arg == "":
+            print(
+                (
+                    "\nYou have provided no ID for the vehicle "
+                    "whose trajectory you want to get.\nPlease provide a path!\n"
+                )
+            )
+            return
+
+        vehicle_id = arg.split()[0]
+        trajectory = Trajectory(self.loaded_scenario, vehicle_id)
+        trajectory.normalized_splined_coordinates.to_csv(
+            f"{output_folder}/normalized_coordinates_for_{vehicle_id}.scsv"
+        )
+
+        print(
+            (
+                f"\nThe normalized coordinates of vehicle {vehicle_id} "
+                f"have been saved to normalized_coordinates_for_{vehicle_id}.scsv\n"
             )
         )
 
@@ -661,7 +703,7 @@ class SimpleShell(cmd.Cmd):
             return
 
         vehicle_id = arg.split()[0]
-        trajectory = Trajectory(self.loaded_scenario.data, vehicle_id)
+        trajectory = Trajectory(self.loaded_scenario, vehicle_id)
 
         print(f"\n{trajectory.direction}!\n")
 
@@ -686,7 +728,7 @@ class SimpleShell(cmd.Cmd):
             return
 
         vehicle_id = arg.split()[0]
-        trajectory = Trajectory(self.loaded_scenario.data, vehicle_id)
+        trajectory = Trajectory(self.loaded_scenario, vehicle_id)
 
         print(
             f"\nThe relative displacement is: {round(trajectory.relative_displacement*100, 2)} %\n"
@@ -717,7 +759,7 @@ class SimpleShell(cmd.Cmd):
         vehicle_ids = get_vehicles_for_scenario(self.loaded_scenario.data)
 
         for vehicle_id in vehicle_ids:
-            trajectory = Trajectory(self.loaded_scenario.data, vehicle_id)
+            trajectory = Trajectory(self.loaded_scenario, vehicle_id)
 
             # \nAngle: {delta_angle_sum}\nDirection: {direction}"
 
@@ -809,7 +851,7 @@ class SimpleShell(cmd.Cmd):
             return
 
         vehicle_id = arg.split()[0]
-        trajectory = Trajectory(self.loaded_scenario.data, vehicle_id)
+        trajectory = Trajectory(self.loaded_scenario, vehicle_id)
         coordinates = trajectory.splined_coordinates
         angles = trajectory.get_delta_angles(coordinates)
 
@@ -833,7 +875,7 @@ class SimpleShell(cmd.Cmd):
             return
 
         vehicle_id = arg.split()[0]
-        trajectory = Trajectory(self.loaded_scenario.data, vehicle_id)
+        trajectory = Trajectory(self.loaded_scenario, vehicle_id)
 
         print(f"The total heading change is: {trajectory.sum_of_delta_angles} degrees!")
 
@@ -862,7 +904,7 @@ class SimpleShell(cmd.Cmd):
 
         vehicle_id = arg.split()[0]
 
-        trajectory = Trajectory(self.loaded_scenario.data, vehicle_id)
+        trajectory = Trajectory(self.loaded_scenario, vehicle_id)
         spline = trajectory.splined_coordinates
 
         # Store spline from dataframe
@@ -1252,7 +1294,7 @@ class SimpleShell(cmd.Cmd):
         vehicle_id = arg.split()[0]
 
         trajectory = Trajectory(
-            decoded_example=self.loaded_scenario.data, specific_id=vehicle_id
+            decoded_example=self.loaded_scenario, specific_id=vehicle_id
         )
 
         reshaped_coordinates = np.array(
