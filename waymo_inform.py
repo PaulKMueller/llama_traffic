@@ -422,8 +422,9 @@ def get_filter_dict_for_scenario(waymo_scenario):
     vehicle_ids = get_vehicles_for_scenario(waymo_scenario)
     filter_dict = {}
     for vehicle_id in vehicle_ids:
+        trajectory = Trajectory(waymo_scenario, vehicle_id)
         direction = get_direction_of_vehicle(
-            waymo_scenario, get_coordinates(waymo_scenario, vehicle_id)
+            waymo_scenario, trajectory.splined_coordinates(waymo_scenario, vehicle_id)
         )
         if direction in filter_dict.keys():
             filter_dict[direction].append(vehicle_id)
@@ -446,11 +447,13 @@ def get_labeled_trajectories_for_scenario(waymo_scenario, scenario_name):
     vehicle_ids = get_vehicles_for_scenario(waymo_scenario)
     trajectory_dict = {}
     for vehicle_id in vehicle_ids:
-        coordinates = get_coordinates(waymo_scenario, vehicle_id)
-        spline_coordinates = get_spline_for_coordinates(coordinates)
-        x_coordinates = spline_coordinates["X"].to_numpy()
-        y_coordinates = spline_coordinates["Y"].to_numpy()
-        direction = get_direction_of_vehicle(waymo_scenario, spline_coordinates)
+        trajectory = Trajectory(decoded_example=waymo_scenario, specific_id=vehicle_id)
+
+        x_coordinates = trajectory.splined_coordinates["X"].to_numpy()
+        y_coordinates = trajectory.splined_coordinates["Y"].to_numpy()
+        direction = get_direction_of_vehicle(
+            waymo_scenario, trajectory.splined_coordinates
+        )
         trajectory_dict[f"{get_scenario_index(scenario_name)}_{vehicle_id}"] = {
             "X": x_coordinates,
             "Y": y_coordinates,
@@ -483,11 +486,15 @@ def get_labeled_trajectories_for_all_scenarios_dictionary():
 
         vehicle_ids = get_vehicles_for_scenario(decoded_scenario)
         for vehicle_id in vehicle_ids:
-            coordinates = get_coordinates(decoded_scenario, vehicle_id)
-            spline_coordinates = get_spline_for_coordinates(coordinates)
-            x_coordinates = spline_coordinates["X"].to_numpy()
-            y_coordinates = spline_coordinates["Y"].to_numpy()
-            direction = get_direction_of_vehicle(decoded_scenario, spline_coordinates)
+            trajectory = Trajectory(
+                decoded_example=decoded_scenario, specific_id=vehicle_id
+            )
+
+            x_coordinates = trajectory.splined_coordinates["X"].to_numpy()
+            y_coordinates = trajectory.splined_coordinates["Y"].to_numpy()
+            direction = get_direction_of_vehicle(
+                decoded_scenario, trajectory.splined_coordinates
+            )
             trajectory_dict[f"{get_scenario_index(scenario)}_{vehicle_id}"] = {
                 "X": x_coordinates,
                 "Y": y_coordinates,
