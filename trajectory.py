@@ -5,6 +5,8 @@ from scipy import interpolate
 import math
 from scenario import Scenario
 
+import matplotlib.pyplot as plt
+
 
 class Trajectory:
     def __init__(self, scenario: Scenario, specific_id):
@@ -13,6 +15,10 @@ class Trajectory:
         self.splined_coordinates = self.get_spline_for_coordinates(self.coordinates)
         self.x_coordinates = self.splined_coordinates["X"]
         self.y_coordinates = self.splined_coordinates["Y"]
+        self.relative_displacement = self.get_relative_displacement()
+        self.total_displacement = self.get_total_displacement()
+        self.sum_of_delta_angles = self.get_sum_of_delta_angles()
+        self.direction = self.get_direction_of_vehicle()
 
     @staticmethod
     def get_coordinates_one_step(
@@ -313,3 +319,161 @@ class Trajectory:
         if result_angle > 180:
             result_angle = 360 - result_angle
         return result_angle
+
+    def visualize_raw_coordinates_without_scenario(
+        self, title="Trajectory Visualization", padding=10
+    ):
+        """
+        Visualize the trajectory specified by coordinates, scaling to fit the trajectory size.
+
+        Args:
+        - coordinates: A DataFrame with 'X' and 'Y' columns, or an array-like structure representing trajectory points.
+        - title: The title of the plot.
+        - padding: Extra space around the trajectory bounds.
+        """
+
+        fig, ax = plt.subplots(
+            figsize=(10, 10)
+        )  # Create a figure and a set of subplots
+
+        # Check if coordinates is a Pandas DataFrame and convert if necessary
+        if isinstance(self.coordinates, np.ndarray):
+            coordinates = pd.DataFrame(self.coordinates, columns=["X", "Y"])
+        elif isinstance(coordinates, list):
+            coordinates = pd.DataFrame(coordinates, columns=["X", "Y"])
+
+        # Plot the trajectory
+        ax.plot(
+            coordinates["X"], coordinates["Y"], "ro-", markersize=5, linewidth=2
+        )  # 'ro-' creates a red line with circle markers
+
+        # Determine the bounds of the trajectory
+        x_min, x_max = coordinates["X"].min(), coordinates["X"].max()
+        y_min, y_max = coordinates["Y"].min(), coordinates["Y"].max()
+
+        # Set the scale of the plot to the bounds of the trajectory with some padding
+        ax.set_xlim(x_min - padding, x_max + padding)
+        ax.set_ylim(y_min - padding, y_max + padding)
+
+        # Set aspect of the plot to be equal
+        ax.set_aspect("equal")
+
+        # Set title of the plot
+        ax.set_title(title)
+
+        # Remove axes for a cleaner look since there's no map
+        ax.axis("off")
+
+        return plt
+
+    def get_direction_of_vehicle(self):
+        """Sorts a given trajectory into one of the
+        following buckets:
+
+        - Straight
+        - Straight-Left
+        - Straight-Right
+        - Left
+        - Right
+        - Left-U-Turn
+        - Right-U-Turn
+        - Stationary
+
+        These buckets are inspired by the paper:
+        "MotionLM: Multi-Agent Motion Forecasting as Language Modeling"
+
+        Returns:
+            str: Label of the bucket to which the vehicle trajectory was assigned.
+        """
+        total_delta_angle = self.get_sum_of_delta_angles()
+        direction = ""
+        bucket = ""
+
+        if total_delta_angle < 0:
+            direction = "Right"
+        elif total_delta_angle > 0:
+            direction = "Left"
+        else:
+            direction = "Straight"
+
+        absolute_total_delta_angle = abs(total_delta_angle)
+
+        if self.relative_displacement < 0.05:
+            bucket = "Stationary"
+            return bucket
+        elif absolute_total_delta_angle < 15 and absolute_total_delta_angle > -15:
+            bucket = "Straight"
+            return bucket
+        elif absolute_total_delta_angle <= 40 and direction == "Right":
+            bucket = "Straight-Right"
+            return bucket
+        elif absolute_total_delta_angle <= 40 and direction == "Left":
+            bucket = "Straight-Left"
+            return bucket
+        elif (
+            absolute_total_delta_angle > 40
+            and absolute_total_delta_angle <= 130
+            and direction == "Right"
+        ):
+            bucket = "Right"
+            return bucket
+        elif (
+            absolute_total_delta_angle > 40
+            and absolute_total_delta_angle <= 130
+            and direction == "Left"
+        ):
+            bucket = "Left"
+            return bucket
+        elif (
+            absolute_total_delta_angle > 130
+            and direction == "Right"
+            and self.relative_displacement >= 0.10
+        ):
+            bucket = "Right"
+            return bucket
+        elif (
+            absolute_total_delta_angle > 130
+            and direction == "Left"
+            and self.relative_displacement >= 0.10
+        ):
+            bucket = "Left"
+            return bucket
+        elif absolute_total_delta_angle > 130 and direction == "Right":
+            bucket = "Right-U-Turn"
+            return bucket
+        elif absolute_total_delta_angle > 130 and direction == "Left":
+            bucket = "Left-U-Turn"
+            return bucket
+        else:
+            bucket = "Straight"
+            return bucket
+
+    def get_relative_displacement(self, coordinates: pd.DataFrame):
+        total_displacement = self.get_total_displacement(coordinates)
+        _, _, width = self.scenario.get_viewport()
+
+        relative_displacement = total_displacement / width
+        return relative_displacement
+
+    def get_total_displacement(self):
+        """Calculates the total displacement of the vehicle with the given coordinates.
+
+        Returns:
+            str: Total displacement of the vehicle.
+        """
+        starting_point = (
+            self.splined_coordinates["X"][0],
+            self.splined_coordinates["Y"][0],
+        )
+        end_point = (
+            self.splined_coordinates["X"].iloc[-1],
+            self.splined_coordinates["Y"].iloc[-1],
+        )
+
+        displacement_vector = (
+            end_point[0] - starting_point[0],
+            end_point[1] - starting_point[1],
+        )
+
+        # Calculuating the magnitude of the displacement vector and returning it
+        return math.sqrt(displacement_vector[0] ** 2 + displacement_vector[1] ** 2)
