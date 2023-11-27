@@ -16,11 +16,10 @@ class Trajectory:
         self.x_coordinates = self.splined_coordinates["X"]
         self.y_coordinates = self.splined_coordinates["Y"]
         self.relative_displacement = self.get_relative_displacement()
+        self.normalized_splined_coordinates = self.normalize_coordinates()
         self.total_displacement = self.get_total_displacement()
         self.sum_of_delta_angles = self.get_sum_of_delta_angles()
         self.direction = self.get_direction_of_vehicle()
-        self.normalized_splined_coordinates = self.normalize_coordinates()
-        print(self.normalized_splined_coordinates)
 
     @staticmethod
     def get_coordinates_one_step(
@@ -359,24 +358,16 @@ class Trajectory:
             figsize=(10, 10)
         )  # Create a figure and a set of subplots
 
-        # Check if coordinates is a Pandas DataFrame and convert if necessary
-        if isinstance(self.coordinates, np.ndarray):
-            coordinates = pd.DataFrame(self.coordinates, columns=["X", "Y"])
-        elif isinstance(coordinates, list):
-            coordinates = pd.DataFrame(coordinates, columns=["X", "Y"])
+        # Scale the normalized trajectory to fit the figure
 
         # Plot the trajectory
         ax.plot(
-            coordinates["X"], coordinates["Y"], "ro-", markersize=5, linewidth=2
+            self.splined_coordinates["X"],
+            self.splined_coordinates["Y"],
+            "ro-",
+            markersize=5,
+            linewidth=2,
         )  # 'ro-' creates a red line with circle markers
-
-        # Determine the bounds of the trajectory
-        x_min, x_max = coordinates["X"].min(), coordinates["X"].max()
-        y_min, y_max = coordinates["Y"].min(), coordinates["Y"].max()
-
-        # Set the scale of the plot to the bounds of the trajectory with some padding
-        ax.set_xlim(x_min - padding, x_max + padding)
-        ax.set_ylim(y_min - padding, y_max + padding)
 
         # Set aspect of the plot to be equal
         ax.set_aspect("equal")

@@ -569,11 +569,6 @@ class Scenario:
 
         color_map = self.data(agent_ids.shape[0])
 
-        all_states = np.concatenate([past_states, current_states, future_states], 1)
-        all_states_mask = np.concatenate(
-            [past_states_mask, current_states_mask, future_states_mask], 1
-        )
-
         center_y, center_x, width = self.get_viewport()
 
         # Creating one figure and axis to visualize all steps on the same plot
@@ -649,15 +644,12 @@ class Scenario:
         states,
         mask,
         roadgraph,
-        title,
         center_y,
         center_x,
         width,
         color_map,
         with_ids,
         agent_ids=None,
-        specific_id=None,
-        size_pixels=1000,
         alpha=1.0,
     ):
         """Generate visualization for a single step."""

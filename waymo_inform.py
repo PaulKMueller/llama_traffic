@@ -3,6 +3,8 @@ import tensorflow as tf
 import pandas as pd
 import math
 
+from scenario import Scenario
+
 import json
 from tqdm import tqdm
 
@@ -15,6 +17,8 @@ from waymo_utils import (
     get_scenario_index,
     get_scenario_list,
 )
+
+import matplotlib.pyplot as plt
 
 
 def dotproduct(v1, v2):
@@ -434,7 +438,44 @@ def get_filter_dict_for_scenario(waymo_scenario):
     return filter_dict
 
 
-def get_labeled_trajectories_for_scenario(waymo_scenario, scenario_name):
+def visualize_raw_coordinates_without_scenario(
+    x, y, title="Trajectory Visualization", padding=10
+):
+    """
+    Visualize the trajectory specified by coordinates, scaling to fit the trajectory size.
+
+    Args:
+    - coordinates: A DataFrame with 'X' and 'Y' columns, or an array-like structure representing trajectory points.
+    - title: The title of the plot.
+    - padding: Extra space around the trajectory bounds.
+    """
+
+    fig, ax = plt.subplots(figsize=(10, 10))  # Create a figure and a set of subplots
+
+    # Scale the normalized trajectory to fit the figure
+
+    # Plot the trajectory
+    ax.plot(
+        x,
+        y,
+        "ro-",
+        markersize=5,
+        linewidth=2,
+    )  # 'ro-' creates a red line with circle markers
+
+    # Set aspect of the plot to be equal
+    ax.set_aspect("equal")
+
+    # Set title of the plot
+    ax.set_title(title)
+
+    # Remove axes for a cleaner look since there's no map
+    ax.axis("off")
+
+    return plt
+
+
+def create_labeled_trajectories_for_scenario(scenario: Scenario):
     """Returns a dictionary with the trajectories of all vehicles in the scenario
     and their corresponding labels (buckets).
 
@@ -444,17 +485,17 @@ def get_labeled_trajectories_for_scenario(waymo_scenario, scenario_name):
 
     print("\nGetting the filter dictionary...")
 
-    vehicle_ids = get_vehicles_for_scenario(waymo_scenario)
+    vehicle_ids = get_vehicles_for_scenario(scenario.data)
     trajectory_dict = {}
     for vehicle_id in vehicle_ids:
-        trajectory = Trajectory(decoded_example=waymo_scenario, specific_id=vehicle_id)
+        trajectory = Trajectory(scenario=scenario, specific_id=vehicle_id)
 
-        x_coordinates = trajectory.splined_coordinates["X"].to_numpy()
-        y_coordinates = trajectory.splined_coordinates["Y"].to_numpy()
+        x_coordinates = trajectory.normalized_splined_coordinates["X"].to_numpy()
+        y_coordinates = trajectory.normalized_splined_coordinates["Y"].to_numpy()
         direction = get_direction_of_vehicle(
-            waymo_scenario, trajectory.splined_coordinates
+            scenario.data, trajectory.normalized_splined_coordinates
         )
-        trajectory_dict[f"{get_scenario_index(scenario_name)}_{vehicle_id}"] = {
+        trajectory_dict[f"{get_scenario_index(scenario.name)}_{vehicle_id}"] = {
             "X": x_coordinates,
             "Y": y_coordinates,
             "Direction": direction,
@@ -550,7 +591,7 @@ def get_labeled_trajectories_for_all_scenarios_json():
         json.dump(trajectory_dict, json_file, indent=4)
 
 
-def get_zipped_labeled_trajectories_for_all_scenarios_json():
+def create_zipped_labeled_trajectories_for_all_scenarios_json():
     """Saves a JSON file with the trajectories of all vehicles in the scenario
     and their corresponding labels (buckets), with a progress bar.
     """

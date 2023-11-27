@@ -14,6 +14,7 @@ from datetime import datetime
 
 from training_dataclass import TrainingData
 from trajectory import Trajectory
+from stupid_model import StupidModel
 
 import numpy as np
 import random
@@ -23,9 +24,10 @@ from llama_test import get_llama_embedding
 from cohere_encoder import get_cohere_encoding
 
 from waymo_inform import (
+    visualize_raw_coordinates_without_scenario,
     get_vehicles_for_scenario,
-    get_labeled_trajectories_for_scenario,
-    get_zipped_labeled_trajectories_for_all_scenarios_json,
+    create_labeled_trajectories_for_scenario,
+    create_zipped_labeled_trajectories_for_all_scenarios_json,
 )
 
 from trajectory_generator import (
@@ -108,6 +110,32 @@ class SimpleShell(cmd.Cmd):
         image.savefig(
             f"{output_folder}roadgraph_{get_scenario_index(self.loaded_scenario.name)}.png"
         )
+
+    def do_infer_with_stupid_model(self, arg):
+        """Infers the trajectory for the given vehicle ID with the stupid model."""
+
+        # Check for empty arguments (no vehicle ID provided)
+        if arg == "":
+            print(
+                (
+                    "\nYou have provided no ID for the vehicle "
+                    "whose trajectory you want to infer.\nPlease provide a path!\n"
+                )
+            )
+            return
+
+        x = float(arg.split()[0])
+        y = float(arg.split()[1])
+
+        stupid_model = StupidModel()
+        prediction = stupid_model.predict(x, y)
+        x_cords = [x[0] for x in prediction]
+        y_cords = [x[1] for x in prediction]
+        trajectory_plot = plt.scatter(x_cords, y_cords)
+        plt.savefig("/home/pmueller/llama_traffic/prediction.png")
+        # print(prediction)
+        # trajectory_plot = visualize_raw_coordinates_without_scenario(x_cords, y_cords)
+        # trajectory_plot.savefig("/home/pmueller/llama_traffic/prediction.png")
 
     def do_visualize_trajectory(self, arg):
         """Plots the trajectory for the given vehicle ID."""
@@ -207,7 +235,7 @@ class SimpleShell(cmd.Cmd):
         print(self.loaded_scenario.data)
 
     def do_print_roadgraph(self, arg):
-        # TODO
+        """Prints the roadgraph of the loaded scenario."""
         pass
         # print(self.loaded_scenario.data["roadgraph"])
 
@@ -946,7 +974,7 @@ class SimpleShell(cmd.Cmd):
 
         print("\nSuccessfully cleared the output folder!\n")
 
-    def do_get_scenario_labeled_trajectories(self, arg):
+    def do_create_labeled_trajectories(self, arg):
         """Returns a dictionary with the vehicle IDs of the loaded scenario as
         keys and the corresponding trajectories (as numpy arrays of X and Y coordinates) and labels as values.
 
@@ -970,8 +998,8 @@ class SimpleShell(cmd.Cmd):
             return
 
         print("\nGetting the labeled trajectories...")
-        labeled_trajectories = get_labeled_trajectories_for_scenario(
-            self.loaded_scenario.data, self.loaded_scenario.name
+        labeled_trajectories = create_labeled_trajectories_for_scenario(
+            self.loaded_scenario
         )
 
         # Save the labeled trajectories to a txt file in the output folder
@@ -983,7 +1011,7 @@ class SimpleShell(cmd.Cmd):
 
         print("Successfully got the labeled trajectories!\n")
 
-    def do_get_zipped_data(self, arg):
+    def do_create_zipped_training_data(self, arg):
         """Returns a dictionary with the scenario IDs as keys and the corresponding
         labeled trajectories for each vehicle as values.
         'Labeled' in this context refers to the direction buckets that the trajectories
@@ -994,7 +1022,7 @@ class SimpleShell(cmd.Cmd):
         """
 
         print("\nGetting the labeled trajectories for all scenarios...")
-        get_zipped_labeled_trajectories_for_all_scenarios_json()
+        create_zipped_labeled_trajectories_for_all_scenarios_json()
 
         print("Successfully got the labeled trajectories for all scenarios!\n")
 
@@ -1016,11 +1044,10 @@ class SimpleShell(cmd.Cmd):
         print(embedding)
         print(len(embedding[0]))
 
-    def do_get_llama_embedding(self, arg):
+    def do_print_llama_embedding(self, arg):
+        """Returns the llama embedding for the given text input."""
         input_text = arg
-
         embedding = get_llama_embedding(input_text)
-        print(type(embedding))
 
         print(embedding)
 
