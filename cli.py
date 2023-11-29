@@ -23,6 +23,8 @@ from llama_test import get_llama_embedding
 
 from cohere_encoder import get_cohere_encoding
 
+from training_dataclass import TrainingData
+
 from waymo_inform import (
     visualize_raw_coordinates_without_scenario,
     get_vehicles_for_scenario,
@@ -31,6 +33,8 @@ from waymo_inform import (
 )
 
 from trajectory_generator import (
+    infer_with_right_neural_network,
+    train_right_neural_network,
     create_neural_network,
     infer_with_neural_network,
     train_neural_network,
@@ -128,11 +132,12 @@ class SimpleShell(cmd.Cmd):
         y = float(arg.split()[1])
 
         stupid_model = StupidModel()
-        prediction = stupid_model.predict(x, y)
-        x_cords = [x[0] for x in prediction]
-        y_cords = [x[1] for x in prediction]
-        trajectory_plot = plt.scatter(x_cords, y_cords)
+        x_cords, y_cords = stupid_model.predict(x, y)
+        print(x_cords)
+        print(y_cords)
+        plt.scatter(x_cords, y_cords)
         plt.savefig("/home/pmueller/llama_traffic/prediction.png")
+        plt.close()
         # print(prediction)
         # trajectory_plot = visualize_raw_coordinates_without_scenario(x_cords, y_cords)
         # trajectory_plot.savefig("/home/pmueller/llama_traffic/prediction.png")
@@ -1191,6 +1196,7 @@ class SimpleShell(cmd.Cmd):
         )
 
         prediction = infer_with_neural_network(embedding)
+        print(prediction)
         print(prediction.shape)
 
         # First 101 dimensions are the predicted x coordinates, the last 101 dimensions are the predicted y coordinatesk
@@ -1204,6 +1210,80 @@ class SimpleShell(cmd.Cmd):
         # plot = trajectory.visualize_raw_coordinates_without_scenario(coordinates)
         # plot.savefig(f"{output_folder}predicted_trajectory.png")
 
+    def do_infer_with_right_neural_network(self, arg):
+        """Infer with the neural network.
+
+        Args:
+            arg (str): Bucket for which to predict embedding.
+        """
+
+        # Load config file
+        # with open("config.yaml", "r") as file:
+        #     config = yaml.safe_load(file)
+        #     output_folder = config["output_folder"]
+
+        # Check for empty arguments (no bucket provided)
+        if arg == "":
+            print(
+                (
+                    "\nYou have provided no bucket for which to predict the embedding.\nPlease provide a bucket!\n"
+                )
+            )
+            return
+
+        # Split the argument once
+        args = arg.split()
+        starting_x = int(args[0])
+        starting_y = int(args[1])
+
+        starting_x_array = np.array([[starting_x]])  # Shape becomes (1, 1)
+        starting_y_array = np.array([[starting_y]])  # Shape becomes (1, 1)
+
+        # Get BERT embedding
+        embedding = get_bert_embedding("Right")
+
+        # Convert starting_x and starting_y to arrays and concatenate
+        # Assuming you want to append these as new elements along an existing axis (e.g., axis 0)
+        embedding = np.concatenate(
+            [embedding, starting_x_array, starting_y_array], axis=1
+        )
+
+        prediction = infer_with_right_neural_network(embedding)
+        x_cords = prediction[0][:101]
+        y_cords = prediction[0][101:]
+        print(prediction)
+        print(prediction.shape)
+
+        plt.scatter(x_cords, y_cords)
+
+        plt.savefig("test.png")
+
+        plt.close()
+        # First 101 dimensions are the predicted x coordinates, the last 101 dimensions are the predicted y coordinatesk
+        # x_coords = prediction[0][:101]
+        # y_coords = prediction[0][101:]
+
+        # Store the coordinates in coordinate dictionary
+        # coordinates = {"X": x_coords, "Y": y_coords}
+
+        # trajectory = Trajectory(None, None)
+        # plot = trajectory.visualize_raw_coordinates_without_scenario(coordinates)
+        # plot.savefig(f"{output_folder}predicted_trajectory.png")
+
+    def do_init_dataset(self, arg):
+        """Initialize the dataset.
+
+        Args:
+            arg (str): No arguments required.
+        """
+
+        print("\nInitializing the dataset...")
+        data = TrainingData("datasets/zipped_labeled_trajectories.json")
+        print(data)
+        print(len(data))
+        print(data[0][0].shape)
+        print("Successfully initialized the dataset!\n")
+
     def do_train_neural_network(self, arg):
         """Train the neural network.
 
@@ -1212,6 +1292,15 @@ class SimpleShell(cmd.Cmd):
         """
 
         train_neural_network()
+
+    def do_train_right_neural_network(self, arg):
+        """Train the neural network for right trajectories.
+
+        Args:
+            arg (str): No arguments required.
+        """
+
+        train_right_neural_network()
 
     def do_init_bucket_embeddings(self, arg):
         """Initialize the bucket embeddings.
