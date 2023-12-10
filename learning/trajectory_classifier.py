@@ -1,3 +1,4 @@
+import wandb
 import ast
 import numpy as np
 from sklearn.model_selection import train_test_split
@@ -29,7 +30,7 @@ def train_classifier():
         return data_dict
 
     # Assuming the file is named 'trajectories.txt'
-    data_dict = load_data("./dataset/labeled_trajectories.json")
+    data_dict = load_data("./datasets/labeled_trajectories.json")
 
     # Step 2: Preprocess the data
     def preprocess_data(data_dict):
@@ -54,10 +55,14 @@ def train_classifier():
     )
 
     # Step 4: Define the classification model
-    model = RandomForestClassifier(n_estimators=100, random_state=42)
+    model = RandomForestClassifier(n_estimators=10, random_state=42, verbose=1)
+
+    wandb.init(project="visualize-sklearn")
 
     # Step 5: Train the model
     model.fit(X_train, y_train)
+
+    wandb.sklearn.plot_learning_curve(model, X_train, y_train)
 
     # Step 6: Evaluate the model
     y_pred = model.predict(X_test)

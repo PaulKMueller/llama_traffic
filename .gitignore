@@ -180,3 +180,5 @@ models/
 # Config
 *.yaml
 
+# Weights and Biases
+wandb/

@@ -14,7 +14,7 @@ from datetime import datetime
 
 from training_dataclass import TrainingData
 from trajectory import Trajectory
-from stupid_model import StupidModel
+from learning.stupid_model import StupidModel
 
 import numpy as np
 import random
@@ -25,6 +25,8 @@ from cohere_encoder import get_cohere_encoding
 
 from training_dataclass import TrainingData
 
+import torch
+
 from waymo_inform import (
     visualize_raw_coordinates_without_scenario,
     get_vehicles_for_scenario,
@@ -32,7 +34,7 @@ from waymo_inform import (
     create_zipped_labeled_trajectories_for_all_scenarios_json,
 )
 
-from trajectory_generator import (
+from learning.trajectory_generator import (
     infer_with_right_neural_network,
     train_right_neural_network,
     create_neural_network,
@@ -42,7 +44,7 @@ from trajectory_generator import (
     train_transformer_network,
 )
 
-from multi_head_attention import get_positional_encoding
+from learning.multi_head_attention import get_positional_encoding
 
 from waymo_utils import (
     get_scenario_list,
@@ -54,7 +56,7 @@ from bert_encoder import (
     init_bucket_embeddings,
 )
 
-from trajectory_classifier import train_classifier
+from learning.trajectory_classifier import train_classifier
 
 from scenario import Scenario
 
@@ -77,7 +79,7 @@ class SimpleShell(cmd.Cmd):
         parser.add_argument("--example", "-e", action="store_true")
         return parser
 
-    def do_greet(self, arg):
+    def do_greet(self, arg: str):
         """Prints a greeting to the user whose name is provided as an argument.
         The format of the command is: greet --name <NAME>
         or: greet -n <NAME>
@@ -91,7 +93,7 @@ class SimpleShell(cmd.Cmd):
         except SystemExit:
             pass  # argparse calls sys.exit(), catch the exception to prevent shell exit
 
-    def do_plot_map(self, arg):
+    def do_plot_map(self, arg: str):
         """Plots the map for the loaded scenario."""
 
         # Load config file
@@ -115,7 +117,7 @@ class SimpleShell(cmd.Cmd):
             f"{output_folder}roadgraph_{get_scenario_index(self.loaded_scenario.name)}.png"
         )
 
-    def do_infer_with_stupid_model(self, arg):
+    def do_infer_with_stupid_model(self, arg: str):
         """Infers the trajectory for the given vehicle ID with the stupid model."""
 
         # Check for empty arguments (no vehicle ID provided)
@@ -142,7 +144,7 @@ class SimpleShell(cmd.Cmd):
         # trajectory_plot = visualize_raw_coordinates_without_scenario(x_cords, y_cords)
         # trajectory_plot.savefig("/home/pmueller/llama_traffic/prediction.png")
 
-    def do_visualize_trajectory(self, arg):
+    def do_visualize_trajectory(self, arg: str):
         """Plots the trajectory for the given vehicle ID."""
 
         # Load config file
@@ -180,7 +182,7 @@ class SimpleShell(cmd.Cmd):
 
         trajectory_plot.savefig(f"{output_folder}{vehicle_id}.png")
 
-    def do_load_scenario(self, arg):
+    def do_load_scenario(self, arg: str):
         """Loads the scenario from the given path.
         The format of the command is: load_scenario <PATH>
         or: load_scenario --example
@@ -232,19 +234,19 @@ class SimpleShell(cmd.Cmd):
                 or - e to load the example scenario chosen in your config.yaml."""
             )
 
-    def do_print_current_raw_scenario(self, arg):
+    def do_print_current_raw_scenario(self, arg: str):
         """Prints the current scenario that has been loaded in its decoded form.
         This function is for debugging purposes only.
 
         """
         print(self.loaded_scenario.data)
 
-    def do_print_roadgraph(self, arg):
+    def do_print_roadgraph(self, arg: str):
         """Prints the roadgraph of the loaded scenario."""
         pass
         # print(self.loaded_scenario.data["roadgraph"])
 
-    def do_animate_scenario(self, arg):
+    def do_animate_scenario(self, arg: str):
         """Plots the scenario that has previously been
         loaded with the 'load_scenario' command.
 
@@ -280,7 +282,7 @@ class SimpleShell(cmd.Cmd):
             )
             return
 
-    def do_print_bert_similarity_to_word(self, arg):
+    def do_print_bert_similarity_to_word(self, arg: str):
         """Returns the cosine similarity between the given text input and the
         different direction buckets.
 
@@ -324,7 +326,7 @@ class SimpleShell(cmd.Cmd):
         print(*similarities.items(), sep="\n")
         print("\n")
 
-    def do_get_trajectories_for_text_input(self, arg):
+    def do_get_trajectories_for_text_input(self, arg: str):
         """Returns a list of the scenarios that contain the given text input in their name.
 
         Args:
@@ -417,7 +419,7 @@ class SimpleShell(cmd.Cmd):
         # Save total plot
         plt.savefig("/home/pmueller/llama_traffic/output/total.png")
 
-    def do_list_scenarios(self, arg):
+    def do_list_scenarios(self, arg: str):
         """Lists all available scenarios in the training folder.
         See: config.yaml under "scenario_data_folder".
 
@@ -439,7 +441,7 @@ class SimpleShell(cmd.Cmd):
 
         print("\n")
 
-    def do_animate_vehicle(self, arg):
+    def do_animate_vehicle(self, arg: str):
         """Creates a mp4 animation of the trajectory of
         the given vehicle for the loaded scenario.
         Format should be: animate_vehicle <ID>
@@ -488,7 +490,7 @@ class SimpleShell(cmd.Cmd):
             ("Successfully created animation in " f"{output_folder}{timestamp}.mp4!\n")
         )
 
-    def do_plot_trajectory(self, arg):
+    def do_plot_trajectory(self, arg: str):
         """Saves a trajectory (represented as a line) for the given vehicle.
         Format should be: get_trajectory <ID>
         Pleas make sure, that you have loaded a scenario before.
@@ -536,7 +538,7 @@ class SimpleShell(cmd.Cmd):
             )
         )
 
-    def do_plot_raw_coordinates_without_scenario(self, arg):
+    def do_plot_raw_coordinates_without_scenario(self, arg: str):
         """Saves a trajectory (represented as a line) for the given vehicle.
         Format should be: get_trajectory <ID>
         Pleas make sure, that you have loaded a scenario before.
@@ -581,7 +583,7 @@ class SimpleShell(cmd.Cmd):
             f"{output_folder}raw_trajectory_{vehicle_id}.png",
         )
 
-    def do_plot_all_trajectories(self, arg):
+    def do_plot_all_trajectories(self, arg: str):
         """Saves a trajectory (represented as a line) for all vehicles in the scenario.
         Format should be: plot_all_trajectories
         Please make sure, that you have loaded a scenario before.
@@ -617,7 +619,7 @@ class SimpleShell(cmd.Cmd):
 
         print(("Plotting complete.\n" f"You can find the plots in {output_folder}"))
 
-    def do_save_coordinates_for_vehicle(self, arg):
+    def do_save_coordinates_for_vehicle(self, arg: str):
         """Saves the coordinates of the given vehicle as a csv file.
         Format should be: get_coordinates <ID>
         Pleas make sure, that you have loaded a scenario before.
@@ -664,12 +666,12 @@ class SimpleShell(cmd.Cmd):
             )
         )
 
-    def do_print_viewport(self, arg):
+    def do_print_viewport(self, arg: str):
         """Prints the viewport of the loaded scenario."""
 
         print(self.loaded_scenario.viewport)
 
-    def do_save_normalized_coordinates(self, arg):
+    def do_save_normalized_coordinates(self, arg: str):
         """Saves the normalized coordinates of the given vehicle as a csv file.
         Format should be: get_normalized_coordinates <ID>
         Pleas make sure, that you have loaded a scenario before.
@@ -706,7 +708,7 @@ class SimpleShell(cmd.Cmd):
             )
         )
 
-    def do_print_direction(self, arg):
+    def do_print_direction(self, arg: str):
         """Returns the direction of the given vehicle.
         The direction in this case is defined as one of eight buckets:
             - Straight
@@ -740,7 +742,7 @@ class SimpleShell(cmd.Cmd):
 
         print(f"\n{trajectory.direction}!\n")
 
-    def do_print_displacement_for_vehicle(self, arg):
+    def do_print_displacement_for_vehicle(self, arg: str):
         """Calculates the total displacement of the vehicle with the given ID
         and prints it.
         Format should be: get_displacement <ID>
@@ -767,7 +769,7 @@ class SimpleShell(cmd.Cmd):
             f"\nThe relative displacement is: {round(trajectory.relative_displacement*100, 2)} %\n"
         )
 
-    def do_filter_trajectories(self, arg):
+    def do_filter_trajectories(self, arg: str):
         """Filters the trajectories in the loaded scenario in left, right and straight.
 
         Args:
@@ -804,7 +806,7 @@ class SimpleShell(cmd.Cmd):
                 f"/home/pmueller/llama_traffic/{trajectory.direction}/{vehicle_id}.png"
             )
 
-    def do_plot_spline(self, arg):
+    def do_plot_spline(self, arg: str):
         """Plots the spline for the given vehicle ID.
 
         Args:
@@ -841,7 +843,7 @@ class SimpleShell(cmd.Cmd):
         spline_plot = self.loaded_scenario.visualize_trajectory(vehicle_id)
         spline_plot.savefig(f"{output_folder}{vehicle_id}_spline.png")
 
-    def do_vehicles_in_loaded_scenario(self, arg):
+    def do_vehicles_in_loaded_scenario(self, arg: str):
         """Prints the IDs of all vehicles in the loaded scenario.
 
         Args:
@@ -865,7 +867,7 @@ class SimpleShell(cmd.Cmd):
         print(*filtered_ids, sep="\n")
         print("\n")
 
-    def do_save_delta_angles_for_vehicle(self, arg):
+    def do_save_delta_angles_for_vehicle(self, arg: str):
         """Returns the delta angles of the trajectory of the given vehicle."""
 
         # Load config file
@@ -894,7 +896,7 @@ class SimpleShell(cmd.Cmd):
         print(f"The total heading change is: {angles} degrees!")
         # print(sum(angles))
 
-    def do_total_delta_angle_for_vehicle(self, arg):
+    def do_total_delta_angle_for_vehicle(self, arg: str):
         """Returns the aggregated delta angles of the trajectory of the given vehicle."""
 
         # Check for empty arguments (no coordinates provided)
@@ -912,7 +914,7 @@ class SimpleShell(cmd.Cmd):
 
         print(f"The total heading change is: {trajectory.sum_of_delta_angles} degrees!")
 
-    def do_print_spline(self, arg):
+    def do_print_spline(self, arg: str):
         """Prints the spline for the given vehicle ID."""
 
         # Checking if a scenario has been loaded already.
@@ -945,7 +947,7 @@ class SimpleShell(cmd.Cmd):
 
         print(spline)
 
-    def do_clear_buckets(self, arg):
+    def do_clear_buckets(self, arg: str):
         """Clears the buckets for the different directions.
 
         Args:
@@ -967,7 +969,7 @@ class SimpleShell(cmd.Cmd):
                 os.remove(f"/home/pmueller/llama_traffic/{direction}/{file}")
         print("Successfully cleared the buckets!\n")
 
-    def do_clear_output_folder(self, arg):
+    def do_clear_output_folder(self, arg: str):
         """Clears the standard output folder.
 
         Args:
@@ -979,7 +981,7 @@ class SimpleShell(cmd.Cmd):
 
         print("\nSuccessfully cleared the output folder!\n")
 
-    def do_create_labeled_trajectories(self, arg):
+    def do_create_labeled_trajectories(self, arg: str):
         """Returns a dictionary with the vehicle IDs of the loaded scenario as
         keys and the corresponding trajectories (as numpy arrays of X and Y coordinates) and labels as values.
 
@@ -1016,7 +1018,7 @@ class SimpleShell(cmd.Cmd):
 
         print("Successfully got the labeled trajectories!\n")
 
-    def do_create_zipped_training_data(self, arg):
+    def do_create_zipped_training_data(self, arg: str):
         """Returns a dictionary with the scenario IDs as keys and the corresponding
         labeled trajectories for each vehicle as values.
         'Labeled' in this context refers to the direction buckets that the trajectories
@@ -1031,7 +1033,7 @@ class SimpleShell(cmd.Cmd):
 
         print("Successfully got the labeled trajectories for all scenarios!\n")
 
-    def do_embed_with_bert(self, arg):
+    def do_embed_with_bert(self, arg: str):
         """Returns an embedding of the given string generated by BERT.
 
         Args:
@@ -1049,14 +1051,14 @@ class SimpleShell(cmd.Cmd):
         print(embedding)
         print(len(embedding[0]))
 
-    def do_print_llama_embedding(self, arg):
+    def do_print_llama_embedding(self, arg: str):
         """Returns the llama embedding for the given text input."""
         input_text = arg
         embedding = get_llama_embedding(input_text)
 
         print(embedding)
 
-    def do_embed_cohere_similarities_with_word(self, arg):
+    def do_embed_cohere_similarities_with_word(self, arg: str):
         """Returns the similarities of the available buckets to the given text input.
 
         Args:
@@ -1065,7 +1067,7 @@ class SimpleShell(cmd.Cmd):
         bucket_similarities = get_cohere_encoding(arg)
         print(bucket_similarities)
 
-    def do_print_scenario_index(self, arg):
+    def do_print_scenario_index(self, arg: str):
         """Returns the ID of the loaded scenario.
 
         Args:
@@ -1076,7 +1078,7 @@ class SimpleShell(cmd.Cmd):
             f"\nThe ID of the loaded scenario is: {get_scenario_index(self.loaded_scenario.name)}\n"
         )
 
-    def do_test_trajectory_bucketing(self, arg):
+    def do_test_trajectory_bucketing(self, arg: str):
         """Generates the buckets for 20 random trajectories from random scenarios.
         Plot them and save them in the corresponding folders.
         Store the plotted trajectories with the corresponding trajectory bucket,
@@ -1127,7 +1129,7 @@ class SimpleShell(cmd.Cmd):
 
         print("Successfully prepared the trajectory bucket data for training!\n")
 
-    def do_training_data_length(self, arg):
+    def do_training_data_length(self, arg: str):
         """Returns the length of the labeled training data.
 
         Args:
@@ -1139,7 +1141,7 @@ class SimpleShell(cmd.Cmd):
         )
         print(training_data.get_size())
 
-    def do_classification(self, arg):
+    def do_classification(self, arg: str):
         """Trains a classification model and tests for its accuracy.
 
         Args:
@@ -1147,7 +1149,7 @@ class SimpleShell(cmd.Cmd):
         """
         train_classifier()
 
-    def do_create_neural_network(self, arg):
+    def do_create_neural_network(self, arg: str):
         """Creates a neural network for the purpose of trajectory prediction.
 
         Args:
@@ -1196,6 +1198,21 @@ class SimpleShell(cmd.Cmd):
         )
 
         prediction = infer_with_neural_network(embedding)
+
+        fig, ax = plt.subplots(
+            figsize=(10, 10)
+        )  # Create a figure and a set of subplots
+
+        # Scale the normalized trajectory to fit the figure
+
+        # Plot the trajectory
+        ax.plot(
+            prediction[0::2],
+            prediction[0::2],
+            "ro-",
+            markersize=5,
+            linewidth=2,
+        )  # 'ro-' creates a red line with circle markers
         print(prediction)
         print(prediction.shape)
 
@@ -1270,7 +1287,23 @@ class SimpleShell(cmd.Cmd):
         # plot = trajectory.visualize_raw_coordinates_without_scenario(coordinates)
         # plot.savefig(f"{output_folder}predicted_trajectory.png")
 
-    def do_init_dataset(self, arg):
+    def do_print_available_device_for_training(self, arg):
+        """Prints the available device for training.
+
+        Args:
+            arg (str): No arguments required.
+        """
+
+        device = (
+            "cuda"
+            if torch.cuda.is_available()
+            else "mps"
+            if torch.backends.mps.is_available()
+            else "cpu"
+        )
+        print(f"Using {device} device")
+
+    def do_init_dataset(self, arg: str):
         """Initialize the dataset.
 
         Args:
@@ -1284,7 +1317,7 @@ class SimpleShell(cmd.Cmd):
         print(data[0][0].shape)
         print("Successfully initialized the dataset!\n")
 
-    def do_train_neural_network(self, arg):
+    def do_train_neural_network(self, arg: str):
         """Train the neural network.
 
         Args:
@@ -1293,7 +1326,7 @@ class SimpleShell(cmd.Cmd):
 
         train_neural_network()
 
-    def do_train_right_neural_network(self, arg):
+    def do_train_right_neural_network(self, arg: str):
         """Train the neural network for right trajectories.
 
         Args:
@@ -1302,7 +1335,7 @@ class SimpleShell(cmd.Cmd):
 
         train_right_neural_network()
 
-    def do_init_bucket_embeddings(self, arg):
+    def do_init_bucket_embeddings(self, arg: str):
         """Initialize the bucket embeddings.
 
         Args:
@@ -1313,7 +1346,7 @@ class SimpleShell(cmd.Cmd):
         init_bucket_embeddings()
         print("Successfully initialized the bucket embeddings!\n")
 
-    def do_print_bucket_embedding_for_bucket(self, arg):
+    def do_print_bucket_embedding_for_bucket(self, arg: str):
         """Returns the bucket embedding for the given bucket.
 
         Args:
@@ -1337,7 +1370,7 @@ class SimpleShell(cmd.Cmd):
         print(bucket_embeddings[bucket])
         print(len(bucket_embeddings[bucket]))
 
-    def do_plot_predicted_trajectory(self, arg):
+    def do_plot_predicted_trajectory(self, arg: str):
         """Plot the predicted trajectory for the given bucket.
 
         Args:
@@ -1375,7 +1408,7 @@ class SimpleShell(cmd.Cmd):
             f"{output_folder}predicted_trajectory.png",
         )
 
-    def do_get_positional_encoding(self, arg):
+    def do_get_positional_encoding(self, arg: str):
         """Get the positional encoding for the given bucket.
 
         Args:
@@ -1423,7 +1456,7 @@ class SimpleShell(cmd.Cmd):
         with open(f"{output_folder}positional_encoding.txt", "w") as file:
             file.write(str(positional_encoding))
 
-    def do_create_transformer_model(self, arg):
+    def do_create_transformer_model(self, arg: str):
         """Create a transformer model.
 
         Args:
@@ -1434,7 +1467,7 @@ class SimpleShell(cmd.Cmd):
         create_transformer_model()
         print("Successfully created the transformer model!\n")
 
-    def do_train_transformer_network(self, arg):
+    def do_train_transformer_network(self, arg: str):
         """Train the transformer network.
 
         Args:
@@ -1443,7 +1476,7 @@ class SimpleShell(cmd.Cmd):
 
         train_transformer_network()
 
-    def do_store_raw_scenario(self, arg):
+    def do_store_raw_scenario(self, arg: str):
         """Store the raw scenario in a JSON file.
 
         Args:
@@ -1467,7 +1500,7 @@ class SimpleShell(cmd.Cmd):
             file.write(str(self.loaded_scenario.data))
 
     # Basic command to exit the shell
-    def do_exit(self, arg):
+    def do_exit(self, arg: str):
         "Exit the shell: EXIT"
         print("\nExiting the shell...\n")
         return True

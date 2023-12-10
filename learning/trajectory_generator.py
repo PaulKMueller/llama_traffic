@@ -1,3 +1,5 @@
+import wandb
+
 import tensorflow as tf
 from tensorflow.keras.models import Model
 from tensorflow.keras.layers import (
@@ -21,6 +23,8 @@ from sklearn.model_selection import train_test_split
 from bert_encoder import get_bert_embedding
 
 from bert_encoder import init_bucket_embeddings
+
+from wandb.keras import WandbMetricsLogger
 
 import numpy as np
 import json
@@ -115,6 +119,8 @@ def train_neural_network():
 
     model = create_neural_network()
 
+    wandb.init(config={"bs": 12})
+
     model.fit(
         X_train,
         Y_train,
@@ -122,7 +128,7 @@ def train_neural_network():
         batch_size=32,
         validation_split=0.1,
         verbose=0,
-        callbacks=[TqdmCallback(verbose=2)],
+        callbacks=[TqdmCallback(verbose=2), WandbMetricsLogger()],
     )
 
     model.save("models/my_model.h5")
@@ -187,6 +193,8 @@ def train_right_neural_network():
 
     model = create_neural_network()
 
+    wandb.init(config={"bs": 12})
+
     model.fit(
         X_train,
         Y_train,
@@ -194,7 +202,7 @@ def train_right_neural_network():
         batch_size=32,
         validation_split=0.1,
         verbose=0,
-        callbacks=[TqdmCallback(verbose=2)],
+        callbacks=[TqdmCallback(verbose=2), WandbMetricsLogger()],
     )
 
     model.save("models/right_model.h5")
