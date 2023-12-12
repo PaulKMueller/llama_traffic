@@ -35,8 +35,10 @@ from waymo_inform import (
 )
 
 from learning.trajectory_generator import (
+    infer_with_simple_neural_network,
     infer_with_right_neural_network,
     train_right_neural_network,
+    train_simple_neural_network,
     create_neural_network,
     infer_with_neural_network,
     train_neural_network,
@@ -112,7 +114,7 @@ class SimpleShell(cmd.Cmd):
             )
             return
 
-        image = self.loaded_scenario.visualize_map(self.loaded_scenario.data)
+        image = self.loaded_scenario.visualize_map()
         image.savefig(
             f"{output_folder}roadgraph_{get_scenario_index(self.loaded_scenario.name)}.png"
         )
@@ -1158,6 +1160,78 @@ class SimpleShell(cmd.Cmd):
 
         create_neural_network()
 
+    def do_infer_with_simple_neural_network(self, arg):
+        """Infer with the neural network.
+
+        Args:
+            arg (str): Bucket for which to predict embedding.
+        """
+
+        # Load config file
+        # with open("config.yaml", "r") as file:
+        #     config = yaml.safe_load(file)
+        #     output_folder = config["output_folder"]
+
+        # Check for empty arguments (no bucket provided)
+        if arg == "":
+            print(
+                (
+                    "\nYou have provided no bucket for which to predict the embedding.\nPlease provide a bucket!\n"
+                )
+            )
+            return
+
+        # Checking if a scenario has been loaded already.
+        if self.loaded_scenario is None:
+            print(
+                (
+                    "\nNo scenario has been initialized yet! \nPlease use 'load_scenario'"
+                    " to load a scenario before calling the 'plot_scenario' command.\n"
+                )
+            )
+            return
+
+        vehicle_id = arg.split()[0]
+
+        trajectory = Trajectory(scenario=self.loaded_scenario, specific_id=vehicle_id)
+
+        prediction = infer_with_simple_neural_network(trajectory)
+
+        fig, ax = plt.subplots(
+            figsize=(10, 10)
+        )  # Create a figure and a set of subplots
+
+        # Scale the normalized trajectory to fit the figure
+
+        # Plot the trajectory
+        x_coordinates = prediction[0][0::2]
+        y_coordinates = prediction[0][1::2]
+        ax.plot(
+            x_coordinates,
+            y_coordinates,
+            "ro-",
+            markersize=5,
+            linewidth=2,
+        )  # 'ro-' creates a red line with circle markers
+
+        # Set aspect of the plot to be equal
+        ax.set_aspect("equal")
+
+        plt.savefig("test.png")
+        print(prediction)
+        print(prediction.shape)
+
+        # First 101 dimensions are the predicted x coordinates, the last 101 dimensions are the predicted y coordinatesk
+        # x_coords = prediction[0][:101]
+        # y_coords = prediction[0][101:]
+
+        # Store the coordinates in coordinate dictionary
+        # coordinates = {"X": x_coords, "Y": y_coords}
+
+        # trajectory = Trajectory(None, None)
+        # plot = trajectory.visualize_raw_coordinates_without_scenario(coordinates)
+        # plot.savefig(f"{output_folder}predicted_trajectory.png")
+
     def do_infer_with_neural_network(self, arg):
         """Infer with the neural network.
 
@@ -1206,13 +1280,20 @@ class SimpleShell(cmd.Cmd):
         # Scale the normalized trajectory to fit the figure
 
         # Plot the trajectory
+        x_coordinates = prediction[0][0::2]
+        y_coordinates = prediction[0][1::2]
         ax.plot(
-            prediction[0::2],
-            prediction[0::2],
+            x_coordinates,
+            y_coordinates,
             "ro-",
             markersize=5,
             linewidth=2,
         )  # 'ro-' creates a red line with circle markers
+
+        # Set aspect of the plot to be equal
+        ax.set_aspect("equal")
+
+        plt.savefig("test.png")
         print(prediction)
         print(prediction.shape)
 
@@ -1325,6 +1406,21 @@ class SimpleShell(cmd.Cmd):
         """
 
         train_neural_network()
+
+    def do_train_simple_neural_network(self, arg: str):
+        """Train the neural network.
+
+        Args:
+            arg (str): No arguments required.
+        """
+
+        train_simple_neural_network()
+
+    def do_print_data_length(self, arg: str):
+        # Load labeled trajectory data
+        with open("datasets/labeled_trajectories.json", "r") as file:
+            trajectories_data = json.load(file)
+        print(len(trajectories_data))
 
     def do_train_right_neural_network(self, arg: str):
         """Train the neural network for right trajectories.
@@ -1442,9 +1538,7 @@ class SimpleShell(cmd.Cmd):
 
         vehicle_id = arg.split()[0]
 
-        trajectory = Trajectory(
-            decoded_example=self.loaded_scenario, specific_id=vehicle_id
-        )
+        trajectory = Trajectory(scenario=self.loaded_scenario, specific_id=vehicle_id)
 
         reshaped_coordinates = np.array(
             [[x, y] for x, y in zip(trajectory.x_coordinates, trajectory.y_coordinates)]

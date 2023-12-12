@@ -567,74 +567,27 @@ class Scenario:
 
         roadgraph_xyz = self.data["roadgraph_samples/xyz"].numpy()
 
-        color_map = self.data(agent_ids.shape[0])
+        color_map = self.get_colormap(agent_ids.shape[0])
 
         center_y, center_x, width = self.get_viewport()
 
         # Creating one figure and axis to visualize all steps on the same plot
         _, ax = self.create_figure_and_axes(size_pixels=size_pixels)
 
-        # Visualize past states
-        for s, m in zip(
-            np.split(past_states, past_states.shape[1], 1),
-            np.split(past_states_mask, past_states_mask.shape[1], 1),
-        ):
-            self.visualize_map_one_step(
-                ax,
-                s[:, 0],
-                m[:, 0],
-                roadgraph_xyz,
-                "past",
-                center_y,
-                center_x,
-                width,
-                color_map,
-                with_ids,
-                agent_ids,
-                specific_id,
-                size_pixels,
-                alpha=0.5,
-            )
-
         # Visualize current state
         self.visualize_map_one_step(
-            ax,
-            current_states[:, 0],
-            current_states_mask[:, 0],
-            roadgraph_xyz,
-            "current",
-            center_y,
-            center_x,
-            width,
-            color_map,
-            with_ids,
-            agent_ids,
-            specific_id,
-            size_pixels,
+            ax=ax,
+            states=current_states[:, 0],
+            mask=current_states_mask[:, 0],
+            roadgraph=roadgraph_xyz,
+            center_y=center_y,
+            center_x=center_x,
+            width=width,
+            color_map=color_map,
+            with_ids=with_ids,
+            agent_ids=agent_ids,
             alpha=1.0,
         )
-
-        # Visualize future states
-        for s, m in zip(
-            np.split(future_states, future_states.shape[1], 1),
-            np.split(future_states_mask, future_states_mask.shape[1], 1),
-        ):
-            self.visualize_map_one_step(
-                ax,
-                s[:, 0],
-                m[:, 0],
-                roadgraph_xyz,
-                "future",
-                center_y,
-                center_x,
-                width,
-                color_map,
-                with_ids,
-                agent_ids,
-                specific_id,
-                size_pixels,
-                alpha=0.7,
-            )
 
         return plt
 

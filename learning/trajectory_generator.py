@@ -47,6 +47,20 @@ def create_neural_network():
     return model
 
 
+def create_simple_neural_network():
+    model = Sequential()
+    # Bert Embedding of size768 and two dimensions for the starting point
+    model.add(Dense(20, activation="relu", input_shape=(20,)))  # Input layer
+    model.add(Dense(128, activation="relu"))  # Hidden layer 1
+    model.add(Dense(128, activation="relu"))  # Hidden layer 2
+    model.add(Dense(202, activation="linear"))  # Output layer for regression
+    model.compile(
+        optimizer="adam", loss="mean_squared_error"
+    )  # Loss function for regression
+    model.save("models/my_simple_model.h5")
+    return model
+
+
 def infer_with_neural_network(input_data):
     model = load_model("models/my_model.h5")
 
@@ -59,16 +73,97 @@ def infer_with_neural_network(input_data):
     return predictions
 
 
-def infer_with_right_neural_network(input_data):
-    model = load_model("models/right_model.h5")
+def infer_with_simple_neural_network(trajectory):
+    model = load_model("models/my_simple_model.h5")
+    coordinates = trajectory.splined_coordinates[0:10]
+    input_x = [row["X"] for index, row in coordinates.iterrows()]
+    input_y = [row["Y"] for index, row in coordinates.iterrows()]
+
+    input_data = np.array(input_x + input_y)
 
     # Ensure the input is in the form of a 2D array with shape (batch_size, input_features)
     if input_data.ndim == 1:
         input_data = np.expand_dims(input_data, axis=0)
 
     predictions = model.predict(input_data)
+    return predictions
+
+
+def infer_with_right_neural_network(input_data):
+    model = load_model("models/right_model.h5")
+
+    # Ensure the input is in the form of a 2D array
+    # with shape (batch_size, input_features)
+    if input_data.ndim == 1:
+        input_data = np.expand_dims(input_data, axis=0)
+
+    predictions = model.predict(input_data)
     print()
     return predictions
+
+
+def train_simple_neural_network():
+    direction_counter_dict = {
+        "Left": 0,
+        "Right": 0,
+        "Stationary": 0,
+        "Right-U-Turn": 0,
+        "Left-U-Turn": 0,
+        "Straight-Right": 0,
+        "Straight-Left": 0,
+        "Straight": 0,
+    }
+    # Load labeled trajectory data
+    with open("datasets/labeled_trajectories.json", "r") as file:
+        trajectories_data = json.load(file)
+
+    X, Y = [], []
+
+    for value in trajectories_data.values():
+        direction = value["Direction"]
+        skip = False
+
+        for counter in direction_counter_dict.keys():
+            if direction_counter_dict[counter] >= 500:
+                skip = True
+            if direction == counter:
+                direction_counter_dict[counter] += 1
+
+        if not skip:
+            starting_xs = value["X"][0:10]
+            starting_ys = value["Y"][0:10]
+
+            # Coordinates as Numpy array
+            coordinates = np.column_stack((value["X"], value["Y"]))
+            X.append(starting_xs + starting_ys)
+            Y.append(coordinates.flatten())
+
+    X = np.array(X)
+    print(X.shape)
+    Y = np.array(Y)
+    print(Y.shape)
+
+    X_train, X_test, Y_train, Y_test = train_test_split(
+        X, Y, test_size=0.2, random_state=42
+    )
+
+    model = create_simple_neural_network()
+
+    wandb.init(config={"bs": 12})
+
+    model.fit(
+        X_train,
+        Y_train,
+        epochs=200,
+        batch_size=32,
+        validation_split=0.1,
+        verbose=0,
+        callbacks=[TqdmCallback(verbose=2), WandbMetricsLogger()],
+    )
+
+    model.save("models/my_simple_model.h5")
+    test_loss = model.evaluate(X_test, Y_test)
+    print(f"Test Loss: {test_loss}")
 
 
 def train_neural_network():
