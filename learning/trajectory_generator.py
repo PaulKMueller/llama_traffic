@@ -50,7 +50,7 @@ def create_neural_network():
 def create_simple_neural_network():
     model = Sequential()
     # Bert Embedding of size768 and two dimensions for the starting point
-    model.add(Dense(20, activation="relu", input_shape=(20,)))  # Input layer
+    model.add(Dense(40, activation="relu", input_shape=(40,)))  # Input layer
     model.add(Dense(128, activation="relu"))  # Hidden layer 1
     model.add(Dense(128, activation="relu"))  # Hidden layer 2
     model.add(Dense(202, activation="linear"))  # Output layer for regression
@@ -75,7 +75,7 @@ def infer_with_neural_network(input_data):
 
 def infer_with_simple_neural_network(trajectory):
     model = load_model("models/my_simple_model.h5")
-    coordinates = trajectory.splined_coordinates[0:10]
+    coordinates = trajectory.splined_coordinates[0:20]
     input_x = [row["X"] for index, row in coordinates.iterrows()]
     input_y = [row["Y"] for index, row in coordinates.iterrows()]
 
@@ -130,8 +130,8 @@ def train_simple_neural_network():
                 direction_counter_dict[counter] += 1
 
         if not skip:
-            starting_xs = value["X"][0:10]
-            starting_ys = value["Y"][0:10]
+            starting_xs = value["X"][0:20]
+            starting_ys = value["Y"][0:20]
 
             # Coordinates as Numpy array
             coordinates = np.column_stack((value["X"], value["Y"]))

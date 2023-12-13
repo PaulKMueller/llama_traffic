@@ -27,6 +27,8 @@ from training_dataclass import TrainingData
 
 import torch
 
+from learning.rnns import train_lstm_neural_network
+
 from waymo_inform import (
     visualize_raw_coordinates_without_scenario,
     get_vehicles_for_scenario,
@@ -1415,6 +1417,14 @@ class SimpleShell(cmd.Cmd):
         """
 
         train_simple_neural_network()
+
+    def do_train_lstm_neural_network(self, arg: str):
+        """Train a LSTM neural network for trajectory generation.
+
+        Args:
+            args(str): No arguments required.
+        """
+        train_lstm_neural_network()
 
     def do_print_data_length(self, arg: str):
         # Load labeled trajectory data
