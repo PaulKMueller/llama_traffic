@@ -5,6 +5,8 @@ import yaml
 import json
 import math
 
+import tensorflow as tf
+
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 
@@ -40,6 +42,7 @@ from learning.trajectory_generator import (
     infer_with_simple_neural_network,
     infer_with_right_neural_network,
     train_right_neural_network,
+    train_stationary_neural_network,
     train_simple_neural_network,
     create_neural_network,
     infer_with_neural_network,
@@ -185,6 +188,13 @@ class SimpleShell(cmd.Cmd):
         )
 
         trajectory_plot.savefig(f"{output_folder}{vehicle_id}.png")
+
+    def do_store_full_raw_scenario(self, arg: str):
+        # TODO: Check for loaded scenario
+        dataset = tf.data.TFRecordDataset(self.loaded_scenario.path, compression_type="")
+        data = next(dataset.as_numpy_iterator())
+        with open("output/raw_scenario.txt", "w") as file:
+            file.write(str(data))
 
     def do_load_scenario(self, arg: str):
         """Loads the scenario from the given path.
@@ -487,7 +497,7 @@ class SimpleShell(cmd.Cmd):
             with_ids=False,
             specific_id=vehicle_id,
         )
-        anim = self.loaded_scenario.create_animation(images[::5])
+        anim = self.loaded_scenario.create_animation(images[::1])
         timestamp = datetime.now()
         anim.save(f"{output_folder}{timestamp}.mp4", writer="ffmpeg", fps=10)
         print(
@@ -531,6 +541,7 @@ class SimpleShell(cmd.Cmd):
         vehicle_id = arg.split()[0]
         print(f"\nPlotting trajectory for vehicle {vehicle_id}...")
         timestamp = datetime.now()
+
         trajectory_plot = self.loaded_scenario.visualize_trajectory(
             specific_id=vehicle_id
         )
@@ -659,7 +670,7 @@ class SimpleShell(cmd.Cmd):
 
         vehicle_id = arg.split()[0]
         trajectory = Trajectory(self.loaded_scenario, vehicle_id)
-        trajectory.splined_coordinates.to_csv(
+        trajectory.coordinates.to_csv(
             f"{output_folder}coordinates_for_{vehicle_id}.scsv"
         )
 
@@ -844,8 +855,11 @@ class SimpleShell(cmd.Cmd):
 
         vehicle_id = arg.split()[0]
 
-        spline_plot = self.loaded_scenario.visualize_trajectory(vehicle_id)
-        spline_plot.savefig(f"{output_folder}{vehicle_id}_spline.png")
+        trajectory = Trajectory(self.loaded_scenario, vehicle_id)
+        trajectory_plot = self.loaded_scenario.visualize_coordinates(
+            trajectory.splined_coordinates
+        )
+        trajectory_plot.savefig(f"{output_folder}{vehicle_id}_spline.png")
 
     def do_vehicles_in_loaded_scenario(self, arg: str):
         """Prints the IDs of all vehicles in the loaded scenario.
@@ -1441,6 +1455,14 @@ class SimpleShell(cmd.Cmd):
 
         train_right_neural_network()
 
+    def do_train_stationary_neural_network(self, arg: str):
+        """Trains a neural network to generate stationary trajectories.
+
+        Args:
+            arg (str): No arguments required.
+        """        
+        train_stationary_neural_network()
+
     def do_init_bucket_embeddings(self, arg: str):
         """Initialize the bucket embeddings.
 
@@ -1475,6 +1497,33 @@ class SimpleShell(cmd.Cmd):
 
         print(bucket_embeddings[bucket])
         print(len(bucket_embeddings[bucket]))
+
+    def do_print_training_dataset_stats(self, args: str):
+        """Prints the number of training examples for each of the buckets
+
+        Args:
+            args (str): No arguments required.
+        """
+
+        buckets = {
+            "Left": 0,
+            "Right": 0,
+            "Stationary": 0,
+            "Straight": 0,
+            "Straight-Left": 0,
+            "Straight-Right": 0,
+            "Right-U-Turn": 0,
+            "Left-U-Turn": 0,
+        }
+
+        with open("datasets/labeled_trajectories.json", "r") as file:
+            trajectories_data = json.load(file)
+
+        for value in trajectories_data.values():
+            buckets[value["Direction"]] += 1
+
+        print(buckets)
+
 
     def do_plot_predicted_trajectory(self, arg: str):
         """Plot the predicted trajectory for the given bucket.

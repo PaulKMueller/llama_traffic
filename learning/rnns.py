@@ -12,9 +12,9 @@ from tqdm.keras import TqdmCallback
 
 
 def create_lstm_neural_network():
-    model = keras.Sequential()
-    model.add(layers.LSTM(40, input_shape=(20, 2)))
-    model.add(layers.Dense(202))
+    model = keras.Sequential([
+        layers.LSTM(202, return_sequences=True, input_shape=(None, 2)),
+        layers.Dense(2)])
     model.compile(
         optimizer="adam", loss="mean_squared_error"
     )  # Loss function for regression
@@ -34,7 +34,7 @@ def train_lstm_neural_network():
         "Straight": 0,
     }
     # Load labeled trajectory data
-    with open("datasets/labeled_trajectories.json", "r") as file:
+    with open("datasets/zipped_labeled_trajectories.json", "r") as file:
         trajectories_data = json.load(file)
 
     X, Y = [], []
@@ -50,13 +50,12 @@ def train_lstm_neural_network():
                 direction_counter_dict[counter] += 1
 
         if not skip:
-            starting_xs = value["X"][0:20]
-            starting_ys = value["Y"][0:20]
+            starting_points = np.array(value["Coordinates"][0:100])
 
             # Coordinates as Numpy array
-            coordinates = np.column_stack((value["X"], value["Y"]))
-            X.append(starting_xs + starting_ys)
-            Y.append(coordinates.flatten())
+            all_points = np.array(value["Coordinates"])
+            X.append(starting_points)
+            Y.append(all_points.flatten())
 
     X = np.array(X)
     print(X.shape)
@@ -74,7 +73,7 @@ def train_lstm_neural_network():
     model.fit(
         X_train,
         Y_train,
-        epochs=200,
+        epochs=2000,
         batch_size=32,
         validation_split=0.1,
         verbose=0,
@@ -84,3 +83,10 @@ def train_lstm_neural_network():
     model.save("models/my_lstm_model.h5")
     test_loss = model.evaluate(X_test, Y_test)
     print(f"Test Loss: {test_loss}")
+
+# shape: (batch_size, sequence length, features per sequence)
+# inputs = np.random.random((32, 40, 2))
+# model =layers.LSTM(202, input_shape=(32, 40, 2))
+# print(inputs)
+# print(model(inputs))
+# print(model(inputs).shape)

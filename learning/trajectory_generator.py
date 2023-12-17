@@ -9,7 +9,7 @@ from tensorflow.keras.layers import (
     LayerNormalization,
     Input,
 )
-from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.optimizers import Adam, SGD
 from tensorflow.keras.layers import Dense
 from tensorflow.keras.models import load_model
 
@@ -51,11 +51,12 @@ def create_simple_neural_network():
     model = Sequential()
     # Bert Embedding of size768 and two dimensions for the starting point
     model.add(Dense(40, activation="relu", input_shape=(40,)))  # Input layer
-    model.add(Dense(128, activation="relu"))  # Hidden layer 1
-    model.add(Dense(128, activation="relu"))  # Hidden layer 2
+    model.add(Dense(1024, activation="relu"))  # Hidden layer 1
+    model.add(Dense(1024, activation="relu"))  # Hidden layer 2
+    model.add(Dense(1024, activation="relu"))  # Hidden layer 3
     model.add(Dense(202, activation="linear"))  # Output layer for regression
     model.compile(
-        optimizer="adam", loss="mean_squared_error"
+        optimizer="Adam", loss="mean_squared_error"
     )  # Loss function for regression
     model.save("models/my_simple_model.h5")
     return model
@@ -124,7 +125,7 @@ def train_simple_neural_network():
         skip = False
 
         for counter in direction_counter_dict.keys():
-            if direction_counter_dict[counter] >= 500:
+            if direction_counter_dict[counter] >= 250:
                 skip = True
             if direction == counter:
                 direction_counter_dict[counter] += 1
@@ -164,6 +165,7 @@ def train_simple_neural_network():
     model.save("models/my_simple_model.h5")
     test_loss = model.evaluate(X_test, Y_test)
     print(f"Test Loss: {test_loss}")
+    wandb.finish()
 
 
 def train_neural_network():
@@ -237,6 +239,52 @@ def train_neural_network():
 
     with open("predicted_trajectory.json", "w") as file:
         json.dump(predicted_trajectory, file)
+
+def train_stationary_neural_network():
+    # Load labeled trajectory data
+    with open("datasets/labeled_trajectories.json", "r") as file:
+        trajectories_data = json.load(file)
+
+    X, Y = [], []
+
+    for value in trajectories_data.values():
+        direction = value["Direction"]
+        if direction == "Stationary":
+            starting_xs = value["X"][0:20]
+            starting_ys = value["Y"][0:20]
+
+            # Coordinates as Numpy array
+            coordinates = np.column_stack((value["X"], value["Y"]))
+            X.append(starting_xs + starting_ys)
+            Y.append(coordinates.flatten())
+
+    X = np.array(X)
+    print(X.shape)
+    Y = np.array(Y)
+    print(Y.shape)
+
+    X_train, X_test, Y_train, Y_test = train_test_split(
+        X, Y, test_size=0.2, random_state=42
+    )
+
+    model = create_simple_neural_network()
+
+    wandb.init(config={"bs": 12})
+
+    model.fit(
+        X_train,
+        Y_train,
+        epochs=200,
+        batch_size=32,
+        validation_split=0.1,
+        verbose=0,
+        callbacks=[TqdmCallback(verbose=2), WandbMetricsLogger()],
+    )
+
+    model.save("models/my_simple_model.h5")
+    test_loss = model.evaluate(X_test, Y_test)
+    print(f"Test Loss: {test_loss}")
+    wandb.finish()
 
 
 def train_right_neural_network():

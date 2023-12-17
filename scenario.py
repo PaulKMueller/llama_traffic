@@ -474,6 +474,7 @@ class Scenario:
 
     def get_animation(self, with_ids=False):
         images = self.visualize_all_agents_smooth(with_ids=with_ids)
+        print(len(images))
         anim = self.create_animation(images[::5])
         return anim
 
