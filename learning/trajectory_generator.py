@@ -102,6 +102,17 @@ def infer_with_right_neural_network(input_data):
     print()
     return predictions
 
+def infer_with_stationary_neural_network(input_data):
+    model = load_model("models/my_stationary_model.h5")
+
+    # Ensure the input is in the form of a 2D array
+    # with shape (batch_size, input_features)
+    if input_data.ndim == 1:
+        input_data = np.expand_dims(input_data, axis=0)
+
+    predictions = model.predict(input_data)
+    return predictions
+
 
 def train_simple_neural_network():
     direction_counter_dict = {
@@ -125,7 +136,7 @@ def train_simple_neural_network():
         skip = False
 
         for counter in direction_counter_dict.keys():
-            if direction_counter_dict[counter] >= 250:
+            if direction_counter_dict[counter] >= 500:
                 skip = True
             if direction == counter:
                 direction_counter_dict[counter] += 1
@@ -135,9 +146,9 @@ def train_simple_neural_network():
             starting_ys = value["Y"][0:20]
 
             # Coordinates as Numpy array
-            coordinates = np.column_stack((value["X"], value["Y"]))
+            coordinates = np.concatenate((value["X"], value["Y"]))
             X.append(starting_xs + starting_ys)
-            Y.append(coordinates.flatten())
+            Y.append(coordinates)
 
     X = np.array(X)
     print(X.shape)
@@ -254,9 +265,9 @@ def train_stationary_neural_network():
             starting_ys = value["Y"][0:20]
 
             # Coordinates as Numpy array
-            coordinates = np.column_stack((value["X"], value["Y"]))
+            coordinates = np.concatenate((value["X"], value["Y"]))
             X.append(starting_xs + starting_ys)
-            Y.append(coordinates.flatten())
+            Y.append(coordinates)
 
     X = np.array(X)
     print(X.shape)
@@ -281,7 +292,7 @@ def train_stationary_neural_network():
         callbacks=[TqdmCallback(verbose=2), WandbMetricsLogger()],
     )
 
-    model.save("models/my_simple_model.h5")
+    model.save("models/my_stationary_model.h5")
     test_loss = model.evaluate(X_test, Y_test)
     print(f"Test Loss: {test_loss}")
     wandb.finish()
@@ -320,9 +331,9 @@ def train_right_neural_network():
             embedding.append(starting_y)
 
             # Coordinates as Numpy array
-            coordinates = np.column_stack((value["X"], value["Y"]))
+            coordinates = np.concatenate((value["X"], value["Y"]))
             X.append(embedding)
-            Y.append(coordinates.flatten())
+            Y.append(coordinates)
 
     X = np.array(X)
     Y = np.array(Y)
@@ -352,14 +363,14 @@ def train_right_neural_network():
     test_loss = model.evaluate(X_test, Y_test)
     print(f"Test Loss: {test_loss}")
 
-    # Prediction and saving predicted trajectory
-    text = "Right"
-    embedding = get_bert_embedding(text)
-    np.append(embedding, [0, 0])
-    predicted_trajectory = infer_with_neural_network(embedding).tolist()
+    # # Prediction and saving predicted trajectory
+    # text = "Right"
+    # embedding = get_bert_embedding(text)
+    # np.append(embedding, [0, 0])
+    # predicted_trajectory = infer_with_neural_network(embedding).tolist()
 
-    with open("predicted_trajectory.json", "w") as file:
-        json.dump(predicted_trajectory, file)
+    # with open("predicted_trajectory.json", "w") as file:
+    #     json.dump(predicted_trajectory, file)
 
 
 def positional_encoding(positions, d_model):

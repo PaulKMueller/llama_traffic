@@ -475,7 +475,7 @@ class Scenario:
     def get_animation(self, with_ids=False):
         images = self.visualize_all_agents_smooth(with_ids=with_ids)
         print(len(images))
-        anim = self.create_animation(images[::5])
+        anim = self.create_animation(images[::1])
         return anim
 
     @staticmethod
@@ -534,7 +534,6 @@ class Scenario:
 
     def visualize_coordinates(self, coordinates, size_pixels=1000):
         plot = self.visualize_map()
-        print(type(coordinates))
         # Plot coordinates on map
         for _, coordinate in coordinates.iterrows():
             plot.plot(coordinate["X"], coordinate["Y"], "ro", markersize=5)
