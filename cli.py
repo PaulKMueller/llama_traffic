@@ -1405,6 +1405,8 @@ class SimpleShell(cmd.Cmd):
 
         coordinates = pd.DataFrame({"X": x_coordinates, "Y": y_coordinates})
         visualization = self.loaded_scenario.visualize_coordinates(coordinates)
+
+        fig, (ax1, ax2, ax3) = plt.subplots(1, 3)
         visualization.savefig("output/prediction_test.png")
 
         # prediction_df = pd.DataFrame({"X": x_coordinates, "Y": y_coordinates})

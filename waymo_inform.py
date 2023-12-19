@@ -683,5 +683,5 @@ def create_zipped_normalized_labeled_trajectories_for_all_scenarios_json():
             }
 
     # Save to JSON file
-    with open(f"{dataset_folder}labeled_trajectories.json", "w") as json_file:
+    with open(f"{dataset_folder}normalized_labeled_trajectories.json", "w") as json_file:
         json.dump(trajectory_dict, json_file, indent=4)

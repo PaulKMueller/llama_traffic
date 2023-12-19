@@ -31,7 +31,14 @@ import json
 import os
 
 
-def create_neural_network():
+def create_neural_network() -> Sequential:
+    """Creates a neural network with the dimensions to handle the input of a word embedding
+    and a starting point for the trajectory. Its output dimension corresponds to 101 x coordinates
+    and 101 y coordinates.
+
+    Returns:
+        Sequential: A model with the specified dimensions.
+    """    
     model = Sequential()
     # Bert Embedding of size768 and two dimensions for the starting point
     model.add(Dense(770, activation="relu", input_shape=(770,)))  # Input layer
@@ -47,7 +54,7 @@ def create_neural_network():
     return model
 
 
-def create_simple_neural_network():
+def create_simple_neural_network() -> Sequential:
     model = Sequential()
     # Bert Embedding of size768 and two dimensions for the starting point
     model.add(Dense(40, activation="relu", input_shape=(40,)))  # Input layer
@@ -62,7 +69,7 @@ def create_simple_neural_network():
     return model
 
 
-def infer_with_neural_network(input_data):
+def infer_with_neural_network(input_data) -> np.array:
     model = load_model("models/my_model.h5")
 
     # Ensure the input is in the form of a 2D array with shape (batch_size, input_features)
@@ -74,7 +81,7 @@ def infer_with_neural_network(input_data):
     return predictions
 
 
-def infer_with_simple_neural_network(trajectory):
+def infer_with_simple_neural_network(trajectory) -> np.array:
     model = load_model("models/my_simple_model.h5")
     coordinates = trajectory.splined_coordinates[0:20]
     input_x = [row["X"] for index, row in coordinates.iterrows()]
@@ -90,7 +97,7 @@ def infer_with_simple_neural_network(trajectory):
     return predictions
 
 
-def infer_with_right_neural_network(input_data):
+def infer_with_right_neural_network(input_data) -> np.array:
     model = load_model("models/right_model.h5")
 
     # Ensure the input is in the form of a 2D array
@@ -99,10 +106,9 @@ def infer_with_right_neural_network(input_data):
         input_data = np.expand_dims(input_data, axis=0)
 
     predictions = model.predict(input_data)
-    print()
     return predictions
 
-def infer_with_stationary_neural_network(input_data):
+def infer_with_stationary_neural_network(input_data) -> np.array:
     model = load_model("models/my_stationary_model.h5")
 
     # Ensure the input is in the form of a 2D array
