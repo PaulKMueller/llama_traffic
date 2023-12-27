@@ -21,6 +21,7 @@ class Trajectory:
         self.sum_of_delta_angles = self.get_sum_of_delta_angles()
         self.direction = self.get_direction_of_vehicle()
         self.ego_coordinates = self.get_ego_coordinates()
+        self.x_axis_angle = self.get_x_axis_angle()
 
     @staticmethod
     def get_coordinates_one_step(
@@ -235,7 +236,25 @@ class Trajectory:
         ego_coordinates["Y"] = ego_coordinates["Y"] - first_y_coordinate
 
         return ego_coordinates
-        
+    
+    def get_x_axis_angle(self) -> float:
+        first_x_coordinate = self.splined_coordinates["X"][0]
+        first_y_coordinate = self.splined_coordinates["Y"][0]
+        second_x_coordinate = self.splined_coordinates["X"][1]
+        second_y_coordinate = self.splined_coordinates["Y"][1]
+
+        first_move_vector = np.array([second_x_coordinate-first_x_coordinate, second_y_coordinate-first_y_coordinate])
+        x_axis_vector = np.array([1, 0])
+
+        dot = first_move_vector @ x_axis_vector
+        det = first_move_vector[0] * x_axis_vector[1] - first_move_vector[1] * x_axis_vector[0]
+
+        # dot = x1*x2 + y1*y2 
+        # det = x1*y2 - y1*x2 
+        x_axis_angle = math.atan2(det, dot) * 180/math.pi
+
+        return - x_axis_angle
+
 
     def get_sum_of_delta_angles(self) -> float:
         """Returns the sum of the angles between each segment in the trajectory.

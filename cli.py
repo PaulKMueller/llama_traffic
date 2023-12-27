@@ -1641,6 +1641,12 @@ class SimpleShell(cmd.Cmd):
         
         vehicle_id = arg.split()[0]
 
+        trajectory = Trajectory(self.loaded_scenario, vehicle_id)
+
+        ego_plot = visualize_raw_coordinates_without_scenario(trajectory.ego_coordinates["X"], trajectory.ego_coordinates["Y"])
+        ego_plot.savefig(f"output/ego_plot_{vehicle_id}.png")
+        plt.close()
+
 
     def do_init_dataset(self, arg: str):
         """Initialize the dataset.
@@ -1880,6 +1886,33 @@ class SimpleShell(cmd.Cmd):
         """
 
         train_transformer_network()
+
+
+    def do_print_x_axis_vector(self, arg: str):
+        # Checking if a scenario has been loaded already.
+        if self.loaded_scenario is None:
+            print(
+                (
+                    "\nNo scenario has been initialized yet! \nPlease use 'load_scenario'"
+                    " to load a scenario before calling the 'plot_scenario' command.\n"
+                )
+            )
+            return
+
+        # Check for empty arguments (no ID provided)
+        if arg == "":
+            print(
+                (
+                    "\nYou have provided no ID for the vehicle "
+                    "whose trajectory you want to get.\nPlease provide a path!\n"
+                )
+            )
+            return
+        
+        vehicle_id = arg.split()[0]
+
+        trajectory = Trajectory(self.loaded_scenario, vehicle_id)
+        print(trajectory.x_axis_angle)
 
     def do_store_raw_scenario(self, arg: str):
         """Store the raw scenario in a JSON file.
