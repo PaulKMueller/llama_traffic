@@ -20,6 +20,7 @@ class Trajectory:
         self.total_displacement = self.get_total_displacement()
         self.sum_of_delta_angles = self.get_sum_of_delta_angles()
         self.direction = self.get_direction_of_vehicle()
+        self.ego_coordinates = self.get_ego_coordinates()
 
     @staticmethod
     def get_coordinates_one_step(
@@ -131,6 +132,7 @@ class Trajectory:
         output_df = output_df.reset_index(drop=True)
 
         return output_df
+    
 
     def normalize_coordinates(self):
         viewport = self.scenario.get_viewport()
@@ -217,8 +219,25 @@ class Trajectory:
         adjusted_coordinates["Y"] = [y[0]] * 101
 
         return adjusted_coordinates
+    
+    def get_ego_coordinates(self) -> pd.DataFrame:
+        """Returns the ego coordinates for the trajectory.
 
-    def get_sum_of_delta_angles(self):
+        Returns:
+            pd.DataFrame: Ego coordinates. These are the coordinates that start at (0, 0).
+        """     
+
+        first_x_coordinate = self.splined_coordinates["X"][0]
+        first_y_coordinate = self.splined_coordinates["Y"][0]
+
+        ego_coordinates = self.splined_coordinates.copy()
+        ego_coordinates["X"] = ego_coordinates["X"] - first_x_coordinate
+        ego_coordinates["Y"] = ego_coordinates["Y"] - first_y_coordinate
+
+        return ego_coordinates
+        
+
+    def get_sum_of_delta_angles(self) -> float:
         """Returns the sum of the angles between each segment in the trajectory.
 
         Args:

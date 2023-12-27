@@ -60,11 +60,11 @@ def create_neural_network() -> Sequential:
 
 def create_simple_neural_network() -> Sequential:
     model = Sequential()
-    model.add(Dense(40, activation="relu"))  # Input layer
+    model.add(Dense(100, activation="relu"))  # Input layer
     model.add(Dense(64, activation="relu"))  # Hidden layer 1
     model.add(Dense(64, activation="relu"))  # Hidden layer 2
     model.add(Dense(64, activation="relu"))  # Hidden layer 3
-    model.add(Dense(40, activation="linear"))  # Output layer for regression
+    model.add(Dense(100, activation="linear"))  # Output layer for regression
 
     mse_loss = tf.keras.losses.MeanSquaredError()
     model.compile(
@@ -86,7 +86,7 @@ def infer_with_neural_network(input_data) -> np.array:
 
 def infer_with_simple_neural_network(trajectory: Trajectory) -> np.array:
     model = load_model("models/my_simple_model.h5")
-    coordinates = trajectory.splined_coordinates[0:20]
+    coordinates = trajectory.splined_coordinates[0:50]
     input_x = [row["X"] for _, row in coordinates.iterrows()]
     input_y = [row["Y"] for _, row in coordinates.iterrows()]
 
@@ -154,7 +154,7 @@ def train_simple_neural_network():
                 direction_counter_dict[counter] += 1
 
         if not skip:
-            starting_points = np.array(value["Coordinates"][0:20]).flatten()
+            starting_points = np.array(value["Coordinates"][0:50]).flatten()
 
             # Coordinates as Numpy array
             coordinates = np.array(value["Coordinates"]).flatten()

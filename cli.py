@@ -1587,6 +1587,60 @@ class SimpleShell(cmd.Cmd):
 
         print(f"Mean Squared Error: {mse_loss(real_coordinates, predicted_coordinates).numpy()}")
 
+    def do_print_ego_coordinates(self, arg: str):
+        """Prints the ego coordinates of the vehicle whose ID has been given in the loaded scenario.
+
+        Args:
+            arg (str): The vehicle ID of the vehicle for whicht to print the ego coordinates.
+        """        
+
+        # Check for empty arguments (no bucket provided)
+        if arg == "":
+            print(
+                (
+                    "\nYou have provided no bucket for which to predict the embedding.\nPlease provide a bucket!\n"
+                )
+            )
+            return
+
+        # Checking if a scenario has been loaded already.
+        if self.loaded_scenario is None:
+            print(
+                (
+                    "\nNo scenario has been initialized yet! \nPlease use 'load_scenario'"
+                    " to load a scenario before calling the 'plot_scenario' command.\n"
+                )
+            )
+            return
+        
+        vehicle_id = arg.split()[0]
+
+        trajectory = Trajectory(self.loaded_scenario, vehicle_id)
+        print("Test")
+        print(trajectory.get_ego_coordinates())
+
+    def do_plot_ego_coordinates(self, arg: str):
+        # Check for empty arguments (no bucket provided)
+        if arg == "":
+            print(
+                (
+                    "\nYou have provided no bucket for which to predict the embedding.\nPlease provide a bucket!\n"
+                )
+            )
+            return
+
+        # Checking if a scenario has been loaded already.
+        if self.loaded_scenario is None:
+            print(
+                (
+                    "\nNo scenario has been initialized yet! \nPlease use 'load_scenario'"
+                    " to load a scenario before calling the 'plot_scenario' command.\n"
+                )
+            )
+            return
+        
+        vehicle_id = arg.split()[0]
+
 
     def do_init_dataset(self, arg: str):
         """Initialize the dataset.
