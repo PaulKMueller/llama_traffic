@@ -150,7 +150,6 @@ class Trajectory:
                 ],
                 ignore_index=True,
             )
-        print(normalized_coordinates)
         return normalized_coordinates
 
     def get_spline_for_coordinates(self, coordinates):

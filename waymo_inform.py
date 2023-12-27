@@ -565,12 +565,17 @@ def get_labeled_trajectories_for_all_scenarios_json():
             + scenario
         )
 
+        scenario_obj = Scenario((
+                "/mrtstorage/datasets/tmp/waymo_open_motion_v_1_2_0"
+                "/uncompressed/tf_example/training/"
+            )
+            + scenario)
+
         vehicle_ids = get_vehicles_for_scenario(decoded_scenario)
         for vehicle_id in tqdm(
             vehicle_ids, desc=f"Processing vehicles in scenario {scenario}", leave=False
         ):
-            trajectory = Trajectory(
-                decoded_example=decoded_scenario, specific_id=vehicle_id
+            trajectory = Trajectory(scenario_obj, specific_id=vehicle_id
             )
             x_coordinates = trajectory.splined_coordinates[
                 "X"

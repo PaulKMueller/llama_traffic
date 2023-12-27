@@ -6,6 +6,7 @@ import json
 import math
 
 import tensorflow as tf
+from tensorflow.keras.losses import MeanSquaredError
 
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
@@ -36,7 +37,8 @@ from waymo_inform import (
     get_vehicles_for_scenario,
     create_labeled_trajectories_for_scenario,
     create_zipped_labeled_trajectories_for_all_scenarios_json,
-    create_zipped_normalized_labeled_trajectories_for_all_scenarios_json
+    create_zipped_normalized_labeled_trajectories_for_all_scenarios_json,
+    get_labeled_trajectories_for_all_scenarios_json
 )
 
 from learning.trajectory_generator import (
@@ -1040,6 +1042,15 @@ class SimpleShell(cmd.Cmd):
 
         print("Successfully got the labeled trajectories!\n")
 
+    def do_create_labeled_training_data(self, arg: str):
+        """Returns a dictionary of training data.
+
+        Args:
+            arg (str): No arguments required.
+        """        
+
+        get_labeled_trajectories_for_all_scenarios_json()
+
     def do_create_zipped_training_data(self, arg: str):
         """Returns a dictionary with the scenario IDs as keys and the corresponding
         labeled trajectories for each vehicle as values.
@@ -1232,11 +1243,16 @@ class SimpleShell(cmd.Cmd):
 
         prediction = infer_with_simple_neural_network(trajectory)
 
+        print(prediction)
+
         # Scale the normalized trajectory to fit the figure
 
         # Plot the trajectory
-        x_coordinates = prediction[0][0:100]
-        y_coordinates = prediction[0][101:201]
+        x_coordinates = prediction[0][0::2]
+        y_coordinates = prediction[0][1::2]
+
+        print(len(x_coordinates))
+        print(len(y_coordinates))
 
         prediction_df = pd.DataFrame(({"X": x_coordinates, "Y": y_coordinates}))
         prediction_plot = self.loaded_scenario.visualize_coordinates(prediction_df)
@@ -1532,6 +1548,45 @@ class SimpleShell(cmd.Cmd):
             else "cpu"
         )
         print(f"Using {device} device")
+
+    def do_print_mean_squared_error(self, arg: str):
+
+        # Checking if a scenario has been loaded already.
+        if self.loaded_scenario is None:
+            print(
+                (
+                    "\nNo scenario has been initialized yet! \nPlease use 'load_scenario'"
+                    " to load a scenario before calling the 'plot_scenario' command.\n"
+                )
+            )
+            return
+
+        # Check for empty arguments (no ID provided)
+        if arg == "":
+            print(
+                (
+                    "\nYou have provided no ID for the vehicle "
+                    "whose trajectory you want to get.\nPlease provide a path!\n"
+                )
+            )
+            return
+        
+        vehicle_id = arg.split()[0]
+
+        trajectory = Trajectory(self.loaded_scenario, vehicle_id)
+        real_coordinates = trajectory.splined_coordinates[0:20]
+        real_coordinates = np.array(list(zip(real_coordinates["X"], real_coordinates["Y"]))).flatten()
+        print(f"Real coordinates shape: {real_coordinates.shape}")
+        print(real_coordinates)
+
+        predicted_coordinates = infer_with_simple_neural_network(trajectory)
+        predicted_coordinates = predicted_coordinates.reshape(-1,)
+        print(f"Predicted coordinates shape: {predicted_coordinates.shape}")
+        print(predicted_coordinates)
+        mse_loss = MeanSquaredError()
+
+        print(f"Mean Squared Error: {mse_loss(real_coordinates, predicted_coordinates).numpy()}")
+
 
     def do_init_dataset(self, arg: str):
         """Initialize the dataset.

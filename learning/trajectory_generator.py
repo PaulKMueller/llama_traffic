@@ -16,6 +16,8 @@ from tensorflow.keras.models import load_model
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense
 
+import pandas as pd
+
 from tqdm.keras import TqdmCallback
 
 from sklearn.model_selection import train_test_split
@@ -23,6 +25,8 @@ from sklearn.model_selection import train_test_split
 from bert_encoder import get_bert_embedding
 
 from bert_encoder import init_bucket_embeddings
+
+from trajectory import Trajectory
 
 from wandb.keras import WandbMetricsLogger
 
@@ -56,16 +60,16 @@ def create_neural_network() -> Sequential:
 
 def create_simple_neural_network() -> Sequential:
     model = Sequential()
-    # Bert Embedding of size768 and two dimensions for the starting point
-    model.add(Dense(40, activation="relu", input_shape=(40,)))  # Input layer
-    model.add(Dense(1024, activation="relu"))  # Hidden layer 1
-    model.add(Dense(1024, activation="relu"))  # Hidden layer 2
-    model.add(Dense(1024, activation="relu"))  # Hidden layer 3
-    model.add(Dense(202, activation="linear"))  # Output layer for regression
+    model.add(Dense(40, activation="relu"))  # Input layer
+    model.add(Dense(64, activation="relu"))  # Hidden layer 1
+    model.add(Dense(64, activation="relu"))  # Hidden layer 2
+    model.add(Dense(64, activation="relu"))  # Hidden layer 3
+    model.add(Dense(40, activation="linear"))  # Output layer for regression
+
+    mse_loss = tf.keras.losses.MeanSquaredError()
     model.compile(
-        optimizer="Adam", loss="mean_squared_error"
+        optimizer="adam", loss=mse_loss
     )  # Loss function for regression
-    model.save("models/my_simple_model.h5")
     return model
 
 
@@ -77,23 +81,24 @@ def infer_with_neural_network(input_data) -> np.array:
         input_data = np.expand_dims(input_data, axis=0)
 
     predictions = model.predict(input_data)
-    print()
     return predictions
 
 
-def infer_with_simple_neural_network(trajectory) -> np.array:
+def infer_with_simple_neural_network(trajectory: Trajectory) -> np.array:
     model = load_model("models/my_simple_model.h5")
     coordinates = trajectory.splined_coordinates[0:20]
-    input_x = [row["X"] for index, row in coordinates.iterrows()]
-    input_y = [row["Y"] for index, row in coordinates.iterrows()]
+    input_x = [row["X"] for _, row in coordinates.iterrows()]
+    input_y = [row["Y"] for _, row in coordinates.iterrows()]
 
-    input_data = np.array(input_x + input_y)
+    input_data = np.array(list(zip(input_x, input_y)))
 
-    # Ensure the input is in the form of a 2D array with shape (batch_size, input_features)
     if input_data.ndim == 1:
         input_data = np.expand_dims(input_data, axis=0)
 
-    predictions = model.predict(input_data)
+    input_data = input_data.flatten()
+    print(input_data.shape)
+
+    predictions = model.predict(tf.expand_dims(input_data, axis=0))
     return predictions
 
 
@@ -132,7 +137,7 @@ def train_simple_neural_network():
         "Straight": 0,
     }
     # Load labeled trajectory data
-    with open("datasets/labeled_trajectories.json", "r") as file:
+    with open("datasets/zipped_labeled_trajectories.json", "r") as file:
         trajectories_data = json.load(file)
 
     X, Y = [], []
@@ -142,22 +147,24 @@ def train_simple_neural_network():
         skip = False
 
         for counter in direction_counter_dict.keys():
-            if direction_counter_dict[counter] >= 500:
-                skip = True
+            if direction_counter_dict[counter] >= 20000:
+                pass
+                # skip = True
             if direction == counter:
                 direction_counter_dict[counter] += 1
 
         if not skip:
-            starting_xs = value["X"][0:20]
-            starting_ys = value["Y"][0:20]
+            starting_points = np.array(value["Coordinates"][0:20]).flatten()
 
             # Coordinates as Numpy array
-            coordinates = np.concatenate((value["X"], value["Y"]))
-            X.append(starting_xs + starting_ys)
-            Y.append(coordinates)
+            coordinates = np.array(value["Coordinates"]).flatten()
+            print(starting_points)
+            X.append(starting_points)
+            Y.append(starting_points)
 
     X = np.array(X)
     print(X.shape)
+    print("Test")
     Y = np.array(Y)
     print(Y.shape)
 
