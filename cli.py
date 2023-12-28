@@ -33,6 +33,7 @@ import torch
 from learning.rnns import train_lstm_neural_network
 
 from waymo_inform import (
+    create_labeled_ego_trajectories,
     visualize_raw_coordinates_without_scenario,
     get_vehicles_for_scenario,
     create_labeled_trajectories_for_scenario,
@@ -116,7 +117,7 @@ class SimpleShell(cmd.Cmd):
             output_folder = config["output_folder"]
 
         # Checking if a scenario has been loaded already.
-        if self.scenario_loaded():
+        if not self.scenario_loaded():
             return
 
         image = self.loaded_scenario.visualize_map()
@@ -160,7 +161,7 @@ class SimpleShell(cmd.Cmd):
             output_folder = config["output_folder"]
 
         # Checking if a scenario has been loaded already.
-        if self.scenario_loaded():
+        if not self.scenario_loaded():
             return
 
         # Check for empty arguments (no ID provided)
@@ -249,7 +250,7 @@ class SimpleShell(cmd.Cmd):
             arg (str): The vehicle ID of the trajectory to load.
         """     
 
-        if self.scenario_loaded():
+        if not self.scenario_loaded():
             return   
         
         vehicle_id = arg.split()[0]
@@ -257,6 +258,26 @@ class SimpleShell(cmd.Cmd):
         self.loaded_trajectory = Trajectory(self.loaded_scenario, specific_id=vehicle_id)
 
         print(f"The trajectory for vehicle {vehicle_id} has successfully been loaded.")
+
+    def do_print_loaded_trajectory_coordinates(self, arg: str):
+        """Prints the splined coordinates of the loaded trajectory.
+
+        Args:
+            arg (str): No arguments required.
+        """
+        print(self.loaded_trajectory.splined_coordinates)
+
+    def do_print_loaded_ego_coordinates(self, arg: str):
+        """Prints the ego coordinates using the static method in the Trajectory class for coordinate parsing.
+
+        Args:
+            arg (str): No arguments required.
+        """        
+
+        rotated_coordinates, rotated_angle, original_starting_x, original_starting_y = Trajectory.get_rotated_ego_coordinates_from_coordinates(self.loaded_trajectory.splined_coordinates)
+        unrotated_coordinates = Trajectory.get_coordinates_from_rotated_ego_coordinates(rotated_coordinates, rotated_angle, original_starting_x, original_starting_y)
+
+        print(unrotated_coordinates)
 
     def do_print_current_raw_scenario(self, arg: str):
         """Prints the current scenario that has been loaded in its decoded form.
@@ -481,7 +502,7 @@ class SimpleShell(cmd.Cmd):
             output_folder = config["output_folder"]
 
         # Checking if a scenario has been loaded already.
-        if self.scenario_loaded():
+        if not self.scenario_loaded():
             return
 
         # Check for empty arguments (no ID provided)
@@ -522,7 +543,7 @@ class SimpleShell(cmd.Cmd):
             output_folder = config["output_folder"]
 
         # Checking if a scenario has been loaded already.
-        if self.scenario_loaded():
+        if not self.scenario_loaded():
             return
 
         # Check for empty arguments (no ID provided)
@@ -565,7 +586,7 @@ class SimpleShell(cmd.Cmd):
             output_folder = config["output_folder"]
 
         # Checking if a scenario has been loaded already.
-        if self.scenario_loaded():
+        if not self.scenario_loaded():
             return
 
         # Check for empty arguments (no ID provided)
@@ -604,7 +625,7 @@ class SimpleShell(cmd.Cmd):
             output_folder = config["output_folder"]
 
         # Checking if a scenario has been loaded already.
-        if self.scenario_loaded():
+        if not self.scenario_loaded():
             return
 
         print("\nPlotting trajectories for all vehicles...")
@@ -634,7 +655,7 @@ class SimpleShell(cmd.Cmd):
             output_folder = config["output_folder"]
 
         # Checking if a scenario has been loaded already.
-        if self.scenario_loaded():
+        if not self.scenario_loaded():
             return
 
         # Check for empty arguments (no ID provided)
@@ -775,7 +796,7 @@ class SimpleShell(cmd.Cmd):
         """
 
         # Checking if a scenario has been loaded already.
-        if self.scenario_loaded():
+        if not self.scenario_loaded():
             return
 
         vehicle_ids = get_vehicles_for_scenario(self.loaded_scenario.data)
@@ -806,7 +827,7 @@ class SimpleShell(cmd.Cmd):
             output_folder = config["output_folder"]
 
         # Checking if a scenario has been loaded already.
-        if self.scenario_loaded():
+        if not self.scenario_loaded():
             return
 
         # Check for empty arguments (no ID provided)
@@ -835,7 +856,7 @@ class SimpleShell(cmd.Cmd):
         """
 
         # Checking if a scenario has been loaded already.
-        if self.scenario_loaded():
+        if not self.scenario_loaded():
             return
 
         filtered_ids = get_vehicles_for_scenario(self.loaded_scenario.data)
@@ -895,7 +916,7 @@ class SimpleShell(cmd.Cmd):
         """Prints the spline for the given vehicle ID."""
 
         # Checking if a scenario has been loaded already.
-        if self.scenario_loaded():
+        if not self.scenario_loaded():
             return
 
         # Check for empty arguments (no ID provided)
@@ -966,7 +987,7 @@ class SimpleShell(cmd.Cmd):
             output_folder = config["output_folder"]
 
         # Checking if a scenario has been loaded already.
-        if self.scenario_loaded():
+        if not self.scenario_loaded():
             return
 
         print("\nGetting the labeled trajectories...")
@@ -976,10 +997,10 @@ class SimpleShell(cmd.Cmd):
 
         # Save the labeled trajectories to a txt file in the output folder
         with open(
-            f"{output_folder}{get_scenario_index(self.loaded_scenario.name)}_labeled_trajectories.txt",
+            f"{output_folder}{get_scenario_index(self.loaded_scenario.name)}_labeled_trajectories.json",
             "w",
         ) as file:
-            file.write(str(labeled_trajectories))
+            json.dump(labeled_trajectories, file, indent=4)
 
         print("Successfully got the labeled trajectories!\n")
 
@@ -1021,6 +1042,16 @@ class SimpleShell(cmd.Cmd):
         create_zipped_normalized_labeled_trajectories_for_all_scenarios_json()
 
         print("Successfully got the labeled trajectories for all scenarios!\n")
+
+    def do_create_labeled_ego_trajectories(self, arg: str):
+        """Creates a json file with the training data as labeled ego trajectories. This means,
+        that the trajectories all start at (0, 0) and are rotated to point to the right side.
+
+        Args:
+            arg (str): No arguments required.
+        """        
+
+        create_labeled_ego_trajectories()
 
     def do_embed_with_bert(self, arg: str):
         """Returns an embedding of the given string generated by BERT.
@@ -1169,7 +1200,7 @@ class SimpleShell(cmd.Cmd):
             return
 
         # Checking if a scenario has been loaded already.
-        if self.scenario_loaded():
+        if not self.scenario_loaded():
             return
 
         vehicle_id = arg.split()[0]
@@ -1317,7 +1348,7 @@ class SimpleShell(cmd.Cmd):
             return
 
         # Checking if a scenario has been loaded already.
-        if self.scenario_loaded():
+        if not self.scenario_loaded():
             return
 
         vehicle_id = arg.split()[0]
@@ -1396,7 +1427,7 @@ class SimpleShell(cmd.Cmd):
             return
 
         # Checking if a scenario has been loaded already.
-        if self.scenario_loaded():
+        if not self.scenario_loaded():
             return
 
         vehicle_id = arg.split()[0]
@@ -1475,7 +1506,7 @@ class SimpleShell(cmd.Cmd):
     def do_print_mean_squared_error(self, arg: str):
 
         # Checking if a scenario has been loaded already.
-        if self.scenario_loaded():
+        if not self.scenario_loaded():
             return
 
         # Check for empty arguments (no ID provided)
@@ -1521,7 +1552,7 @@ class SimpleShell(cmd.Cmd):
             return
 
         # Checking if a scenario has been loaded already.
-        if self.scenario_loaded():
+        if not self.scenario_loaded():
             return
         
         vehicle_id = arg.split()[0]
@@ -1541,7 +1572,7 @@ class SimpleShell(cmd.Cmd):
             return
 
         # Checking if a scenario has been loaded already.
-        if self.scenario_loaded():
+        if not self.scenario_loaded():
             return
         
         vehicle_id = arg.split()[0]
@@ -1739,7 +1770,7 @@ class SimpleShell(cmd.Cmd):
             output_folder = config["output_folder"]
 
         # Checking if a scenario has been loaded already.
-        if self.scenario_loaded():
+        if not self.scenario_loaded():
             return
 
         # Check for empty arguments (no ID provided)
@@ -1789,7 +1820,7 @@ class SimpleShell(cmd.Cmd):
 
     def do_print_x_axis_vector(self, arg: str):
         # Checking if a scenario has been loaded already.
-        if self.scenario_loaded():
+        if not self.scenario_loaded():
             return
 
         # Check for empty arguments (no ID provided)
@@ -1809,7 +1840,7 @@ class SimpleShell(cmd.Cmd):
 
     def do_print_rotated_coordinates_for_vehicle(self, arg: str):
         # Checking if a scenario has been loaded already.
-        if self.scenario_loaded():
+        if not self.scenario_loaded():
             return
 
         # Check for empty arguments (no ID provided)
@@ -1839,7 +1870,7 @@ class SimpleShell(cmd.Cmd):
         """
 
         # Checking if a scenario has been loaded already.
-        if self.scenario_loaded():
+        if not self.scenario_loaded():
             return
 
         # Store the raw scenario in a JSON file

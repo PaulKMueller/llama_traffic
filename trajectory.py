@@ -539,3 +539,61 @@ class Trajectory:
 
         # Calculuating the magnitude of the displacement vector and returning it
         return math.sqrt(displacement_vector[0] ** 2 + displacement_vector[1] ** 2)
+
+
+    @staticmethod
+    def get_rotated_ego_coordinates_from_coordinates(coordinates: pd.DataFrame) -> pd.DataFrame:
+
+        # Getting x axis angle
+        first_x_coordinate = coordinates["X"][0]
+        first_y_coordinate = coordinates["Y"][0]
+        second_x_coordinate = coordinates["X"][1]
+        second_y_coordinate = coordinates["Y"][1]
+
+        first_move_vector = np.array([second_x_coordinate-first_x_coordinate, second_y_coordinate-first_y_coordinate])
+        x_axis_vector = np.array([1, 0])
+
+        dot = first_move_vector @ x_axis_vector
+        det = first_move_vector[0] * x_axis_vector[1] - first_move_vector[1] * x_axis_vector[0]
+
+        # dot = x1*x2 + y1*y2 
+        # det = x1*y2 - y1*x2 
+        x_axis_angle = - math.atan2(det, dot)
+
+        # Getting ego coordinates
+
+        first_x_coordinate = coordinates["X"][0]
+        first_y_coordinate = coordinates["Y"][0]
+
+        ego_coordinates = coordinates.copy()
+        ego_coordinates["X"] = ego_coordinates["X"] - first_x_coordinate
+        ego_coordinates["Y"] = ego_coordinates["Y"] - first_y_coordinate
+
+        # Getting rotated coordinates
+        rotated_coordinates = ego_coordinates.copy()
+        for index, row in ego_coordinates.iterrows():
+            rotated_x = math.cos(x_axis_angle) * row["X"] - math.sin(x_axis_angle) * row["Y"]
+            rotated_y = math.sin(x_axis_angle) * row["X"] + math.cos(x_axis_angle) * row["Y"]
+            rotated_coordinates.at[index, "X"] = rotated_x
+            rotated_coordinates.at[index, "Y"] = rotated_y
+
+        return rotated_coordinates, x_axis_angle, first_x_coordinate, first_y_coordinate
+    
+    @staticmethod
+    def get_coordinates_from_rotated_ego_coordinates(rotated_ego_coordinates: pd.DataFrame, rotated_angle, original_starting_x, original_starting_y) -> pd.DataFrame:
+
+        # Getting ego coordinates
+
+        non_ego_coordinates = rotated_ego_coordinates.copy()
+        non_ego_coordinates["X"] = non_ego_coordinates["X"] + original_starting_x
+        non_ego_coordinates["Y"] = non_ego_coordinates["Y"] + original_starting_y
+
+        # Getting rotated coordinates
+        unrotated_coordinates = non_ego_coordinates.copy()
+        for index, row in non_ego_coordinates.iterrows():
+            rotated_x = math.cos(-rotated_angle) * row["X"] - math.sin(-rotated_angle) * row["Y"]
+            rotated_y = math.sin(-rotated_angle) * row["X"] + math.cos(-rotated_angle) * row["Y"]
+            unrotated_coordinates.at[index, "X"] = rotated_x
+            unrotated_coordinates.at[index, "Y"] = rotated_y
+
+        return unrotated_coordinates

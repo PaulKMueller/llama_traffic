@@ -476,7 +476,7 @@ def visualize_raw_coordinates_without_scenario(
     return plt
 
 
-def create_labeled_trajectories_for_scenario(scenario: Scenario):
+def create_labeled_trajectories_for_scenario(scenario: Scenario) -> dict:
     """Returns a dictionary with the trajectories of all vehicles in the scenario
     and their corresponding labels (buckets).
 
@@ -486,19 +486,27 @@ def create_labeled_trajectories_for_scenario(scenario: Scenario):
 
     print("\nGetting the filter dictionary...")
 
+    def chunks(lst, n):
+        """Yield successive n-sized chunks from lst."""
+        for i in range(0, len(lst), n):
+            yield lst[i:i + n]
+
     vehicle_ids = get_vehicles_for_scenario(scenario.data)
     trajectory_dict = {}
     for vehicle_id in vehicle_ids:
         trajectory = Trajectory(scenario=scenario, specific_id=vehicle_id)
 
-        x_coordinates = trajectory.normalized_splined_coordinates["X"].to_numpy()
-        y_coordinates = trajectory.normalized_splined_coordinates["Y"].to_numpy()
+        x_coordinates = trajectory.rotated_coordinates["X"]
+        y_coordinates = trajectory.rotated_coordinates["Y"]
+        coordinates = [[x, y] for (x, y) in zip(x_coordinates, y_coordinates)]
+        print(coordinates)
         direction = get_direction_of_vehicle(
             scenario.data, trajectory.normalized_splined_coordinates
         )
+        print(len(coordinates))
+
         trajectory_dict[f"{get_scenario_index(scenario.name)}_{vehicle_id}"] = {
-            "X": x_coordinates,
-            "Y": y_coordinates,
+            "Coordinates": coordinates,
             "Direction": direction,
         }
 
@@ -603,8 +611,8 @@ def create_zipped_labeled_trajectories_for_all_scenarios_json():
     """
 
     # Load config file
-    with open("config.json", "r") as file:
-        config = json.load(file)
+    with open("config.yml", "r") as file:
+        config = yaml.safe_load(file)
         dataset_folder = config["dataset_folder"]
 
     trajectory_dict = {}
@@ -689,4 +697,49 @@ def create_zipped_normalized_labeled_trajectories_for_all_scenarios_json():
 
     # Save to JSON file
     with open(f"{dataset_folder}normalized_labeled_trajectories.json", "w") as json_file:
+        json.dump(trajectory_dict, json_file, indent=4)
+
+    
+def create_labeled_ego_trajectories():
+    """Saves a JSON file with the trajectories of all vehicles in the scenario
+    and their corresponding labels (buckets), with a progress bar.
+    """
+
+    # Load config file
+    with open("config.yaml", "r") as file:
+        config = yaml.safe_load(file)
+        dataset_folder = config["datasets_folder"]
+
+    trajectory_dict = {}
+
+    scenario_list = get_scenario_list()
+    for scenario in tqdm(scenario_list, desc="Processing scenarios"):
+        tqdm.write(f"\nGetting the data dictionary for {scenario}...")
+
+        scenario_obj = Scenario((
+                "/mrtstorage/datasets/tmp/waymo_open_motion_v_1_2_0"
+                "/uncompressed/tf_example/training/"
+            )
+            + scenario)
+
+        vehicle_ids = get_vehicles_for_scenario(scenario_obj.data)
+        for vehicle_id in tqdm(
+            vehicle_ids, desc=f"Processing vehicles in scenario {scenario}", leave=False
+        ):
+            trajectory = Trajectory(scenario_obj, vehicle_id)
+            x_coordinates = trajectory.rotated_coordinates[
+                "X"
+            ].tolist()  # Convert to list for JSON serialization
+            y_coordinates = trajectory.rotated_coordinates[
+                "Y"
+            ].tolist()  # Convert to list for JSON serialization
+            direction = get_direction_of_vehicle(scenario_obj.data, trajectory.splined_coordinates)
+            zipped_coordinates = list(zip(x_coordinates, y_coordinates))
+            trajectory_dict[f"{get_scenario_index(scenario)}_{vehicle_id}"] = {
+                "Coordinates": zipped_coordinates,
+                "Direction": direction,
+            }
+
+    # Save to JSON file
+    with open(f"{dataset_folder}labeled_ego_trajectories.json", "w") as json_file:
         json.dump(trajectory_dict, json_file, indent=4)
