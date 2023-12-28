@@ -77,6 +77,7 @@ from scenario import Scenario
 class SimpleShell(cmd.Cmd):
     prompt = "(waymo_cli) "
     loaded_scenario = None
+    loaded_trajectory = None
 
     with open("config.yaml", "r") as file:
         config = yaml.safe_load(file)
@@ -115,14 +116,7 @@ class SimpleShell(cmd.Cmd):
             output_folder = config["output_folder"]
 
         # Checking if a scenario has been loaded already.
-        if self.loaded_scenario is None:
-            print(
-                (
-                    "\nNo scenario has been initialized yet!"
-                    " \nPlease use 'load_scenario' to load a s"
-                    "cenario before calling the 'plot_scenario' command.\n"
-                )
-            )
+        if self.scenario_loaded():
             return
 
         image = self.loaded_scenario.visualize_map()
@@ -166,14 +160,7 @@ class SimpleShell(cmd.Cmd):
             output_folder = config["output_folder"]
 
         # Checking if a scenario has been loaded already.
-        if self.loaded_scenario is None:
-            print(
-                (
-                    "\nNo scenario has been initialized yet!"
-                    " \nPlease use 'load_scenario' to load a s"
-                    "cenario before calling the 'plot_scenario' command.\n"
-                )
-            )
+        if self.scenario_loaded():
             return
 
         # Check for empty arguments (no ID provided)
@@ -253,6 +240,23 @@ class SimpleShell(cmd.Cmd):
                 Use -p to specify the scenario path, -i to specify the scenario index
                 or - e to load the example scenario chosen in your config.yaml."""
             )
+
+    def do_load_trajectory(self, arg: str):
+        """Loads the trajectory specified by the loaded scenario and the given vehicle ID.
+        This trajectory can then be plotted and used in the CLI.
+
+        Args:
+            arg (str): The vehicle ID of the trajectory to load.
+        """     
+
+        if self.scenario_loaded():
+            return   
+        
+        vehicle_id = arg.split()[0]
+
+        self.loaded_trajectory = Trajectory(self.loaded_scenario, specific_id=vehicle_id)
+
+        print(f"The trajectory for vehicle {vehicle_id} has successfully been loaded.")
 
     def do_print_current_raw_scenario(self, arg: str):
         """Prints the current scenario that has been loaded in its decoded form.
@@ -477,14 +481,7 @@ class SimpleShell(cmd.Cmd):
             output_folder = config["output_folder"]
 
         # Checking if a scenario has been loaded already.
-        if self.loaded_scenario is None:
-            print(
-                (
-                    "\nNo scenario has been initialized yet!"
-                    " \nPlease use 'load_scenario' to load a s"
-                    "cenario before calling the 'plot_scenario' command.\n"
-                )
-            )
+        if self.scenario_loaded():
             return
 
         # Check for empty arguments (no ID provided)
@@ -525,13 +522,7 @@ class SimpleShell(cmd.Cmd):
             output_folder = config["output_folder"]
 
         # Checking if a scenario has been loaded already.
-        if self.loaded_scenario is None:
-            print(
-                (
-                    "\nNo scenario has been initialized yet! \nPlease use 'load_scenario'"
-                    " to load a scenario before calling the 'plot_scenario' command.\n"
-                )
-            )
+        if self.scenario_loaded():
             return
 
         # Check for empty arguments (no ID provided)
@@ -574,13 +565,7 @@ class SimpleShell(cmd.Cmd):
             output_folder = config["output_folder"]
 
         # Checking if a scenario has been loaded already.
-        if self.loaded_scenario is None:
-            print(
-                (
-                    "\nNo scenario has been initialized yet! \nPlease use 'load_scenario'"
-                    " to load a scenario before calling the 'plot_scenario' command.\n"
-                )
-            )
+        if self.scenario_loaded():
             return
 
         # Check for empty arguments (no ID provided)
@@ -619,13 +604,7 @@ class SimpleShell(cmd.Cmd):
             output_folder = config["output_folder"]
 
         # Checking if a scenario has been loaded already.
-        if self.loaded_scenario is None:
-            print(
-                (
-                    "\nNo scenario has been initialized yet! \nPlease use 'load_scenario'"
-                    " to load a scenario before calling the 'plot_scenario' command.\n"
-                )
-            )
+        if self.scenario_loaded():
             return
 
         print("\nPlotting trajectories for all vehicles...")
@@ -655,13 +634,7 @@ class SimpleShell(cmd.Cmd):
             output_folder = config["output_folder"]
 
         # Checking if a scenario has been loaded already.
-        if self.loaded_scenario is None:
-            print(
-                (
-                    "\nNo scenario has been initialized yet! \nPlease use 'load_scenario'"
-                    " to load a scenario before calling the 'plot_scenario' command.\n"
-                )
-            )
+        if self.scenario_loaded():
             return
 
         # Check for empty arguments (no ID provided)
@@ -802,14 +775,7 @@ class SimpleShell(cmd.Cmd):
         """
 
         # Checking if a scenario has been loaded already.
-        if self.loaded_scenario is None:
-            print(
-                (
-                    "\nNo scenario has been initialized yet!"
-                    " \nPlease use 'load_scenario' to load a s"
-                    "cenario before calling the 'plot_scenario' command.\n"
-                )
-            )
+        if self.scenario_loaded():
             return
 
         vehicle_ids = get_vehicles_for_scenario(self.loaded_scenario.data)
@@ -840,13 +806,7 @@ class SimpleShell(cmd.Cmd):
             output_folder = config["output_folder"]
 
         # Checking if a scenario has been loaded already.
-        if self.loaded_scenario is None:
-            print(
-                (
-                    "\nNo scenario has been initialized yet! \nPlease use 'load_scenario'"
-                    " to load a scenario before calling the 'plot_scenario' command.\n"
-                )
-            )
+        if self.scenario_loaded():
             return
 
         # Check for empty arguments (no ID provided)
@@ -875,14 +835,7 @@ class SimpleShell(cmd.Cmd):
         """
 
         # Checking if a scenario has been loaded already.
-        if self.loaded_scenario is None:
-            print(
-                (
-                    "\nNo scenario has been initialized yet!"
-                    " \nPlease use 'load_scenario' to load a s"
-                    "cenario before calling the 'plot_scenario' command.\n"
-                )
-            )
+        if self.scenario_loaded():
             return
 
         filtered_ids = get_vehicles_for_scenario(self.loaded_scenario.data)
@@ -942,13 +895,7 @@ class SimpleShell(cmd.Cmd):
         """Prints the spline for the given vehicle ID."""
 
         # Checking if a scenario has been loaded already.
-        if self.loaded_scenario is None:
-            print(
-                (
-                    "\nNo scenario has been initialized yet! \nPlease use 'load_scenario'"
-                    " to load a scenario before calling the 'plot_scenario' command.\n"
-                )
-            )
+        if self.scenario_loaded():
             return
 
         # Check for empty arguments (no ID provided)
@@ -1019,13 +966,7 @@ class SimpleShell(cmd.Cmd):
             output_folder = config["output_folder"]
 
         # Checking if a scenario has been loaded already.
-        if self.loaded_scenario is None:
-            print(
-                (
-                    "\nNo scenario has been initialized yet! \nPlease use 'load_scenario'"
-                    " to load a scenario before calling the 'plot_scenario' command.\n"
-                )
-            )
+        if self.scenario_loaded():
             return
 
         print("\nGetting the labeled trajectories...")
@@ -1228,13 +1169,7 @@ class SimpleShell(cmd.Cmd):
             return
 
         # Checking if a scenario has been loaded already.
-        if self.loaded_scenario is None:
-            print(
-                (
-                    "\nNo scenario has been initialized yet! \nPlease use 'load_scenario'"
-                    " to load a scenario before calling the 'plot_scenario' command.\n"
-                )
-            )
+        if self.scenario_loaded():
             return
 
         vehicle_id = arg.split()[0]
@@ -1382,13 +1317,7 @@ class SimpleShell(cmd.Cmd):
             return
 
         # Checking if a scenario has been loaded already.
-        if self.loaded_scenario is None:
-            print(
-                (
-                    "\nNo scenario has been initialized yet! \nPlease use 'load_scenario'"
-                    " to load a scenario before calling the 'plot_scenario' command.\n"
-                )
-            )
+        if self.scenario_loaded():
             return
 
         vehicle_id = arg.split()[0]
@@ -1467,13 +1396,7 @@ class SimpleShell(cmd.Cmd):
             return
 
         # Checking if a scenario has been loaded already.
-        if self.loaded_scenario is None:
-            print(
-                (
-                    "\nNo scenario has been initialized yet! \nPlease use 'load_scenario'"
-                    " to load a scenario before calling the 'plot_scenario' command.\n"
-                )
-            )
+        if self.scenario_loaded():
             return
 
         vehicle_id = arg.split()[0]
@@ -1552,13 +1475,7 @@ class SimpleShell(cmd.Cmd):
     def do_print_mean_squared_error(self, arg: str):
 
         # Checking if a scenario has been loaded already.
-        if self.loaded_scenario is None:
-            print(
-                (
-                    "\nNo scenario has been initialized yet! \nPlease use 'load_scenario'"
-                    " to load a scenario before calling the 'plot_scenario' command.\n"
-                )
-            )
+        if self.scenario_loaded():
             return
 
         # Check for empty arguments (no ID provided)
@@ -1604,13 +1521,7 @@ class SimpleShell(cmd.Cmd):
             return
 
         # Checking if a scenario has been loaded already.
-        if self.loaded_scenario is None:
-            print(
-                (
-                    "\nNo scenario has been initialized yet! \nPlease use 'load_scenario'"
-                    " to load a scenario before calling the 'plot_scenario' command.\n"
-                )
-            )
+        if self.scenario_loaded():
             return
         
         vehicle_id = arg.split()[0]
@@ -1630,13 +1541,7 @@ class SimpleShell(cmd.Cmd):
             return
 
         # Checking if a scenario has been loaded already.
-        if self.loaded_scenario is None:
-            print(
-                (
-                    "\nNo scenario has been initialized yet! \nPlease use 'load_scenario'"
-                    " to load a scenario before calling the 'plot_scenario' command.\n"
-                )
-            )
+        if self.scenario_loaded():
             return
         
         vehicle_id = arg.split()[0]
@@ -1834,13 +1739,7 @@ class SimpleShell(cmd.Cmd):
             output_folder = config["output_folder"]
 
         # Checking if a scenario has been loaded already.
-        if self.loaded_scenario is None:
-            print(
-                (
-                    "\nNo scenario has been initialized yet! \nPlease use 'load_scenario'"
-                    " to load a scenario before calling the 'plot_scenario' command.\n"
-                )
-            )
+        if self.scenario_loaded():
             return
 
         # Check for empty arguments (no ID provided)
@@ -1890,13 +1789,7 @@ class SimpleShell(cmd.Cmd):
 
     def do_print_x_axis_vector(self, arg: str):
         # Checking if a scenario has been loaded already.
-        if self.loaded_scenario is None:
-            print(
-                (
-                    "\nNo scenario has been initialized yet! \nPlease use 'load_scenario'"
-                    " to load a scenario before calling the 'plot_scenario' command.\n"
-                )
-            )
+        if self.scenario_loaded():
             return
 
         # Check for empty arguments (no ID provided)
@@ -1914,6 +1807,30 @@ class SimpleShell(cmd.Cmd):
         trajectory = Trajectory(self.loaded_scenario, vehicle_id)
         print(trajectory.x_axis_angle)
 
+    def do_print_rotated_coordinates_for_vehicle(self, arg: str):
+        # Checking if a scenario has been loaded already.
+        if self.scenario_loaded():
+            return
+
+        # Check for empty arguments (no ID provided)
+        if arg == "":
+            print(
+                (
+                    "\nYou have provided no ID for the vehicle "
+                    "whose trajectory you want to get.\nPlease provide a path!\n"
+                )
+            )
+            return
+        
+        vehicle_id = arg.split()[0]
+        trajectory = Trajectory(self.loaded_scenario, vehicle_id)
+
+        trajectory_plot = trajectory.visualize_raw_coordinates_without_scenario(trajectory.rotated_coordinates)
+        trajectory_plot.savefig(f"output/{vehicle_id}_rotated.png")
+
+        print(trajectory.rotated_coordinates)
+
+
     def do_store_raw_scenario(self, arg: str):
         """Store the raw scenario in a JSON file.
 
@@ -1922,13 +1839,7 @@ class SimpleShell(cmd.Cmd):
         """
 
         # Checking if a scenario has been loaded already.
-        if self.loaded_scenario is None:
-            print(
-                (
-                    "\nNo scenario has been initialized yet! \nPlease use 'load_scenario'"
-                    " to load a scenario before calling the 'plot_scenario' command.\n"
-                )
-            )
+        if self.scenario_loaded():
             return
 
         # Store the raw scenario in a JSON file
@@ -1936,6 +1847,18 @@ class SimpleShell(cmd.Cmd):
             "/home/pmueller/llama_traffic/datasets/raw_scenario.json", "w"
         ) as file:
             file.write(str(self.loaded_scenario.data))
+
+    def scenario_loaded(self):
+        scenario_has_been_loaded = self.loaded_scenario != None
+
+        if not scenario_has_been_loaded:
+            print(
+                    (
+                        "\nNo scenario has been initialized yet! \nPlease use 'load_scenario'"
+                        " to load a scenario before calling the 'plot_scenario' command.\n"
+                    )
+                )
+        return scenario_has_been_loaded
 
     # Basic command to exit the shell
     def do_exit(self, arg: str):

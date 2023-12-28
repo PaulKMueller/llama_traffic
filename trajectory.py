@@ -22,6 +22,7 @@ class Trajectory:
         self.direction = self.get_direction_of_vehicle()
         self.ego_coordinates = self.get_ego_coordinates()
         self.x_axis_angle = self.get_x_axis_angle()
+        self.rotated_coordinates = self.get_rotated_ego_coordinates()
 
     @staticmethod
     def get_coordinates_one_step(
@@ -237,6 +238,16 @@ class Trajectory:
 
         return ego_coordinates
     
+    def get_rotated_ego_coordinates(self) -> pd.DataFrame:
+        rotated_coordinates = self.ego_coordinates.copy()
+        for index, row in self.ego_coordinates.iterrows():
+            rotated_x = math.cos(self.x_axis_angle) * row["X"] - math.sin(self.x_axis_angle) * row["Y"]
+            rotated_y = math.sin(self.x_axis_angle) * row["X"] + math.cos(self.x_axis_angle) * row["Y"]
+            rotated_coordinates.at[index, "X"] = rotated_x
+            rotated_coordinates.at[index, "Y"] = rotated_y
+
+        return rotated_coordinates
+    
     def get_x_axis_angle(self) -> float:
         first_x_coordinate = self.splined_coordinates["X"][0]
         first_y_coordinate = self.splined_coordinates["Y"][0]
@@ -251,7 +262,7 @@ class Trajectory:
 
         # dot = x1*x2 + y1*y2 
         # det = x1*y2 - y1*x2 
-        x_axis_angle = math.atan2(det, dot) * 180/math.pi
+        x_axis_angle = math.atan2(det, dot)
 
         return - x_axis_angle
 
@@ -380,7 +391,7 @@ class Trajectory:
         return result_angle
 
     def visualize_raw_coordinates_without_scenario(
-        self, title="Trajectory Visualization", padding=10
+        self, coordinates, title="Trajectory Visualization", padding=10
     ):
         """
         Visualize the trajectory specified by coordinates, scaling to fit the trajectory size.
@@ -399,8 +410,8 @@ class Trajectory:
 
         # Plot the trajectory
         ax.plot(
-            self.splined_coordinates["X"],
-            self.splined_coordinates["Y"],
+            coordinates["X"],
+            coordinates["Y"],
             "ro-",
             markersize=5,
             linewidth=2,
