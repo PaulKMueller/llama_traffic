@@ -1211,27 +1211,17 @@ class SimpleShell(cmd.Cmd):
 
         print(prediction)
 
-        # Scale the normalized trajectory to fit the figure
-
-        # Plot the trajectory
-        x_coordinates = prediction[0][0::2]
-        y_coordinates = prediction[0][1::2]
-
-        print(len(x_coordinates))
-        print(len(y_coordinates))
-
-        prediction_df = pd.DataFrame(({"X": x_coordinates, "Y": y_coordinates}))
-        prediction_plot = self.loaded_scenario.visualize_coordinates(prediction_df)
+        prediction_plot = self.loaded_scenario.visualize_coordinates(prediction)
         prediction_plot.savefig(f"output/simple_prediction_{vehicle_id}_plot_with_map.png")
         plt.close()
 
         fig, ax = plt.subplots(
             figsize=(10, 10)
         )  # Create a figure and a set of subplots
-        prediction_df.to_csv(f"output/simple_nn_prediction_{vehicle_id}.csv")
+        prediction.to_csv(f"output/simple_nn_prediction_{vehicle_id}.csv")
         ax.plot(
-            x_coordinates,
-            y_coordinates,
+            prediction["X"],
+            prediction["Y"],
             "ro-",
             markersize=5,
             linewidth=2,

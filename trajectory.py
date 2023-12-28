@@ -1,3 +1,4 @@
+from typing import Tuple
 import numpy as np
 import pandas as pd
 import tensorflow as tf
@@ -542,7 +543,16 @@ class Trajectory:
 
 
     @staticmethod
-    def get_rotated_ego_coordinates_from_coordinates(coordinates: pd.DataFrame) -> pd.DataFrame:
+    def get_rotated_ego_coordinates_from_coordinates(coordinates: pd.DataFrame) -> Tuple[pd.DataFrame, float, float, float]:
+        """TODO
+
+        Args:
+            coordinates (pd.DataFrame): _description_
+
+        Returns:
+            pd.DataFrame, float, float, float: _description_
+        """        
+        
 
         # Getting x axis angle
         first_x_coordinate = coordinates["X"][0]
@@ -582,18 +592,17 @@ class Trajectory:
     @staticmethod
     def get_coordinates_from_rotated_ego_coordinates(rotated_ego_coordinates: pd.DataFrame, rotated_angle, original_starting_x, original_starting_y) -> pd.DataFrame:
 
-        # Getting ego coordinates
-
-        non_ego_coordinates = rotated_ego_coordinates.copy()
-        non_ego_coordinates["X"] = non_ego_coordinates["X"] + original_starting_x
-        non_ego_coordinates["Y"] = non_ego_coordinates["Y"] + original_starting_y
-
         # Getting rotated coordinates
-        unrotated_coordinates = non_ego_coordinates.copy()
-        for index, row in non_ego_coordinates.iterrows():
+        unrotated_coordinates = rotated_ego_coordinates.copy()
+        for index, row in rotated_ego_coordinates.iterrows():
             rotated_x = math.cos(-rotated_angle) * row["X"] - math.sin(-rotated_angle) * row["Y"]
             rotated_y = math.sin(-rotated_angle) * row["X"] + math.cos(-rotated_angle) * row["Y"]
             unrotated_coordinates.at[index, "X"] = rotated_x
             unrotated_coordinates.at[index, "Y"] = rotated_y
 
-        return unrotated_coordinates
+
+        non_ego_coordinates = unrotated_coordinates.copy()
+        non_ego_coordinates["X"] = non_ego_coordinates["X"] + original_starting_x
+        non_ego_coordinates["Y"] = non_ego_coordinates["Y"] + original_starting_y
+
+        return non_ego_coordinates
