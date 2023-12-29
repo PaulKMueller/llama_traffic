@@ -17,7 +17,6 @@ from datetime import datetime
 
 from training_dataclass import TrainingData
 from trajectory import Trajectory
-from learning.stupid_model import StupidModel
 
 import numpy as np
 import random
@@ -38,22 +37,15 @@ from waymo_inform import (
     get_vehicles_for_scenario,
     create_labeled_trajectories_for_scenario,
     create_zipped_labeled_trajectories_for_all_scenarios_json,
-    create_zipped_normalized_labeled_trajectories_for_all_scenarios_json,
     get_labeled_trajectories_for_all_scenarios_json,
 )
 
 from learning.trajectory_generator import (
     infer_with_simple_neural_network,
-    infer_with_right_neural_network,
-    infer_with_stationary_neural_network,
-    train_right_neural_network,
-    train_stationary_neural_network,
     train_simple_neural_network,
     create_neural_network,
     infer_with_neural_network,
     train_neural_network,
-    create_transformer_model,
-    train_transformer_network,
 )
 
 from learning.transformer_encoder import (
@@ -133,33 +125,6 @@ class SimpleShell(cmd.Cmd):
         image.savefig(
             f"{output_folder}roadgraph_{get_scenario_index(self.loaded_scenario.name)}.png"
         )
-
-    def do_infer_with_stupid_model(self, arg: str):
-        """Infers the trajectory for the given vehicle ID with the stupid model."""
-
-        # Check for empty arguments (no vehicle ID provided)
-        if arg == "":
-            print(
-                (
-                    "\nYou have provided no ID for the vehicle "
-                    "whose trajectory you want to infer.\nPlease provide a path!\n"
-                )
-            )
-            return
-
-        x = float(arg.split()[0])
-        y = float(arg.split()[1])
-
-        stupid_model = StupidModel()
-        x_cords, y_cords = stupid_model.predict(x, y)
-        print(x_cords)
-        print(y_cords)
-        plt.scatter(x_cords, y_cords)
-        plt.savefig("/home/pmueller/llama_traffic/prediction.png")
-        plt.close()
-        # print(prediction)
-        # trajectory_plot = visualize_raw_coordinates_without_scenario(x_cords, y_cords)
-        # trajectory_plot.savefig("/home/pmueller/llama_traffic/prediction.png")
 
     def do_visualize_trajectory(self, arg: str):
         """Plots the trajectory for the given vehicle ID."""
@@ -422,7 +387,7 @@ class SimpleShell(cmd.Cmd):
 
         # List all trajectories by their IDs that fall into the most similar bucket
         # Load labeled trajectory data
-        with open("datasets/labeled_trajectories.json", "r") as file:
+        with open("datasets/labeled_ego_trajectories.json", "r") as file:
             trajectories_data = json.load(file)
 
         filtered_ids = []
@@ -436,55 +401,55 @@ class SimpleShell(cmd.Cmd):
         print(*filtered_ids, sep="\n")
         print("\n")
 
-        for index, trajectory_id in enumerate(filtered_ids):
-            scenario_index = trajectory_id.split("_")[0]
-            vehicle_id = trajectory_id.split("_")[1]
-            scenario_path = (
-                scenario_data_folder + get_scenario_list()[int(scenario_index)]
-            )
-            print(f"Scenario path: {scenario_path}")
-            trajectory_plot = self.loaded_scenario.visualize_trajectory(
-                specific_id=vehicle_id
-            )
+        # for index, trajectory_id in enumerate(filtered_ids):
+        #     scenario_index = trajectory_id.split("_")[0]
+        #     vehicle_id = trajectory_id.split("_")[1]
+        #     scenario_path = (
+        #         scenario_data_folder + get_scenario_list()[int(scenario_index)]
+        #     )
+        #     print(f"Scenario path: {scenario_path}")
+        #     trajectory_plot = self.loaded_scenario.visualize_trajectory(
+        #         specific_id=vehicle_id
+        #     )
 
-            trajectory_plot.savefig(f"{output_folder}{scenario_index}_{vehicle_id}.png")
-            # trajectory_plot.close()
+        #     trajectory_plot.savefig(f"{output_folder}{scenario_index}_{vehicle_id}.png")
+        #     # trajectory_plot.close()
 
-        # List of image paths
-        image_folder = "/home/pmueller/llama_traffic/output/"  # Update this with your image folder path
-        image_files = [
-            os.path.join(image_folder, f)
-            for f in os.listdir(image_folder)
-            if f.endswith(".png")
-        ]
+        # # List of image paths
+        # image_folder = "/home/pmueller/llama_traffic/output/"  # Update this with your image folder path
+        # image_files = [
+        #     os.path.join(image_folder, f)
+        #     for f in os.listdir(image_folder)
+        #     if f.endswith(".png")
+        # ]
 
-        # Total number of images
-        total_images = len(image_files)
+        # # Total number of images
+        # total_images = len(image_files)
 
-        # Define the number of rows and columns you want in your grid
-        num_rows = 3  # Adjust as needed
-        num_cols = math.ceil(total_images / num_rows)
+        # # Define the number of rows and columns you want in your grid
+        # num_rows = 3  # Adjust as needed
+        # num_cols = math.ceil(total_images / num_rows)
 
-        # Create a figure and a set of subplots
-        fig, axs = plt.subplots(num_rows, num_cols, figsize=(20, 10))
+        # # Create a figure and a set of subplots
+        # fig, axs = plt.subplots(num_rows, num_cols, figsize=(20, 10))
 
-        # Flatten the axis array for easy iteration
-        axs = axs.flatten()
+        # # Flatten the axis array for easy iteration
+        # axs = axs.flatten()
 
-        # Loop through images and add them to the subplots
-        for idx, img_path in enumerate(image_files):
-            img = mpimg.imread(img_path)
-            axs[idx].imshow(img)
-            axs[idx].axis("off")  # Hide axis
+        # # Loop through images and add them to the subplots
+        # for idx, img_path in enumerate(image_files):
+        #     img = mpimg.imread(img_path)
+        #     axs[idx].imshow(img)
+        #     axs[idx].axis("off")  # Hide axis
 
-        # Hide any unused subplots
-        for ax in axs[total_images:]:
-            ax.axis("off")
+        # # Hide any unused subplots
+        # for ax in axs[total_images:]:
+        #     ax.axis("off")
 
-        plt.tight_layout()
+        # plt.tight_layout()
 
-        # Save total plot
-        plt.savefig("/home/pmueller/llama_traffic/output/total.png")
+        # # Save total plot
+        # plt.savefig("/home/pmueller/llama_traffic/output/total.png")
 
     def do_list_scenarios(self, arg: str):
         """Lists all available scenarios in the training folder.
@@ -1050,21 +1015,6 @@ class SimpleShell(cmd.Cmd):
 
         print("Successfully got the labeled trajectories for all scenarios!\n")
 
-    def do_create_zipped_normalized_training_data(self, arg: str):
-        """Returns a dictionary with the scenario IDs as keys and the corresponding
-        labeled trajectories for each vehicle as values.
-        'Labeled' in this context refers to the direction buckets that the trajectories
-        are sorted into.
-
-        Args:
-            arg (str): No arguments are required.
-        """
-
-        print("\nGetting the labeled trajectories for all scenarios...")
-        create_zipped_normalized_labeled_trajectories_for_all_scenarios_json()
-
-        print("Successfully got the labeled trajectories for all scenarios!\n")
-
     def do_create_labeled_ego_trajectories(self, arg: str):
         """Creates a json file with the training data as labeled ego trajectories. This means,
         that the trajectories all start at (0, 0) and are rotated to point to the right side.
@@ -1216,6 +1166,14 @@ class SimpleShell(cmd.Cmd):
         print(encoder.summary())
         # print(coordinates + encoding)
 
+    def do_train_transformer_encoder(self, arg: str):
+        encoder = Encoder(num_layers=3, d_model=2, num_heads=8, dff=64)
+        encoder.compile(loss="mean_squared_error", optimizer="adam")
+        # Load labeled trajectory data
+        with open("datasets/labeled_ego_trajectories.json", "r") as file:
+            trajectories_data = json.load(file)
+        encoder.fit()
+
     def do_classification(self, arg: str):
         """Trains a classification model and tests for its accuracy.
 
@@ -1223,15 +1181,6 @@ class SimpleShell(cmd.Cmd):
             arg (str): No arguments required.
         """
         train_classifier()
-
-    def do_create_neural_network(self, arg: str):
-        """Creates a neural network for the purpose of trajectory prediction.
-
-        Args:
-            arg (str): No arguments required.
-        """
-
-        create_neural_network()
 
     def do_infer_with_simple_neural_network(self, arg):
         """Infer with the neural network.
@@ -1378,170 +1327,6 @@ class SimpleShell(cmd.Cmd):
         # plot = trajectory.visualize_raw_coordinates_without_scenario(coordinates)
         # plot.savefig(f"{output_folder}predicted_trajectory.png")
 
-    def do_infer_with_right_neural_network(self, arg):
-        """Infer with the neural network.
-
-        Args:
-            arg (str): Bucket for which to predict embedding.
-        """
-
-        # Check for empty arguments (no vehicle ID provided)
-        if arg == "":
-            print(
-                (
-                    "\nYou have provided no vehicle ID for which to do the inference.\nPlease provide an ID!\n"
-                )
-            )
-            return
-
-        # Checking if a scenario has been loaded already.
-        if not self.scenario_loaded():
-            return
-
-        vehicle_id = arg.split()[0]
-
-        trajectory = Trajectory(scenario=self.loaded_scenario, specific_id=vehicle_id)
-
-        starting_x_array = np.array(
-            [[trajectory.splined_coordinates["X"][0]]]
-        )  # Shape becomes (1, 1)
-        starting_y_array = np.array(
-            [[trajectory.splined_coordinates["Y"][0]]]
-        )  # Shape becomes (1, 1)
-
-        # Get BERT embedding
-        embedding = get_bert_embedding("Right")
-
-        # Convert starting_x and starting_y to arrays and concatenate
-        # Assuming you want to append these as new elements along an existing axis (e.g., axis 0)
-        embedding = np.concatenate(
-            [embedding, starting_x_array, starting_y_array], axis=1
-        )
-
-        prediction = infer_with_right_neural_network(embedding)
-
-        # fig, ax = plt.subplots(
-        #     figsize=(10, 10)
-        # )  # Create a figure and a set of subplots
-
-        # Scale the normalized trajectory to fit the figure
-
-        # Plot the trajectory
-        x_coordinates = prediction[0][0:100]
-        y_coordinates = prediction[0][101:201]
-
-        coordinates = pd.DataFrame({"X": x_coordinates, "Y": y_coordinates})
-        visualization = self.loaded_scenario.visualize_coordinates(coordinates)
-
-        fig, (ax1, ax2, ax3) = plt.subplots(1, 3)
-        visualization.savefig("output/prediction_test.png")
-
-        # prediction_df = pd.DataFrame({"X": x_coordinates, "Y": y_coordinates})
-        # prediction_df.to_csv(f"output/prediction_{vehicle_id}.csv")
-        # ax.plot(
-        #     x_coordinates,
-        #     y_coordinates,
-        #     "ro-",
-        #     markersize=5,
-        #     linewidth=2,
-        # )  # 'ro-' creates a red line with circle markers
-
-        # # Set aspect of the plot to be equal
-        # ax.set_aspect("equal")
-
-        # plt.savefig("test.png")
-        # First 101 dimensions are the predicted x coordinates, the last 101 dimensions are the predicted y coordinatesk
-        # x_coords = prediction[0][:101]
-        # y_coords = prediction[0][101:]
-
-        # Store the coordinates in coordinate dictionary
-        # coordinates = {"X": x_coords, "Y": y_coords}
-
-        # trajectory = Trajectory(None, None)
-        # plot = trajectory.visualize_raw_coordinates_without_scenario(coordinates)
-        # plot.savefig(f"{output_folder}predicted_trajectory.png")
-
-    def do_infer_with_stationary_neural_network(self, arg):
-        """Infer with the neural network.
-
-        Args:
-            arg (str): Bucket for which to predict embedding.
-        """
-
-        # Check for empty arguments (no vehicle ID provided)
-        if arg == "":
-            print(
-                (
-                    "\nYou have provided no vehicle ID for which to do the inference.\nPlease provide an ID!\n"
-                )
-            )
-            return
-
-        # Checking if a scenario has been loaded already.
-        if not self.scenario_loaded():
-            return
-
-        vehicle_id = arg.split()[0]
-
-        trajectory = Trajectory(scenario=self.loaded_scenario, specific_id=vehicle_id)
-
-        starting_x_array = np.array(
-            [[trajectory.splined_coordinates["X"][0]]]
-        )  # Shape becomes (1, 1)
-        starting_y_array = np.array(
-            [[trajectory.splined_coordinates["Y"][0]]]
-        )  # Shape becomes (1, 1)
-
-        # Get BERT embedding
-        embedding = get_bert_embedding("Right")
-
-        # Convert starting_x and starting_y to arrays and concatenate
-        # Assuming you want to append these as new elements along an existing axis (e.g., axis 0)
-        embedding = np.concatenate(
-            [embedding, starting_x_array, starting_y_array], axis=1
-        )
-
-        prediction = infer_with_stationary_neural_network(embedding)
-
-        # fig, ax = plt.subplots(
-        #     figsize=(10, 10)
-        # )  # Create a figure and a set of subplots
-
-        # Scale the normalized trajectory to fit the figure
-
-        # Plot the trajectory
-        x_coordinates = prediction[0][0:100]
-        y_coordinates = prediction[0][101:201]
-
-        coordinates = pd.DataFrame({"X": x_coordinates, "Y": y_coordinates})
-        visualization = self.loaded_scenario.visualize_coordinates(coordinates)
-        visualization.savefig("output/prediction_test.png")
-
-        # prediction_df = pd.DataFrame({"X": x_coordinates, "Y": y_coordinates})
-        # prediction_df.to_csv(f"output/prediction_{vehicle_id}.csv")
-        # ax.plot(
-        #     x_coordinates,
-        #     y_coordinates,
-        #     "ro-",
-        #     markersize=5,
-        #     linewidth=2,
-        # )  # 'ro-' creates a red line with circle markers
-
-        # # Set aspect of the plot to be equal
-        # ax.set_aspect("equal")
-
-        # plt.savefig("test.png")
-        # First 101 dimensions are the predicted x coordinates, the last 101 dimensions are the predicted y coordinatesk
-        # x_coords = prediction[0][:101]
-        # y_coords = prediction[0][101:]
-
-        # Store the coordinates in coordinate dictionary
-        # coordinates = {"X": x_coords, "Y": y_coords}
-
-        # trajectory = Trajectory(None, None)
-        # plot = trajectory.visualize_raw_coordinates_without_scenario(coordinates)
-        # plot.savefig(f"{output_folder}predicted_trajectory.png")
-
     def do_print_available_device_for_training(self, arg):
         """Prints the available device for training.
 
@@ -1559,6 +1344,12 @@ class SimpleShell(cmd.Cmd):
         print(f"Using {device} device")
 
     def do_print_mean_squared_error(self, arg: str):
+        """Prints the mean squared error between the simple model's predicted trajectory
+        and the trajectory of the car whose ID has been given.
+
+        Args:
+            arg (str): The vehicle ID of the vehicle to be compared.
+        """
         # Checking if a scenario has been loaded already.
         if not self.scenario_loaded():
             return
@@ -1685,7 +1476,12 @@ class SimpleShell(cmd.Cmd):
         """
         train_lstm_neural_network()
 
-    def do_print_data_length(self, arg: str):
+    def do_print_training_data_length(self, arg: str):
+        """Prints the number of training trajectories to the console.
+
+        Args:
+            arg (str): No arguments required.
+        """
         # Load labeled trajectory data
         with open("datasets/labeled_trajectories.json", "r") as file:
             trajectories_data = json.load(file)
@@ -1814,66 +1610,6 @@ class SimpleShell(cmd.Cmd):
             ("Successfully created trajectory plot in "),
             f"{output_folder}predicted_trajectory.png",
         )
-
-    def do_get_positional_encoding(self, arg: str):
-        """Get the positional encoding for the given bucket.
-
-        Args:
-            arg (str): vehicle ID
-        """
-
-        # Load config file
-        with open("config.yaml", "r") as file:
-            config = yaml.safe_load(file)
-            output_folder = config["output_folder"]
-
-        # Checking if a scenario has been loaded already.
-        if not self.scenario_loaded():
-            return
-
-        # Check for empty arguments (no ID provided)
-        if arg == "":
-            print(
-                (
-                    "\nYou have provided no ID for the vehicle "
-                    "whose trajectory you want to get.\nPlease provide a path!\n"
-                )
-            )
-            return
-
-        vehicle_id = arg.split()[0]
-
-        trajectory = Trajectory(scenario=self.loaded_scenario, specific_id=vehicle_id)
-
-        reshaped_coordinates = np.array(
-            [[x, y] for x, y in zip(trajectory.x_coordinates, trajectory.y_coordinates)]
-        )
-
-        positional_encoding = get_positional_encoding(reshaped_coordinates)
-        print(positional_encoding)
-        # Store positional encoding in file
-        with open(f"{output_folder}positional_encoding.txt", "w") as file:
-            file.write(str(positional_encoding))
-
-    def do_create_transformer_model(self, arg: str):
-        """Create a transformer model.
-
-        Args:
-            arg (str): No arguments required.
-        """
-
-        print("\nCreating the transformer model...")
-        create_transformer_model()
-        print("Successfully created the transformer model!\n")
-
-    def do_train_transformer_network(self, arg: str):
-        """Train the transformer network.
-
-        Args:
-            arg (str): No arguments required.
-        """
-
-        train_transformer_network()
 
     def do_print_x_axis_vector(self, arg: str):
         # Checking if a scenario has been loaded already.

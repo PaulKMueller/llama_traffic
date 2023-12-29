@@ -6,7 +6,7 @@ import numpy as np
 # Load config file
 
 
-def get_cohere_encoding(input_text: str):
+def get_cohere_encoding(input_text: str) -> dict:
     with open("config.yaml", "r") as file:
         config = yaml.safe_load(file)
         cohere_api_key = config["cohere_api_key"]
