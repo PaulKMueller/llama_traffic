@@ -39,7 +39,7 @@ from waymo_inform import (
     create_labeled_trajectories_for_scenario,
     create_zipped_labeled_trajectories_for_all_scenarios_json,
     create_zipped_normalized_labeled_trajectories_for_all_scenarios_json,
-    get_labeled_trajectories_for_all_scenarios_json
+    get_labeled_trajectories_for_all_scenarios_json,
 )
 
 from learning.trajectory_generator import (
@@ -56,9 +56,18 @@ from learning.trajectory_generator import (
     train_transformer_network,
 )
 
+from learning.transformer_encoder import (
+    positional_encoding,
+    PositionalEmbedding,
+    GlobalSelfAttention,
+    FeedForward,
+    EncoderLayer,
+    Encoder,
+)
+
 from learning.rnns import train_rnn_neural_network
 
-from learning.multi_head_attention import get_positional_encoding
+# from learning.multi_head_attention import get_positional_encoding
 
 from waymo_utils import (
     get_scenario_list,
@@ -185,7 +194,9 @@ class SimpleShell(cmd.Cmd):
 
     def do_store_full_raw_scenario(self, arg: str):
         # TODO: Check for loaded scenario
-        dataset = tf.data.TFRecordDataset(self.loaded_scenario.path, compression_type="")
+        dataset = tf.data.TFRecordDataset(
+            self.loaded_scenario.path, compression_type=""
+        )
         data = next(dataset.as_numpy_iterator())
         with open("output/raw_scenario.txt", "w") as file:
             file.write(str(data))
@@ -248,14 +259,16 @@ class SimpleShell(cmd.Cmd):
 
         Args:
             arg (str): The vehicle ID of the trajectory to load.
-        """     
+        """
 
         if not self.scenario_loaded():
-            return   
-        
+            return
+
         vehicle_id = arg.split()[0]
 
-        self.loaded_trajectory = Trajectory(self.loaded_scenario, specific_id=vehicle_id)
+        self.loaded_trajectory = Trajectory(
+            self.loaded_scenario, specific_id=vehicle_id
+        )
 
         print(f"The trajectory for vehicle {vehicle_id} has successfully been loaded.")
 
@@ -272,10 +285,19 @@ class SimpleShell(cmd.Cmd):
 
         Args:
             arg (str): No arguments required.
-        """        
+        """
 
-        rotated_coordinates, rotated_angle, original_starting_x, original_starting_y = Trajectory.get_rotated_ego_coordinates_from_coordinates(self.loaded_trajectory.splined_coordinates)
-        unrotated_coordinates = Trajectory.get_coordinates_from_rotated_ego_coordinates(rotated_coordinates, rotated_angle, original_starting_x, original_starting_y)
+        (
+            rotated_coordinates,
+            rotated_angle,
+            original_starting_x,
+            original_starting_y,
+        ) = Trajectory.get_rotated_ego_coordinates_from_coordinates(
+            self.loaded_trajectory.splined_coordinates
+        )
+        unrotated_coordinates = Trajectory.get_coordinates_from_rotated_ego_coordinates(
+            rotated_coordinates, rotated_angle, original_starting_x, original_starting_y
+        )
 
         print(unrotated_coordinates)
 
@@ -1009,7 +1031,7 @@ class SimpleShell(cmd.Cmd):
 
         Args:
             arg (str): No arguments required.
-        """        
+        """
 
         get_labeled_trajectories_for_all_scenarios_json()
 
@@ -1049,7 +1071,7 @@ class SimpleShell(cmd.Cmd):
 
         Args:
             arg (str): No arguments required.
-        """        
+        """
 
         create_labeled_ego_trajectories()
 
@@ -1161,6 +1183,39 @@ class SimpleShell(cmd.Cmd):
         )
         print(training_data.get_size())
 
+    def do_test_positional_encoding(self, arg: str):
+        # Check for empty arguments (no bucket provided)
+        if arg == "":
+            print(
+                (
+                    "\nYou have provided no bucket for which to predict the embedding.\nPlease provide a bucket!\n"
+                )
+            )
+            return
+
+        # Checking if a scenario has been loaded already.
+        if not self.scenario_loaded():
+            return
+
+        vehicle_id = arg.split()[0]
+        trajectory = Trajectory(self.loaded_scenario, vehicle_id)
+
+        coordinates = np.array(trajectory.rotated_coordinates)
+        print(coordinates.shape)
+
+        encoding = positional_encoding(101, 2)
+
+        positional_embedding = PositionalEmbedding()
+        global_embedding = GlobalSelfAttention(num_heads=2, key_dim=101)
+        feedforward = FeedForward(2, 64)
+        encoder_layer = EncoderLayer(d_model=2, num_heads=3, dff=64)
+        encoder = Encoder(num_layers=3, d_model=2, num_heads=8, dff=64)
+
+        coordinates = np.expand_dims(coordinates, axis=0).reshape(1, 101, 2)
+        print(encoder(coordinates))
+        print(encoder.summary())
+        # print(coordinates + encoding)
+
     def do_classification(self, arg: str):
         """Trains a classification model and tests for its accuracy.
 
@@ -1212,7 +1267,9 @@ class SimpleShell(cmd.Cmd):
         print(prediction)
 
         prediction_plot = self.loaded_scenario.visualize_coordinates(prediction)
-        prediction_plot.savefig(f"output/simple_prediction_{vehicle_id}_plot_with_map.png")
+        prediction_plot.savefig(
+            f"output/simple_prediction_{vehicle_id}_plot_with_map.png"
+        )
         plt.close()
 
         fig, ax = plt.subplots(
@@ -1345,8 +1402,12 @@ class SimpleShell(cmd.Cmd):
 
         trajectory = Trajectory(scenario=self.loaded_scenario, specific_id=vehicle_id)
 
-        starting_x_array = np.array([[trajectory.splined_coordinates["X"][0]]])  # Shape becomes (1, 1)
-        starting_y_array = np.array([[trajectory.splined_coordinates["Y"][0]]])  # Shape becomes (1, 1)
+        starting_x_array = np.array(
+            [[trajectory.splined_coordinates["X"][0]]]
+        )  # Shape becomes (1, 1)
+        starting_y_array = np.array(
+            [[trajectory.splined_coordinates["Y"][0]]]
+        )  # Shape becomes (1, 1)
 
         # Get BERT embedding
         embedding = get_bert_embedding("Right")
@@ -1424,8 +1485,12 @@ class SimpleShell(cmd.Cmd):
 
         trajectory = Trajectory(scenario=self.loaded_scenario, specific_id=vehicle_id)
 
-        starting_x_array = np.array([[trajectory.splined_coordinates["X"][0]]])  # Shape becomes (1, 1)
-        starting_y_array = np.array([[trajectory.splined_coordinates["Y"][0]]])  # Shape becomes (1, 1)
+        starting_x_array = np.array(
+            [[trajectory.splined_coordinates["X"][0]]]
+        )  # Shape becomes (1, 1)
+        starting_y_array = np.array(
+            [[trajectory.splined_coordinates["Y"][0]]]
+        )  # Shape becomes (1, 1)
 
         # Get BERT embedding
         embedding = get_bert_embedding("Right")
@@ -1494,7 +1559,6 @@ class SimpleShell(cmd.Cmd):
         print(f"Using {device} device")
 
     def do_print_mean_squared_error(self, arg: str):
-
         # Checking if a scenario has been loaded already.
         if not self.scenario_loaded():
             return
@@ -1508,29 +1572,35 @@ class SimpleShell(cmd.Cmd):
                 )
             )
             return
-        
+
         vehicle_id = arg.split()[0]
 
         trajectory = Trajectory(self.loaded_scenario, vehicle_id)
         real_coordinates = trajectory.splined_coordinates[0:20]
-        real_coordinates = np.array(list(zip(real_coordinates["X"], real_coordinates["Y"]))).flatten()
+        real_coordinates = np.array(
+            list(zip(real_coordinates["X"], real_coordinates["Y"]))
+        ).flatten()
         print(f"Real coordinates shape: {real_coordinates.shape}")
         print(real_coordinates)
 
         predicted_coordinates = infer_with_simple_neural_network(trajectory)
-        predicted_coordinates = predicted_coordinates.reshape(-1,)
+        predicted_coordinates = predicted_coordinates.reshape(
+            -1,
+        )
         print(f"Predicted coordinates shape: {predicted_coordinates.shape}")
         print(predicted_coordinates)
         mse_loss = MeanSquaredError()
 
-        print(f"Mean Squared Error: {mse_loss(real_coordinates, predicted_coordinates).numpy()}")
+        print(
+            f"Mean Squared Error: {mse_loss(real_coordinates, predicted_coordinates).numpy()}"
+        )
 
     def do_print_ego_coordinates(self, arg: str):
         """Prints the ego coordinates of the vehicle whose ID has been given in the loaded scenario.
 
         Args:
             arg (str): The vehicle ID of the vehicle for whicht to print the ego coordinates.
-        """        
+        """
 
         # Check for empty arguments (no bucket provided)
         if arg == "":
@@ -1544,7 +1614,7 @@ class SimpleShell(cmd.Cmd):
         # Checking if a scenario has been loaded already.
         if not self.scenario_loaded():
             return
-        
+
         vehicle_id = arg.split()[0]
 
         trajectory = Trajectory(self.loaded_scenario, vehicle_id)
@@ -1564,15 +1634,16 @@ class SimpleShell(cmd.Cmd):
         # Checking if a scenario has been loaded already.
         if not self.scenario_loaded():
             return
-        
+
         vehicle_id = arg.split()[0]
 
         trajectory = Trajectory(self.loaded_scenario, vehicle_id)
 
-        ego_plot = visualize_raw_coordinates_without_scenario(trajectory.ego_coordinates["X"], trajectory.ego_coordinates["Y"])
+        ego_plot = visualize_raw_coordinates_without_scenario(
+            trajectory.ego_coordinates["X"], trajectory.ego_coordinates["Y"]
+        )
         ego_plot.savefig(f"output/ego_plot_{vehicle_id}.png")
         plt.close()
-
 
     def do_init_dataset(self, arg: str):
         """Initialize the dataset.
@@ -1634,7 +1705,7 @@ class SimpleShell(cmd.Cmd):
 
         Args:
             arg (str): No arguments required.
-        """        
+        """
         train_stationary_neural_network()
 
     def do_train_rnn_neural_network(self, arg: str):
@@ -1642,10 +1713,8 @@ class SimpleShell(cmd.Cmd):
 
         Args:
             arg (str): No arguments required.
-        """        
+        """
         train_rnn_neural_network()
-
-        
 
     def do_init_bucket_embeddings(self, arg: str):
         """Initialize the bucket embeddings.
@@ -1707,7 +1776,6 @@ class SimpleShell(cmd.Cmd):
             buckets[value["Direction"]] += 1
 
         print(buckets)
-
 
     def do_plot_predicted_trajectory(self, arg: str):
         """Plot the predicted trajectory for the given bucket.
@@ -1807,7 +1875,6 @@ class SimpleShell(cmd.Cmd):
 
         train_transformer_network()
 
-
     def do_print_x_axis_vector(self, arg: str):
         # Checking if a scenario has been loaded already.
         if not self.scenario_loaded():
@@ -1822,7 +1889,7 @@ class SimpleShell(cmd.Cmd):
                 )
             )
             return
-        
+
         vehicle_id = arg.split()[0]
 
         trajectory = Trajectory(self.loaded_scenario, vehicle_id)
@@ -1842,15 +1909,16 @@ class SimpleShell(cmd.Cmd):
                 )
             )
             return
-        
+
         vehicle_id = arg.split()[0]
         trajectory = Trajectory(self.loaded_scenario, vehicle_id)
 
-        trajectory_plot = trajectory.visualize_raw_coordinates_without_scenario(trajectory.rotated_coordinates)
+        trajectory_plot = trajectory.visualize_raw_coordinates_without_scenario(
+            trajectory.rotated_coordinates
+        )
         trajectory_plot.savefig(f"output/{vehicle_id}_rotated.png")
 
         print(trajectory.rotated_coordinates)
-
 
     def do_store_raw_scenario(self, arg: str):
         """Store the raw scenario in a JSON file.
@@ -1874,11 +1942,11 @@ class SimpleShell(cmd.Cmd):
 
         if not scenario_has_been_loaded:
             print(
-                    (
-                        "\nNo scenario has been initialized yet! \nPlease use 'load_scenario'"
-                        " to load a scenario before calling the 'plot_scenario' command.\n"
-                    )
+                (
+                    "\nNo scenario has been initialized yet! \nPlease use 'load_scenario'"
+                    " to load a scenario before calling the 'plot_scenario' command.\n"
                 )
+            )
         return scenario_has_been_loaded
 
     # Basic command to exit the shell
