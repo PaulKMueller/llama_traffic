@@ -437,7 +437,7 @@ class Trajectory:
         ax.set_title(title)
 
         # Remove axes for a cleaner look since there's no map
-        ax.axis("off")
+        # ax.axis("off")
 
         return plt
 

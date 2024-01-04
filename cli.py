@@ -601,12 +601,86 @@ class SimpleShell(cmd.Cmd):
         vehicle_id = arg.split()[0]
         print(f"\nPlotting trajectory for vehicle {vehicle_id}...")
         trajectory = Trajectory(self.loaded_scenario, vehicle_id)
-        trajectory_plot = trajectory.visualize_raw_coordinates_without_scenario()
+        trajectory_plot = trajectory.visualize_raw_coordinates_without_scenario(
+            trajectory.splined_coordinates
+        )
         trajectory_plot.savefig(f"{output_folder}raw_trajectory_{vehicle_id}.png")
 
         print(
             ("Successfully created trajectory plot in "),
             f"{output_folder}raw_trajectory_{vehicle_id}.png",
+        )
+
+    def do_plot_ego_coordinates_for(self, arg: str):
+        """Plots the ego coordinates of the vehicle for which the ID was given as an argument.
+
+        Args:
+            arg (str): The vehicle ID.
+        """
+
+        # Load config file
+        with open("config.yaml", "r") as file:
+            config = yaml.safe_load(file)
+            output_folder = config["output_folder"]
+
+        # Checking if a scenario has been loaded already.
+        if not self.scenario_loaded():
+            return
+
+        # Check for empty arguments (no ID provided)
+        if arg == "":
+            print(
+                (
+                    "\nYou have provided no ID for the vehicle "
+                    "whose trajectory you want to get.\nPlease provide a path!\n"
+                )
+            )
+            return
+
+        vehicle_id = arg.split()[0]
+        print(f"\nPlotting trajectory for vehicle {vehicle_id}...")
+        trajectory = Trajectory(self.loaded_scenario, vehicle_id)
+
+        trajectory_plot = trajectory.visualize_raw_coordinates_without_scenario(
+            trajectory.ego_coordinates
+        )
+        trajectory_plot.savefig(f"{output_folder}raw_ego_trajectory_{vehicle_id}.png")
+
+    def do_plot_rotated_coordinates_for(self, arg: str):
+        """Plots the ego coordinates of the vehicle for which the ID was given as an argument.
+
+        Args:
+            arg (str): The vehicle ID.
+        """
+
+        # Load config file
+        with open("config.yaml", "r") as file:
+            config = yaml.safe_load(file)
+            output_folder = config["output_folder"]
+
+        # Checking if a scenario has been loaded already.
+        if not self.scenario_loaded():
+            return
+
+        # Check for empty arguments (no ID provided)
+        if arg == "":
+            print(
+                (
+                    "\nYou have provided no ID for the vehicle "
+                    "whose trajectory you want to get.\nPlease provide a path!\n"
+                )
+            )
+            return
+
+        vehicle_id = arg.split()[0]
+        print(f"\nPlotting trajectory for vehicle {vehicle_id}...")
+        trajectory = Trajectory(self.loaded_scenario, vehicle_id)
+
+        trajectory_plot = trajectory.visualize_raw_coordinates_without_scenario(
+            trajectory.rotated_coordinates
+        )
+        trajectory_plot.savefig(
+            f"{output_folder}raw_rotated_trajectory_{vehicle_id}.png"
         )
 
     def do_plot_all_trajectories(self, arg: str):
@@ -1714,7 +1788,7 @@ class SimpleShell(cmd.Cmd):
             f"{output_folder}predicted_trajectory.png",
         )
 
-    def do_print_x_axis_vector(self, arg: str):
+    def do_print_x_axis_angle(self, arg: str):
         # Checking if a scenario has been loaded already.
         if not self.scenario_loaded():
             return
