@@ -1,9 +1,15 @@
 import cmd
 import argparse
 import os
+from typing import Tuple
 import yaml
 import json
 import math
+import keras
+
+import wandb
+from wandb.keras import WandbMetricsLogger
+
 
 import tensorflow as tf
 from tensorflow.keras.losses import MeanSquaredError
@@ -43,7 +49,6 @@ from waymo_inform import (
 from learning.trajectory_generator import (
     infer_with_simple_neural_network,
     train_simple_neural_network,
-    create_neural_network,
     infer_with_neural_network,
     train_neural_network,
 )
@@ -55,6 +60,13 @@ from learning.transformer_encoder import (
     FeedForward,
     EncoderLayer,
     Encoder,
+    CrossAttention,
+    CausalSelfAttention,
+    DecoderLayer,
+    Decoder,
+    Transformer,
+    CustomSchedule,
+    train_transformer,
 )
 
 from learning.rnns import train_rnn_neural_network
@@ -1133,6 +1145,28 @@ class SimpleShell(cmd.Cmd):
         )
         print(training_data.get_size())
 
+    def do_test_transformer_training(self, arg: str):
+        train_transformer()
+
+    def do_infer_with_transformer(self, arg: str):
+        model = keras.models.load_model("models/my_transformer_model")
+        # Check for empty arguments (no bucket provided)
+        if arg == "":
+            print(
+                (
+                    "\nYou have provided no bucket for which to predict the embedding.\nPlease provide a bucket!\n"
+                )
+            )
+            return
+
+        # Checking if a scenario has been loaded already.
+        if not self.scenario_loaded():
+            return
+        vehicle_id = arg.split()[0]
+
+        trajectory = Trajectory(self.loaded_scenario, vehicle_id)
+        print(model((trajectory.rotated_coordinates, trajectory.rotated_coordinates)))
+
     def do_test_positional_encoding(self, arg: str):
         # Check for empty arguments (no bucket provided)
         if arg == "":
@@ -1151,7 +1185,6 @@ class SimpleShell(cmd.Cmd):
         trajectory = Trajectory(self.loaded_scenario, vehicle_id)
 
         coordinates = np.array(trajectory.rotated_coordinates)
-        print(coordinates.shape)
 
         encoding = positional_encoding(101, 2)
 
@@ -1160,10 +1193,80 @@ class SimpleShell(cmd.Cmd):
         feedforward = FeedForward(2, 64)
         encoder_layer = EncoderLayer(d_model=2, num_heads=3, dff=64)
         encoder = Encoder(num_layers=3, d_model=2, num_heads=8, dff=64)
+        cross_attention = CrossAttention(num_heads=2, key_dim=512)
+        causal_self_attention = CausalSelfAttention(num_heads=2, key_dim=2)
+        decoder_layer = DecoderLayer(d_model=2, num_heads=8, dff=64)
 
+        org_coordinates = coordinates
         coordinates = np.expand_dims(coordinates, axis=0).reshape(1, 101, 2)
-        print(encoder(coordinates))
-        print(encoder.summary())
+
+        num_layers = 4
+        d_model = 2
+        dff = 512
+        num_heads = 8
+        dropout_rate = 0.1
+
+        transformer = Transformer(
+            num_layers=num_layers,
+            d_model=d_model,
+            num_heads=num_heads,
+            dff=dff,
+            dropout_rate=dropout_rate,
+        )
+
+        def masked_loss(label, pred):
+            print(f"Shape label: {label.shape}")
+            print(f"Shape prediction: {pred.shape}")
+            mask = label != 0
+            loss_object = tf.keras.losses.MeanSquaredError()
+            loss = loss_object(label, pred)
+
+            mask = tf.cast(mask, dtype=loss.dtype)
+            loss *= mask
+
+            loss = tf.reduce_sum(loss) / tf.reduce_sum(mask)
+            return loss
+
+        learning_rate = CustomSchedule(d_model)
+
+        optimizer = tf.keras.optimizers.Adam(
+            learning_rate, beta_1=0.9, beta_2=0.98, epsilon=1e-9
+        )
+
+        transformer.compile(loss=masked_loss, optimizer=optimizer)
+
+        data = tf.data.Dataset.from_tensor_slices((coordinates, coordinates))
+
+        def prepare_batch(coordinates):
+            coordinates = coordinates.to_tensor()  # Convert to 0-padded dense Tensor
+
+            return (coordinates, coordinates), coordinates
+
+        def make_batches(ds):
+            print(str(ds.batch(1)))
+            return ds.batch(1)
+
+        print(make_batches(data))
+
+        train_batches = make_batches(data)
+
+        wandb.init(config={"bs": 12})
+
+        transformer.fit(
+            x=(
+                tf.convert_to_tensor(coordinates, dtype=tf.float64),
+                tf.convert_to_tensor(coordinates, dtype=tf.float64),
+            ),
+            y=tf.convert_to_tensor(coordinates, dtype=tf.float64),
+            epochs=1000,
+            callbacks=[WandbMetricsLogger()],
+        )
+        wandb.finish()
+
+        output = transformer((coordinates, coordinates))
+        print(output.shape)
+        print(masked_loss(coordinates, output))
+
         # print(coordinates + encoding)
 
     def do_train_transformer_encoder(self, arg: str):
