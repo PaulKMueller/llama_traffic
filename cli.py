@@ -6,6 +6,9 @@ import yaml
 import json
 import math
 import keras
+import io
+
+from PIL import Image
 
 import wandb
 from wandb.keras import WandbMetricsLogger
@@ -683,6 +686,85 @@ class SimpleShell(cmd.Cmd):
             f"{output_folder}raw_rotated_trajectory_{vehicle_id}.png"
         )
 
+    def do_plot_compared_raw_coordinates(self, arg: str):
+        """Plots a comparison of the coordinates before, during and after their transformation to splined, rotated, ego trajectories.
+        It does so for the vehicle which's ID has been provided in the loaded scenario.
+
+        Args:
+            arg (str): The vehicle ID.
+        """
+
+        # Load config file
+        with open("config.yaml", "r") as file:
+            config = yaml.safe_load(file)
+            output_folder = config["output_folder"]
+
+        # Checking if a scenario has been loaded already.
+        if not self.scenario_loaded():
+            return
+
+        # Check for empty arguments (no ID provided)
+        if arg == "":
+            print(
+                (
+                    "\nYou have provided no ID for the vehicle "
+                    "whose trajectory you want to get.\nPlease provide a path!\n"
+                )
+            )
+            return
+
+        vehicle_id = arg.split()[0]
+        trajectory = Trajectory(self.loaded_scenario, vehicle_id)
+
+        # Create figure for the 2x2 grid of subplots
+        fig, axs = plt.subplots(2, 2, figsize=(10, 10))
+
+        # Plot the trajectory
+        axs[0, 0].plot(
+            trajectory.coordinates["X"],
+            trajectory.coordinates["Y"],
+            "ro-",
+            markersize=5,
+            linewidth=2,
+        )  # 'ro-' creates a red line with circle markers
+
+        # Plot the trajectory
+        axs[0, 1].plot(
+            trajectory.splined_coordinates["X"],
+            trajectory.splined_coordinates["Y"],
+            "ro-",
+            markersize=5,
+            linewidth=2,
+        )  # 'ro-' creates a red line with circle markers
+
+        # Plot the trajectory
+        axs[1, 0].plot(
+            trajectory.ego_coordinates["X"],
+            trajectory.ego_coordinates["Y"],
+            "ro-",
+            markersize=5,
+            linewidth=2,
+        )  # 'ro-' creates a red line with circle markers
+
+        # Plot the trajectory
+        axs[1, 1].plot(
+            trajectory.rotated_coordinates["X"],
+            trajectory.rotated_coordinates["Y"],
+            "ro-",
+            markersize=5,
+            linewidth=2,
+        )  # 'ro-' creates a red line with circle markers
+
+        # Display each figure in its respective subplot
+        axs[0, 0].set_title("Original Coordinates")
+        axs[0, 1].set_title("Splined Coordinates")
+        axs[1, 0].set_title("Ego Coordinates")
+        axs[1, 1].set_title("Rotated Ego Coordinates")
+
+        # Adjust layout and save the figure
+        plt.tight_layout()
+        plt.savefig(f"{output_folder}compared_coordinates_for_{vehicle_id}.png")
+
     def do_plot_all_trajectories(self, arg: str):
         """Saves a trajectory (represented as a line) for all vehicles in the scenario.
         Format should be: plot_all_trajectories
@@ -937,6 +1019,24 @@ class SimpleShell(cmd.Cmd):
         print("\n")
         print(*filtered_ids, sep="\n")
         print("\n")
+
+    def do_plot_all_maps(self, arg: str):
+        # Load config file
+        with open("config.yaml", "r") as file:
+            config = yaml.safe_load(file)
+            output_folder = config["output_folder"]
+            scenario_data_folder = config["scenario_data_folder"]
+
+        scenarios = get_scenario_list()
+
+        for scenario in scenarios:
+            print(scenario)
+            scenario_obj = Scenario(scenario_data_folder + scenario)
+            image = scenario_obj.visualize_map()
+
+            image.savefig(
+                f"{output_folder}roadgraph_{get_scenario_index(scenario_obj.name)}.png"
+            )
 
     def do_save_delta_angles_for_vehicle(self, arg: str):
         """Returns the delta angles of the trajectory of the given vehicle."""
@@ -1806,7 +1906,8 @@ class SimpleShell(cmd.Cmd):
         vehicle_id = arg.split()[0]
 
         trajectory = Trajectory(self.loaded_scenario, vehicle_id)
-        print(trajectory.x_axis_angle)
+        angle = trajectory.x_axis_angle
+        print(math.degrees(angle))
 
     def do_print_rotated_coordinates_for_vehicle(self, arg: str):
         # Checking if a scenario has been loaded already.

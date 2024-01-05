@@ -489,7 +489,7 @@ def create_labeled_trajectories_for_scenario(scenario: Scenario) -> dict:
     def chunks(lst, n):
         """Yield successive n-sized chunks from lst."""
         for i in range(0, len(lst), n):
-            yield lst[i:i + n]
+            yield lst[i : i + n]
 
     vehicle_ids = get_vehicles_for_scenario(scenario.data)
     trajectory_dict = {}
@@ -573,18 +573,19 @@ def get_labeled_trajectories_for_all_scenarios_json():
             + scenario
         )
 
-        scenario_obj = Scenario((
+        scenario_obj = Scenario(
+            (
                 "/mrtstorage/datasets/tmp/waymo_open_motion_v_1_2_0"
                 "/uncompressed/tf_example/training/"
             )
-            + scenario)
+            + scenario
+        )
 
         vehicle_ids = get_vehicles_for_scenario(decoded_scenario)
         for vehicle_id in tqdm(
             vehicle_ids, desc=f"Processing vehicles in scenario {scenario}", leave=False
         ):
-            trajectory = Trajectory(scenario_obj, specific_id=vehicle_id
-            )
+            trajectory = Trajectory(scenario_obj, specific_id=vehicle_id)
             x_coordinates = trajectory.splined_coordinates[
                 "X"
             ].tolist()  # Convert to list for JSON serialization
@@ -652,6 +653,7 @@ def create_zipped_labeled_trajectories_for_all_scenarios_json():
     with open(f"{dataset_folder}labeled_trajectories.json", "w") as json_file:
         json.dump(trajectory_dict, json_file, indent=4)
 
+
 def create_zipped_normalized_labeled_trajectories_for_all_scenarios_json():
     """Saves a JSON file with the trajectories of all vehicles in the scenario
     and their corresponding labels (buckets), with a progress bar.
@@ -668,13 +670,13 @@ def create_zipped_normalized_labeled_trajectories_for_all_scenarios_json():
     for scenario in tqdm(scenario_list, desc="Processing scenarios"):
         tqdm.write(f"\nGetting the data dictionary for {scenario}...")
 
-
-        scenario_obj = Scenario((
+        scenario_obj = Scenario(
+            (
                 "/mrtstorage/datasets/tmp/waymo_open_motion_v_1_2_0"
                 "/uncompressed/tf_example/training/"
             )
-            + scenario)
-    
+            + scenario
+        )
 
         vehicle_ids = get_vehicles_for_scenario(scenario_obj.data)
         for vehicle_id in tqdm(
@@ -688,7 +690,9 @@ def create_zipped_normalized_labeled_trajectories_for_all_scenarios_json():
             y_coordinates = normalized_spline_coordinates[
                 "Y"
             ].tolist()  # Convert to list for JSON serialization
-            direction = get_direction_of_vehicle(scenario_obj.data, normalized_spline_coordinates)
+            direction = get_direction_of_vehicle(
+                scenario_obj.data, normalized_spline_coordinates
+            )
             zipped_coordinates = list(zip(x_coordinates, y_coordinates))
             trajectory_dict[f"{get_scenario_index(scenario)}_{vehicle_id}"] = {
                 "Coordinates": zipped_coordinates,
@@ -696,10 +700,12 @@ def create_zipped_normalized_labeled_trajectories_for_all_scenarios_json():
             }
 
     # Save to JSON file
-    with open(f"{dataset_folder}normalized_labeled_trajectories.json", "w") as json_file:
+    with open(
+        f"{dataset_folder}normalized_labeled_trajectories.json", "w"
+    ) as json_file:
         json.dump(trajectory_dict, json_file, indent=4)
 
-    
+
 def create_labeled_ego_trajectories():
     """Saves a JSON file with the trajectories of all vehicles in the scenario
     and their corresponding labels (buckets), with a progress bar.
@@ -716,11 +722,13 @@ def create_labeled_ego_trajectories():
     for scenario in tqdm(scenario_list, desc="Processing scenarios"):
         tqdm.write(f"\nGetting the data dictionary for {scenario}...")
 
-        scenario_obj = Scenario((
+        scenario_obj = Scenario(
+            (
                 "/mrtstorage/datasets/tmp/waymo_open_motion_v_1_2_0"
                 "/uncompressed/tf_example/training/"
             )
-            + scenario)
+            + scenario
+        )
 
         vehicle_ids = get_vehicles_for_scenario(scenario_obj.data)
         for vehicle_id in tqdm(
@@ -733,7 +741,9 @@ def create_labeled_ego_trajectories():
             y_coordinates = trajectory.rotated_coordinates[
                 "Y"
             ].tolist()  # Convert to list for JSON serialization
-            direction = get_direction_of_vehicle(scenario_obj.data, trajectory.splined_coordinates)
+            direction = get_direction_of_vehicle(
+                scenario_obj.data, trajectory.splined_coordinates
+            )
             zipped_coordinates = list(zip(x_coordinates, y_coordinates))
             trajectory_dict[f"{get_scenario_index(scenario)}_{vehicle_id}"] = {
                 "Coordinates": zipped_coordinates,

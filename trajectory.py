@@ -278,7 +278,7 @@ class Trajectory:
         # det = x1*y2 - y1*x2
         x_axis_angle = math.atan2(det, dot)
 
-        return -x_axis_angle
+        return x_axis_angle
 
     def get_sum_of_delta_angles(self) -> float:
         """Returns the sum of the angles between each segment in the trajectory.
@@ -434,7 +434,7 @@ class Trajectory:
         ax.set_aspect("equal")
 
         # Set title of the plot
-        ax.set_title(title)
+        # ax.set_title(title)
 
         # Remove axes for a cleaner look since there's no map
         # ax.axis("off")
