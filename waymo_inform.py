@@ -4,6 +4,8 @@ import pandas as pd
 import math
 import yaml
 
+from cohere_encoder import get_cohere_encoding
+
 from scenario import Scenario
 
 import json
@@ -411,6 +413,44 @@ def get_vehicles_for_scenario(decoded_example):
     filtered_ids = np.sort(agent_ids[agent_ids != -1])
 
     return filtered_ids
+
+
+def get_trajectories_for_text_input(arg):
+    similarity_dict = get_cohere_encoding(arg)
+    most_similar_bucket = max(similarity_dict, key=similarity_dict.get)
+
+    print(f"\nThe most similar bucket is: {most_similar_bucket}\n")
+
+    # List all trajectories by their IDs that fall into the most similar bucket
+    # Load labeled trajectory data
+    with open("datasets/labeled_ego_trajectories.json", "r") as file:
+        trajectories_data = json.load(file)
+
+    filtered_ids = []
+    for key, value in trajectories_data.items():
+        if value["Direction"] == most_similar_bucket:
+            filtered_ids.append(key)
+
+    return filtered_ids
+
+
+def plot_trajectory_by_id(id):
+    # Load config file
+    with open("config.yaml", "r") as file:
+        config = yaml.safe_load(file)
+        scenario_data_folder = config["scenario_data_folder"]
+        output_folder = config["output_folder"]
+
+    scenario_index, vehicle_id = id.split("_")
+    scenario_index = int(scenario_index)
+    print(scenario_index, vehicle_id)
+
+    scenario = scenario_data_folder + get_scenario_list()[scenario_index]
+    scenario_obj = Scenario(scenario)
+
+    trajectory_plot = scenario_obj.visualize_trajectory(specific_id=vehicle_id)
+
+    trajectory_plot.savefig(f"{output_folder}{id}.png")
 
 
 def get_filter_dict_for_scenario(waymo_scenario):
