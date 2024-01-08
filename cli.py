@@ -8,6 +8,8 @@ import math
 import keras
 import io
 
+import time
+
 from PIL import Image
 
 import wandb
@@ -169,7 +171,7 @@ class SimpleShell(cmd.Cmd):
         trajectory = Trajectory(self.loaded_scenario, vehicle_id)
 
         trajectory_plot = self.loaded_scenario.visualize_coordinates(
-            trajectory.coordinates
+            trajectory.coordinates, title=f"Trajectory {vehicle_id}"
         )
 
         trajectory_plot.savefig(f"{output_folder}{vehicle_id}.png")
@@ -496,6 +498,21 @@ class SimpleShell(cmd.Cmd):
             counter += 1
 
         print("\n")
+
+    def do_plot_trajectories_for_text_input(self, arg: str):
+        # Check for empty arguments (no ID provided)
+        if arg == "":
+            print(
+                (
+                    "\nYou have provided no text input."
+                    "\nPlease input a verbal description of the type of trajectory which you want to plot.\n"
+                )
+            )
+            return
+
+        filtered_ids = get_trajectories_for_text_input(arg)
+        for id in filtered_ids:
+            plot_trajectory_by_id(id)
 
     def do_animate_vehicle(self, arg: str):
         """Creates a mp4 animation of the trajectory of
@@ -1155,7 +1172,7 @@ class SimpleShell(cmd.Cmd):
 
         print("\nSuccessfully cleared the output folder!\n")
 
-    def do_create_labeled_trajectories(self, arg: str):
+    def do_create_labeled_trajectories_for_loaded_scenario(self, arg: str):
         """Returns a dictionary with the vehicle IDs of the loaded scenario as
         keys and the corresponding trajectories (as numpy arrays of X and Y coordinates) and labels as values.
 
@@ -1253,6 +1270,141 @@ class SimpleShell(cmd.Cmd):
         """
         bucket_similarities = get_cohere_encoding(arg)
         print(bucket_similarities)
+
+    def do_test_embedding_similarities(self, arg):
+        right_u_turn = [
+            "Rightward complete reversal",
+            "180-degree turn to the right",
+            "Clockwise U-turn",
+            "Right circular turnaround",
+            "Right-hand loopback",
+            "Right flip turn",
+            "Full right pivot",
+            "Right about-face",
+            "Rightward return turn",
+            "Rightward reversing curve",
+        ]
+        left_u_turn = [
+            "Leftward complete reversal",
+            "180-degree turn to the left",
+            "Counterclockwise U-turn",
+            "Left circular turnaround",
+            "Left-hand loopback",
+            "Left flip turn",
+            "Full left pivot",
+            "Left about-face",
+            "Leftward return turn",
+            "Leftward reversing curve",
+        ]
+        stationary = [
+            "At a standstill",
+            "Motionless",
+            "Unmoving",
+            "Static position",
+            "Immobilized",
+            "Not in motion",
+            "Fixed in place",
+            "Idle",
+            "Inert",
+            "Anchored",
+        ]
+        right = [
+            "Rightward",
+            "To the right",
+            "Right-hand side",
+            "Starboard",
+            "Rightward direction",
+            "Clockwise direction",
+            "Right-leaning",
+            "Rightward bound",
+            "Bearing right",
+            "Veering right",
+        ]
+        left = [
+            "Leftward",
+            "To the left",
+            "Left-hand side",
+            "Port",
+            "Leftward direction",
+            "Counterclockwise direction",
+            "Left-leaning",
+            "Leftward bound",
+            "Bearing left",
+            "Veering left",
+        ]
+        straight_right = [
+            "Straight then right",
+            "Forward followed by a right turn",
+            "Proceed straight, then veer right",
+            "Continue straight before turning right",
+            "Advance straight, then bear right",
+            "Go straight, then curve right",
+            "Head straight, then pivot right",
+            "Move straight, then angle right",
+            "Straight-line, followed by a right deviation",
+            "Directly ahead, then a rightward shift",
+        ]
+        straight_left = [
+            "Straight then left",
+            "Forward followed by a left turn",
+            "Proceed straight, then veer left",
+            "Continue straight before turning left",
+            "Advance straight, then bear left",
+            "Go straight, then curve left",
+            "Head straight, then pivot left",
+            "Move straight, then angle left",
+            "Straight-line, followed by a left deviation",
+            "Directly ahead, then a leftward shift",
+        ]
+        straight = [
+            "Directly ahead",
+            "Forward",
+            "Straightforward",
+            "In a straight line",
+            "Linearly",
+            "Unswervingly",
+            "Onward",
+            "Direct path",
+            "True course",
+            "Non-curving path",
+        ]
+
+        bucket_synonym_lists = [
+            right_u_turn,
+            left_u_turn,
+            stationary,
+            right,
+            left,
+            straight_right,
+            straight_left,
+            straight,
+        ]
+
+        buckets = [
+            "Right-U-Turn",
+            "Left-U-Turn",
+            "Stationary",
+            "Right",
+            "Left",
+            "Straight-Right",
+            "Straight-Left",
+            "Straight",
+        ]
+
+        output = {}
+
+        for index, synonym_list in enumerate(bucket_synonym_lists):
+            current_bucket = buckets[index]
+            if current_bucket not in output:
+                output[current_bucket] = {}
+            for synonym in synonym_list:
+                bucket_similarities = get_cohere_encoding(synonym)
+                print(synonym)
+                output[buckets[index]][synonym] = bucket_similarities
+                print(bucket_similarities)
+                print()
+        with open("output/embedding_test.json", "w") as file:
+            json.dump(output, file, indent=4)
 
     def do_print_scenario_index(self, arg: str):
         """Returns the ID of the loaded scenario.
@@ -1501,7 +1653,9 @@ class SimpleShell(cmd.Cmd):
 
         print(prediction)
 
-        prediction_plot = self.loaded_scenario.visualize_coordinates(prediction)
+        prediction_plot = self.loaded_scenario.visualize_coordinates(
+            prediction, title=f"Prediction {vehicle_id}"
+        )
         prediction_plot.savefig(
             f"output/simple_prediction_{vehicle_id}_plot_with_map.png"
         )
@@ -1851,7 +2005,7 @@ class SimpleShell(cmd.Cmd):
             "Left-U-Turn": 0,
         }
 
-        with open("datasets/labeled_trajectories.json", "r") as file:
+        with open("datasets/labeled_ego_trajectories.json", "r") as file:
             trajectories_data = json.load(file)
 
         for value in trajectories_data.values():

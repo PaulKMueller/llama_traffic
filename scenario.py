@@ -532,12 +532,13 @@ class Scenario:
         ax.grid(False)
         return fig, ax
 
-    def visualize_coordinates(self, coordinates, size_pixels=1000):
+    def visualize_coordinates(self, coordinates, size_pixels=1000, title=""):
         plot = self.visualize_map()
         # Plot coordinates on map
         for _, coordinate in coordinates.iterrows():
             plot.plot(coordinate["X"], coordinate["Y"], "ro", markersize=5)
 
+        plot.title(title)
         return plot
 
     def visualize_map(self, with_ids=False, specific_id=None, size_pixels=1000):

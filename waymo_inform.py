@@ -449,6 +449,7 @@ def plot_trajectory_by_id(id):
     scenario_obj = Scenario(scenario)
 
     trajectory_plot = scenario_obj.visualize_trajectory(specific_id=vehicle_id)
+    trajectory_plot.title(id)
 
     trajectory_plot.savefig(f"{output_folder}{id}.png")
 

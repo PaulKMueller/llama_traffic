@@ -557,13 +557,13 @@ class Trajectory:
     def get_rotated_ego_coordinates_from_coordinates(
         coordinates: pd.DataFrame,
     ) -> Tuple[pd.DataFrame, float, float, float]:
-        """TODO
+        """Given a set of coordinates this method calculates the rotated coordinates of the trajectory and the x axis angle.
 
         Args:
-            coordinates (pd.DataFrame): _description_
+            coordinates (pd.DataFrame): The coordinates of a trajectory.
 
         Returns:
-            pd.DataFrame, float, float, float: _description_
+            pd.DataFrame, float, float, float: rotated_coordinates, x_axix_angle, starting_point_x, starting_point_y
         """
 
         # Getting x axis angle

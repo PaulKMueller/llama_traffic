@@ -364,7 +364,7 @@ def train_transformer():
 
         # Shuffle coordinates_set if needed
         random.shuffle(coordinates_set)
-        coordinates_set = random.sample(coordinates_set, 1000)
+        # coordinates_set = random.sample(coordinates_set, 1000)
 
         training_data = []
 
@@ -385,8 +385,8 @@ def train_transformer():
 
     wandb.init(config={"bs": 12})
     transformer.fit(
-        data_generator(trajectories, 4),
-        epochs=10,
+        data_generator(trajectories, 1),
+        epochs=1,
         callbacks=[WandbMetricsLogger()],
     )
 

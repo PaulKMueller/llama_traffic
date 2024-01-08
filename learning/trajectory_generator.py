@@ -150,15 +150,15 @@ def train_simple_neural_network():
 
             # Coordinates as Numpy array
             coordinates = np.array(value["Coordinates"]).flatten()
-            print(starting_points)
+            # print(starting_points)
             X.append(starting_points)
             Y.append(coordinates)
 
     X = np.array(X)
-    print(X.shape)
-    print("Test")
+    # print(X.shape)
+    # print("Test")
     Y = np.array(Y)
-    print(Y.shape)
+    # print(Y.shape)
 
     X_train, X_test, Y_train, Y_test = train_test_split(
         X, Y, test_size=0.2, random_state=42
