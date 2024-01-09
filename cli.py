@@ -26,7 +26,7 @@ import pandas as pd
 
 from datetime import datetime
 
-from training_dataclass import TrainingData
+# from training_dataclass import TrainingData
 from trajectory import Trajectory
 
 import numpy as np
@@ -36,7 +36,7 @@ from llama_test import get_llama_embedding
 
 from cohere_encoder import get_cohere_encoding
 
-from training_dataclass import TrainingData
+# from training_dataclass import TrainingData
 
 import torch
 
@@ -85,10 +85,7 @@ from waymo_utils import (
     get_scenario_index,
 )
 
-from bert_encoder import (
-    get_bert_embedding,
-    init_bucket_embeddings,
-)
+from bert_encoder import get_bert_embedding, init_bucket_embeddings, test_bert_encoding
 
 from learning.trajectory_classifier import train_classifier
 
@@ -1417,6 +1414,9 @@ class SimpleShell(cmd.Cmd):
             f"\nThe ID of the loaded scenario is: {get_scenario_index(self.loaded_scenario.name)}\n"
         )
 
+    def do_test_bert_encoding(self, arg):
+        print(test_bert_encoding(arg))
+
     def do_test_trajectory_bucketing(self, arg: str):
         """Generates the buckets for 20 random trajectories from random scenarios.
         Plot them and save them in the corresponding folders.
@@ -1468,17 +1468,17 @@ class SimpleShell(cmd.Cmd):
 
         print("Successfully prepared the trajectory bucket data for training!\n")
 
-    def do_training_data_length(self, arg: str):
-        """Returns the length of the labeled training data.
+    # def do_training_data_length(self, arg: str):
+    #     """Returns the length of the labeled training data.
 
-        Args:
-            arg (str): No arguments required.
-        """
+    #     Args:
+    #         arg (str): No arguments required.
+    #     """
 
-        training_data = TrainingData(
-            "/home/pmueller/llama_traffic/datasets/zipped_labeled_trajectories.json"
-        )
-        print(training_data.get_size())
+    #     training_data = TrainingData(
+    #         "/home/pmueller/llama_traffic/datasets/zipped_labeled_trajectories.json"
+    #     )
+    #     print(training_data.get_size())
 
     def do_test_transformer_training(self, arg: str):
         train_transformer()
@@ -1876,19 +1876,19 @@ class SimpleShell(cmd.Cmd):
         ego_plot.savefig(f"output/ego_plot_{vehicle_id}.png")
         plt.close()
 
-    def do_init_dataset(self, arg: str):
-        """Initialize the dataset.
+    # def do_init_dataset(self, arg: str):
+    #     """Initialize the dataset.
 
-        Args:
-            arg (str): No arguments required.
-        """
+    #     Args:
+    #         arg (str): No arguments required.
+    #     """
 
-        print("\nInitializing the dataset...")
-        data = TrainingData("datasets/zipped_labeled_trajectories.json")
-        print(data)
-        print(len(data))
-        print(data[0][0].shape)
-        print("Successfully initialized the dataset!\n")
+    #     print("\nInitializing the dataset...")
+    #     data = TrainingData("datasets/zipped_labeled_trajectories.json")
+    #     print(data)
+    #     print(len(data))
+    #     print(data[0][0].shape)
+    #     print("Successfully initialized the dataset!\n")
 
     def do_train_neural_network(self, arg: str):
         """Train the neural network.

@@ -1,4 +1,5 @@
 from transformers import BertTokenizer, TFBertModel
+import numpy as np
 
 import json
 import os
@@ -21,6 +22,8 @@ def get_bert_embedding(input_text: str):
 
     encoded_input = tokenizer(input_text, return_tensors="tf")
     output_embeddings = model(encoded_input).pooler_output.numpy()
+
+    print(output_embeddings)
 
     return output_embeddings
 
@@ -72,3 +75,42 @@ def init_bucket_embeddings():
             bucket_embeddings = json.load(file)
 
     return bucket_embeddings
+
+
+def test_bert_encoding(input_text: str) -> dict:
+    buckets = [
+        "Left",
+        "Right",
+        "Stationary",
+        "Straight",
+        "Straight-Left",
+        "Straight-Right",
+        "Right-U-Turn",
+        "Left-U-Turn",
+    ]
+
+    bucket_embeddings = [get_bert_embedding(bucket.lower()) for bucket in buckets]
+    bucket_embeddings = np.asarray(bucket_embeddings)
+
+    input_text_embedding = get_bert_embedding(input_text)
+    input_text_embedding = np.asarray(input_text_embedding)
+    print(input_text_embedding.shape)
+
+    # Compute the dot product between query embedding and document embedding
+    scores = np.dot(input_text_embedding, bucket_embeddings.T)[0]
+
+    # Find the highest scores
+    max_idx = np.argsort(-scores)
+
+    # print(f"Query: {input_text}")
+    # for idx in max_idx:
+    #     print(f"Score: {scores[idx]:.2f}")
+    #     print(buckets[idx])
+    #     print("--------")
+
+    # Create dictionary for return
+    output_dict = {}
+    for idx in max_idx:
+        output_dict[buckets[idx]] = scores[idx]
+
+    return output_dict
