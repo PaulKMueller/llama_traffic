@@ -7,4 +7,4 @@ for i, data in enumerate(train_set):
     frame = open_dataset.Frame()
     data = frame.ParseFromString(bytearray(data.numpy()))
     with open("explore.txt", "a") as output:
-        output.write(str(data)+"\n")
+        output.write(str(data) + "\n")

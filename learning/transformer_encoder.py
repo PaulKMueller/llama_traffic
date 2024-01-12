@@ -385,7 +385,7 @@ def train_transformer():
 
     wandb.init(config={"bs": 12})
     transformer.fit(
-        data_generator(trajectories, 1),
+        data_generator(trajectories, 4),
         epochs=1,
         callbacks=[WandbMetricsLogger()],
     )

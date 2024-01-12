@@ -8,6 +8,8 @@ import math
 import keras
 import io
 
+import seaborn as sns
+
 import time
 
 from PIL import Image
@@ -32,9 +34,13 @@ from trajectory import Trajectory
 import numpy as np
 import random
 
-from llama_test import get_llama_embedding
+# from llama_test import get_llama_embeddingK
 
 from cohere_encoder import get_cohere_encoding
+
+from uae_explore import get_uae_encoding
+
+from voyage_explore import get_voyage_encoding
 
 # from training_dataclass import TrainingData
 
@@ -739,50 +745,58 @@ class SimpleShell(cmd.Cmd):
         vehicle_id = arg.split()[0]
         trajectory = Trajectory(self.loaded_scenario, vehicle_id)
 
-        # Create figure for the 2x2 grid of subplots
-        fig, axs = plt.subplots(2, 2, figsize=(10, 10))
+        # Set the style of the plot using Seaborn
+        sns.set_theme(style="whitegrid")
 
-        # Plot the trajectory
+        # Create figure for the 2x2 grid of subplots
+        fig, axs = plt.subplots(2, 2, figsize=(12, 12))
+
+        # Plot settings
+        plot_settings = {"markersize": 6, "linewidth": 2, "marker": "o"}
+
+        # Original Coordinates
         axs[0, 0].plot(
             trajectory.coordinates["X"],
             trajectory.coordinates["Y"],
-            "ro-",
-            markersize=5,
-            linewidth=2,
-        )  # 'ro-' creates a red line with circle markers
+            "b-",  # blue line
+            **plot_settings,
+        )
+        axs[0, 0].set_title("Original Coordinates")
+        axs[0, 0].set_xlabel("X Coordinate")
+        axs[0, 0].set_ylabel("Y Coordinate")
 
-        # Plot the trajectory
+        # Splined Coordinates
         axs[0, 1].plot(
             trajectory.splined_coordinates["X"],
             trajectory.splined_coordinates["Y"],
-            "ro-",
-            markersize=5,
-            linewidth=2,
-        )  # 'ro-' creates a red line with circle markers
+            "g-",  # green line
+            **plot_settings,
+        )
+        axs[0, 1].set_title("Splined Coordinates")
+        axs[0, 1].set_xlabel("X Coordinate")
+        axs[0, 1].set_ylabel("Y Coordinate")
 
-        # Plot the trajectory
+        # Ego Coordinates
         axs[1, 0].plot(
             trajectory.ego_coordinates["X"],
             trajectory.ego_coordinates["Y"],
-            "ro-",
-            markersize=5,
-            linewidth=2,
-        )  # 'ro-' creates a red line with circle markers
+            "r-",  # red line
+            **plot_settings,
+        )
+        axs[1, 0].set_title("Ego Coordinates")
+        axs[1, 0].set_xlabel("X Coordinate")
+        axs[1, 0].set_ylabel("Y Coordinate")
 
-        # Plot the trajectory
+        # Rotated Ego Coordinates
         axs[1, 1].plot(
             trajectory.rotated_coordinates["X"],
             trajectory.rotated_coordinates["Y"],
-            "ro-",
-            markersize=5,
-            linewidth=2,
-        )  # 'ro-' creates a red line with circle markers
-
-        # Display each figure in its respective subplot
-        axs[0, 0].set_title("Original Coordinates")
-        axs[0, 1].set_title("Splined Coordinates")
-        axs[1, 0].set_title("Ego Coordinates")
+            "m-",  # magenta line
+            **plot_settings,
+        )
         axs[1, 1].set_title("Rotated Ego Coordinates")
+        axs[1, 1].set_xlabel("X Coordinate")
+        axs[1, 1].set_ylabel("Y Coordinate")
 
         # Adjust layout and save the figure
         plt.tight_layout()
@@ -1268,7 +1282,7 @@ class SimpleShell(cmd.Cmd):
         bucket_similarities = get_cohere_encoding(arg)
         print(bucket_similarities)
 
-    def do_test_embedding_similarities(self, arg):
+    def do_test_cohere_embedding_similarities(self, arg):
         right_u_turn = [
             "Rightward complete reversal",
             "180-degree turn to the right",
@@ -1400,8 +1414,278 @@ class SimpleShell(cmd.Cmd):
                 output[buckets[index]][synonym] = bucket_similarities
                 print(bucket_similarities)
                 print()
-        with open("output/embedding_test.json", "w") as file:
+        with open("output/cohere_embedding_test.json", "w") as file:
             json.dump(output, file, indent=4)
+
+    def do_test_uae_embedding_similarities(self, arg):
+        right_u_turn = [
+            "Rightward complete reversal",
+            "180-degree turn to the right",
+            "Clockwise U-turn",
+            "Right circular turnaround",
+            "Right-hand loopback",
+            "Right flip turn",
+            "Full right pivot",
+            "Right about-face",
+            "Rightward return turn",
+            "Rightward reversing curve",
+        ]
+        left_u_turn = [
+            "Leftward complete reversal",
+            "180-degree turn to the left",
+            "Counterclockwise U-turn",
+            "Left circular turnaround",
+            "Left-hand loopback",
+            "Left flip turn",
+            "Full left pivot",
+            "Left about-face",
+            "Leftward return turn",
+            "Leftward reversing curve",
+        ]
+        stationary = [
+            "At a standstill",
+            "Motionless",
+            "Unmoving",
+            "Static position",
+            "Immobilized",
+            "Not in motion",
+            "Fixed in place",
+            "Idle",
+            "Inert",
+            "Anchored",
+        ]
+        right = [
+            "Rightward",
+            "To the right",
+            "Right-hand side",
+            "Starboard",
+            "Rightward direction",
+            "Clockwise direction",
+            "Right-leaning",
+            "Rightward bound",
+            "Bearing right",
+            "Veering right",
+        ]
+        left = [
+            "Leftward",
+            "To the left",
+            "Left-hand side",
+            "Port",
+            "Leftward direction",
+            "Counterclockwise direction",
+            "Left-leaning",
+            "Leftward bound",
+            "Bearing left",
+            "Veering left",
+        ]
+        straight_right = [
+            "Straight then right",
+            "Forward followed by a right turn",
+            "Proceed straight, then veer right",
+            "Continue straight before turning right",
+            "Advance straight, then bear right",
+            "Go straight, then curve right",
+            "Head straight, then pivot right",
+            "Move straight, then angle right",
+            "Straight-line, followed by a right deviation",
+            "Directly ahead, then a rightward shift",
+        ]
+        straight_left = [
+            "Straight then left",
+            "Forward followed by a left turn",
+            "Proceed straight, then veer left",
+            "Continue straight before turning left",
+            "Advance straight, then bear left",
+            "Go straight, then curve left",
+            "Head straight, then pivot left",
+            "Move straight, then angle left",
+            "Straight-line, followed by a left deviation",
+            "Directly ahead, then a leftward shift",
+        ]
+        straight = [
+            "Directly ahead",
+            "Forward",
+            "Straightforward",
+            "In a straight line",
+            "Linearly",
+            "Unswervingly",
+            "Onward",
+            "Direct path",
+            "True course",
+            "Non-curving path",
+        ]
+
+        bucket_synonym_lists = [
+            right_u_turn,
+            left_u_turn,
+            stationary,
+            right,
+            left,
+            straight_right,
+            straight_left,
+            straight,
+        ]
+
+        buckets = [
+            "Right-U-Turn",
+            "Left-U-Turn",
+            "Stationary",
+            "Right",
+            "Left",
+            "Straight-Right",
+            "Straight-Left",
+            "Straight",
+        ]
+
+        output = {}
+
+        for index, synonym_list in enumerate(bucket_synonym_lists):
+            current_bucket = buckets[index]
+            if current_bucket not in output:
+                output[current_bucket] = {}
+            for synonym in synonym_list:
+                bucket_similarities = get_uae_encoding(synonym)
+                print(synonym)
+                output[buckets[index]][synonym] = bucket_similarities
+                print(bucket_similarities)
+                print()
+        with open("output/uae_embedding_test.json", "w") as file:
+            json.dump(str(output), file, indent=4)
+
+    def do_test_voyage_embedding_similarities(self, arg):
+        right_u_turn = [
+            "Rightward complete reversal",
+            "180-degree turn to the right",
+            "Clockwise U-turn",
+            "Right circular turnaround",
+            "Right-hand loopback",
+            "Right flip turn",
+            "Full right pivot",
+            "Right about-face",
+            "Rightward return turn",
+            "Rightward reversing curve",
+        ]
+        left_u_turn = [
+            "Leftward complete reversal",
+            "180-degree turn to the left",
+            "Counterclockwise U-turn",
+            "Left circular turnaround",
+            "Left-hand loopback",
+            "Left flip turn",
+            "Full left pivot",
+            "Left about-face",
+            "Leftward return turn",
+            "Leftward reversing curve",
+        ]
+        stationary = [
+            "At a standstill",
+            "Motionless",
+            "Unmoving",
+            "Static position",
+            "Immobilized",
+            "Not in motion",
+            "Fixed in place",
+            "Idle",
+            "Inert",
+            "Anchored",
+        ]
+        right = [
+            "Rightward",
+            "To the right",
+            "Right-hand side",
+            "Starboard",
+            "Rightward direction",
+            "Clockwise direction",
+            "Right-leaning",
+            "Rightward bound",
+            "Bearing right",
+            "Veering right",
+        ]
+        left = [
+            "Leftward",
+            "To the left",
+            "Left-hand side",
+            "Port",
+            "Leftward direction",
+            "Counterclockwise direction",
+            "Left-leaning",
+            "Leftward bound",
+            "Bearing left",
+            "Veering left",
+        ]
+        straight_right = [
+            "Straight then right",
+            "Forward followed by a right turn",
+            "Proceed straight, then veer right",
+            "Continue straight before turning right",
+            "Advance straight, then bear right",
+            "Go straight, then curve right",
+            "Head straight, then pivot right",
+            "Move straight, then angle right",
+            "Straight-line, followed by a right deviation",
+            "Directly ahead, then a rightward shift",
+        ]
+        straight_left = [
+            "Straight then left",
+            "Forward followed by a left turn",
+            "Proceed straight, then veer left",
+            "Continue straight before turning left",
+            "Advance straight, then bear left",
+            "Go straight, then curve left",
+            "Head straight, then pivot left",
+            "Move straight, then angle left",
+            "Straight-line, followed by a left deviation",
+            "Directly ahead, then a leftward shift",
+        ]
+        straight = [
+            "Directly ahead",
+            "Forward",
+            "Straightforward",
+            "In a straight line",
+            "Linearly",
+            "Unswervingly",
+            "Onward",
+            "Direct path",
+            "True course",
+            "Non-curving path",
+        ]
+
+        bucket_synonym_lists = [
+            right_u_turn,
+            left_u_turn,
+            stationary,
+            right,
+            left,
+            straight_right,
+            straight_left,
+            straight,
+        ]
+
+        buckets = [
+            "Right-U-Turn",
+            "Left-U-Turn",
+            "Stationary",
+            "Right",
+            "Left",
+            "Straight-Right",
+            "Straight-Left",
+            "Straight",
+        ]
+
+        output = {}
+
+        for index, synonym_list in enumerate(bucket_synonym_lists):
+            current_bucket = buckets[index]
+            if current_bucket not in output:
+                output[current_bucket] = {}
+            for synonym in synonym_list:
+                bucket_similarities = get_voyage_encoding(synonym)
+                print(synonym)
+                output[buckets[index]][synonym] = bucket_similarities
+                print(bucket_similarities)
+                print()
+        with open("output/voyage_embedding_test.json", "w") as file:
+            json.dump(str(output), file, indent=4)
 
     def do_print_scenario_index(self, arg: str):
         """Returns the ID of the loaded scenario.
@@ -1415,7 +1699,141 @@ class SimpleShell(cmd.Cmd):
         )
 
     def do_test_bert_encoding(self, arg):
-        print(test_bert_encoding(arg))
+        right_u_turn = [
+            "Rightward complete reversal",
+            "180-degree turn to the right",
+            "Clockwise U-turn",
+            "Right circular turnaround",
+            "Right-hand loopback",
+            "Right flip turn",
+            "Full right pivot",
+            "Right about-face",
+            "Rightward return turn",
+            "Rightward reversing curve",
+        ]
+        left_u_turn = [
+            "Leftward complete reversal",
+            "180-degree turn to the left",
+            "Counterclockwise U-turn",
+            "Left circular turnaround",
+            "Left-hand loopback",
+            "Left flip turn",
+            "Full left pivot",
+            "Left about-face",
+            "Leftward return turn",
+            "Leftward reversing curve",
+        ]
+        stationary = [
+            "At a standstill",
+            "Motionless",
+            "Unmoving",
+            "Static position",
+            "Immobilized",
+            "Not in motion",
+            "Fixed in place",
+            "Idle",
+            "Inert",
+            "Anchored",
+        ]
+        right = [
+            "Rightward",
+            "To the right",
+            "Right-hand side",
+            "Starboard",
+            "Rightward direction",
+            "Clockwise direction",
+            "Right-leaning",
+            "Rightward bound",
+            "Bearing right",
+            "Veering right",
+        ]
+        left = [
+            "Leftward",
+            "To the left",
+            "Left-hand side",
+            "Port",
+            "Leftward direction",
+            "Counterclockwise direction",
+            "Left-leaning",
+            "Leftward bound",
+            "Bearing left",
+            "Veering left",
+        ]
+        straight_right = [
+            "Straight then right",
+            "Forward followed by a right turn",
+            "Proceed straight, then veer right",
+            "Continue straight before turning right",
+            "Advance straight, then bear right",
+            "Go straight, then curve right",
+            "Head straight, then pivot right",
+            "Move straight, then angle right",
+            "Straight-line, followed by a right deviation",
+            "Directly ahead, then a rightward shift",
+        ]
+        straight_left = [
+            "Straight then left",
+            "Forward followed by a left turn",
+            "Proceed straight, then veer left",
+            "Continue straight before turning left",
+            "Advance straight, then bear left",
+            "Go straight, then curve left",
+            "Head straight, then pivot left",
+            "Move straight, then angle left",
+            "Straight-line, followed by a left deviation",
+            "Directly ahead, then a leftward shift",
+        ]
+        straight = [
+            "Directly ahead",
+            "Forward",
+            "Straightforward",
+            "In a straight line",
+            "Linearly",
+            "Unswervingly",
+            "Onward",
+            "Direct path",
+            "True course",
+            "Non-curving path",
+        ]
+
+        buckets = [
+            "Right-U-Turn",
+            "Left-U-Turn",
+            "Stationary",
+            "Right",
+            "Left",
+            "Straight-Right",
+            "Straight-Left",
+            "Straight",
+        ]
+
+        bucket_synonym_lists = [
+            right_u_turn,
+            left_u_turn,
+            stationary,
+            right,
+            left,
+            straight_right,
+            straight_left,
+            straight,
+        ]
+
+        output = {}
+
+        for index, synonym_list in enumerate(bucket_synonym_lists):
+            current_bucket = buckets[index]
+            if current_bucket not in output:
+                output[current_bucket] = {}
+            for synonym in synonym_list:
+                bucket_similarities = test_bert_encoding(synonym)
+                # print(synonym)
+                output[buckets[index]][synonym] = bucket_similarities
+                # print(bucket_similarities)
+                # print()
+
+        print(output)
+        with open("output/bert_embedding_test.json", "w") as file:
+            json.dump(str(output), file, indent=4)
 
     def do_test_trajectory_bucketing(self, arg: str):
         """Generates the buckets for 20 random trajectories from random scenarios.

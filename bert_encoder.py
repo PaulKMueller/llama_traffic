@@ -23,8 +23,6 @@ def get_bert_embedding(input_text: str):
     encoded_input = tokenizer(input_text, return_tensors="tf")
     output_embeddings = model(encoded_input).pooler_output.numpy()
 
-    print(output_embeddings)
-
     return output_embeddings
 
 
@@ -89,18 +87,20 @@ def test_bert_encoding(input_text: str) -> dict:
         "Left-U-Turn",
     ]
 
-    bucket_embeddings = [get_bert_embedding(bucket.lower()) for bucket in buckets]
-    bucket_embeddings = np.asarray(bucket_embeddings)
-
     input_text_embedding = get_bert_embedding(input_text)
-    input_text_embedding = np.asarray(input_text_embedding)
-    print(input_text_embedding.shape)
-
     # Compute the dot product between query embedding and document embedding
-    scores = np.dot(input_text_embedding, bucket_embeddings.T)[0]
+
+    scores = []
+    for bucket in buckets:
+        bucket_embedding = get_bert_embedding(bucket.lower())[0]
+        dot = np.dot(input_text_embedding, bucket_embedding)[0]
+        norm = np.linalg.norm(input_text_embedding) * np.linalg.norm(bucket_embedding)
+        print(dot)
+        print(norm)
+        scores.append(dot / norm)
 
     # Find the highest scores
-    max_idx = np.argsort(-scores)
+    max_idx = np.argsort(-np.array(scores))
 
     # print(f"Query: {input_text}")
     # for idx in max_idx:
