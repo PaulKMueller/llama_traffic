@@ -62,6 +62,9 @@ output_data *= 100
 # Use a nicer style for the plot
 plt.style.use("ggplot")
 
+# Set the figure size (e.g., 12x8 inches)
+plt.figure(figsize=(18, 12))
+
 # Create the bar plot with added space between bars
 plot = output_data.plot.bar(
     rot=0, width=0.8
