@@ -8,6 +8,8 @@ import math
 import keras
 import io
 
+from tqdm import tqdm
+
 import seaborn as sns
 
 import time
@@ -108,7 +110,7 @@ class SimpleShell(cmd.Cmd):
     loaded_trajectory = None
     loaded_npz_trajectory = None
 
-    with open("config.yaml", "r") as file:
+    with open("config.yml", "r") as file:
         config = yaml.safe_load(file)
         scenario_data_folder = config["scenario_data_folder"]
 
@@ -140,7 +142,7 @@ class SimpleShell(cmd.Cmd):
         """Plots the map for the loaded scenario."""
 
         # Load config file
-        with open("config.yaml", "r") as file:
+        with open("config.yml", "r") as file:
             config = yaml.safe_load(file)
             output_folder = config["output_folder"]
 
@@ -157,7 +159,7 @@ class SimpleShell(cmd.Cmd):
         """Plots the trajectory for the given vehicle ID."""
 
         # Load config file
-        with open("config.yaml", "r") as file:
+        with open("config.yml", "r") as file:
             config = yaml.safe_load(file)
             output_folder = config["output_folder"]
 
@@ -206,7 +208,7 @@ class SimpleShell(cmd.Cmd):
         """
 
         # Load config file
-        with open("config.yaml", "r") as file:
+        with open("config.yml", "r") as file:
             config = yaml.safe_load(file)
             scenario_data_folder = config["scenario_data_folder"]
             example_scenario_path = config["example_scenario_path"]
@@ -242,14 +244,14 @@ class SimpleShell(cmd.Cmd):
             print(
                 """Invalid input, please try again. 
                 Use -p to specify the scenario path, -i to specify the scenario index
-                or - e to load the example scenario chosen in your config.yaml."""
+                or - e to load the example scenario chosen in your config.yml."""
             )
 
     def do_test_npz_bucketing(self, arg: str):
         npz_files = list_vehicle_files_absolute()
         output = {}
 
-        for file in npz_files:
+        for file in tqdm(npz_files):
             npz_trajectory = NpzTrajectory(file)
             output[file] = npz_trajectory.direction
 
@@ -267,11 +269,11 @@ class SimpleShell(cmd.Cmd):
 
         self.loaded_npz_trajectory = npz_trajectory
 
-        print(npz_trajectory._gt_marginal)
+        # print(npz_trajectory._gt_marginal)
         x = npz_trajectory._gt_marginal[:, 0]
         y = npz_trajectory._gt_marginal[:, 1]
-        print(x)
-        print(y)
+        # print(x)
+        # print(y)
         coordinates = pd.DataFrame({"X": x, "Y": y})
         npz_plot = npz_trajectory.visualize_raw_coordinates_without_scenario(
             coordinates
@@ -286,24 +288,39 @@ class SimpleShell(cmd.Cmd):
         predictions = np.zeros(npz_trajectory.future_val_marginal.shape)
         prediction_dummy = np.zeros((6, 10, 2))
 
-        print(type(prediction_dummy))
-        print(npz_trajectory.future_val_marginal.shape)
-        print(npz_trajectory.future_val_marginal)
+        # print(type(prediction_dummy))
+        # print(npz_trajectory.future_val_marginal.shape)
+        # print(npz_trajectory.future_val_marginal)
 
-        print(predictions.shape)
-        plot = npz_trajectory.plot_marginal_predictions_3d(
-            vector_data=npz_trajectory.vector_data,
-            is_available=npz_trajectory.future_val_marginal,
-            gt_marginal=npz_trajectory.gt_marginal,
-            predictions=prediction_dummy,
-            confidences=np.zeros((6,)),
-            x_range=(-50, 100),
-            y_range=(-50, 100),
-            # gt_marginal=npz_trajectory.gt_marginal,
-        )
-        plot.savefig("output/3d_test_compare.png")
+        # print(predictions.shape)
+        # plot = npz_trajectory.plot_marginal_predictions_3d(
+        #     vector_data=npz_trajectory.vector_data,
+        #     is_available=npz_trajectory.future_val_marginal,
+        #     gt_marginal=npz_trajectory.gt_marginal,
+        #     predictions=prediction_dummy,
+        #     confidences=np.zeros((6,)),
+        #     # gt_marginal=npz_trajectory.gt_marginal,
+        # )
+
+        npz_trajectory.plot_trajectory()
 
         print(npz_trajectory.direction)
+
+    def do_create_direction_labeled_npz_dataset(self, arg: str):
+        with open("config.yml") as config:
+            config = yaml.safe_load(config)
+            npz_directory = config["npz_dataset"]
+
+        output = {}
+
+        trajectory_paths = list_vehicle_files_absolute(npz_directory)
+        for i in tqdm(range(len(trajectory_paths))):
+            path = trajectory_paths[i]
+            npz_trajectory = NpzTrajectory(path)
+            output[path] = npz_trajectory.direction
+
+        with open("output/direction_labeled_npz.json", "w") as file:
+            json.dump(output, file)
 
     def do_load_trajectory(self, arg: str):
         """Loads the trajectory specified by the loaded scenario and the given vehicle ID.
@@ -374,7 +391,7 @@ class SimpleShell(cmd.Cmd):
         """
 
         # Load config file
-        with open("config.yaml", "r") as file:
+        with open("config.yml", "r") as file:
             config = yaml.safe_load(file)
             output_folder = config["output_folder"]
 
@@ -453,7 +470,7 @@ class SimpleShell(cmd.Cmd):
         """
 
         # Load config file
-        with open("config.yaml", "r") as file:
+        with open("config.yml", "r") as file:
             config = yaml.safe_load(file)
             scenario_data_folder = config["scenario_data_folder"]
             output_folder = config["output_folder"]
@@ -528,7 +545,7 @@ class SimpleShell(cmd.Cmd):
 
     def do_plot_trajectory_by_id(self, arg):
         # Load config file
-        with open("config.yaml", "r") as file:
+        with open("config.yml", "r") as file:
             config = yaml.safe_load(file)
             scenario_data_folder = config["scenario_data_folder"]
             output_folder = config["output_folder"]
@@ -547,14 +564,14 @@ class SimpleShell(cmd.Cmd):
 
     def do_list_scenarios(self, arg: str):
         """Lists all available scenarios in the training folder.
-        See: config.yaml under "scenario_data_folder".
+        See: config.yml under "scenario_data_folder".
 
         Args:
             arg (str): No arguments are required.
         """
 
         # Load config file
-        with open("config.yaml", "r") as file:
+        with open("config.yml", "r") as file:
             config = yaml.safe_load(file)
             scenario_data_folder = config["scenario_data_folder"]
 
@@ -593,7 +610,7 @@ class SimpleShell(cmd.Cmd):
         """
 
         # Load config file
-        with open("config.yaml", "r") as file:
+        with open("config.yml", "r") as file:
             config = yaml.safe_load(file)
             output_folder = config["output_folder"]
 
@@ -634,7 +651,7 @@ class SimpleShell(cmd.Cmd):
         """
 
         # Load config file
-        with open("config.yaml", "r") as file:
+        with open("config.yml", "r") as file:
             config = yaml.safe_load(file)
             output_folder = config["output_folder"]
 
@@ -677,7 +694,7 @@ class SimpleShell(cmd.Cmd):
         """
 
         # Load config file
-        with open("config.yaml", "r") as file:
+        with open("config.yml", "r") as file:
             config = yaml.safe_load(file)
             output_folder = config["output_folder"]
 
@@ -716,7 +733,7 @@ class SimpleShell(cmd.Cmd):
         """
 
         # Load config file
-        with open("config.yaml", "r") as file:
+        with open("config.yml", "r") as file:
             config = yaml.safe_load(file)
             output_folder = config["output_folder"]
 
@@ -751,7 +768,7 @@ class SimpleShell(cmd.Cmd):
         """
 
         # Load config file
-        with open("config.yaml", "r") as file:
+        with open("config.yml", "r") as file:
             config = yaml.safe_load(file)
             output_folder = config["output_folder"]
 
@@ -789,7 +806,7 @@ class SimpleShell(cmd.Cmd):
         """
 
         # Load config file
-        with open("config.yaml", "r") as file:
+        with open("config.yml", "r") as file:
             config = yaml.safe_load(file)
             output_folder = config["output_folder"]
 
@@ -877,7 +894,7 @@ class SimpleShell(cmd.Cmd):
         """
 
         # Load config file
-        with open("config.yaml", "r") as file:
+        with open("config.yml", "r") as file:
             config = yaml.safe_load(file)
             output_folder = config["output_folder"]
 
@@ -907,7 +924,7 @@ class SimpleShell(cmd.Cmd):
         """
 
         # Load config file
-        with open("config.yaml", "r") as file:
+        with open("config.yml", "r") as file:
             config = yaml.safe_load(file)
             output_folder = config["output_folder"]
 
@@ -953,7 +970,7 @@ class SimpleShell(cmd.Cmd):
         """
 
         # Load config file
-        with open("config.yaml", "r") as file:
+        with open("config.yml", "r") as file:
             config = yaml.safe_load(file)
             output_folder = config["output_folder"]
 
@@ -1079,7 +1096,7 @@ class SimpleShell(cmd.Cmd):
         """
 
         # Load config file
-        with open("config.yaml", "r") as file:
+        with open("config.yml", "r") as file:
             config = yaml.safe_load(file)
             output_folder = config["output_folder"]
 
@@ -1124,7 +1141,7 @@ class SimpleShell(cmd.Cmd):
 
     def do_plot_all_maps(self, arg: str):
         # Load config file
-        with open("config.yaml", "r") as file:
+        with open("config.yml", "r") as file:
             config = yaml.safe_load(file)
             output_folder = config["output_folder"]
             scenario_data_folder = config["scenario_data_folder"]
@@ -1144,7 +1161,7 @@ class SimpleShell(cmd.Cmd):
         """Returns the delta angles of the trajectory of the given vehicle."""
 
         # Load config file
-        with open("config.yaml", "r") as file:
+        with open("config.yml", "r") as file:
             config = yaml.safe_load(file)
             output_folder = config["output_folder"]
 
@@ -1257,7 +1274,7 @@ class SimpleShell(cmd.Cmd):
         """
 
         # Load config file
-        with open("config.yaml", "r") as file:
+        with open("config.yml", "r") as file:
             config = yaml.safe_load(file)
             output_folder = config["output_folder"]
 
@@ -1917,7 +1934,7 @@ class SimpleShell(cmd.Cmd):
         number_of_scenarios = len(scenarios)
 
         # Load config file
-        with open("config.yaml", "r") as file:
+        with open("config.yml", "r") as file:
             config = yaml.safe_load(file)
             output_folder = config["output_folder"]
 
@@ -2111,7 +2128,7 @@ class SimpleShell(cmd.Cmd):
         """
 
         # Load config file
-        # with open("config.yaml", "r") as file:
+        # with open("config.yml", "r") as file:
         #     config = yaml.safe_load(file)
         #     output_folder = config["output_folder"]
 
@@ -2182,7 +2199,7 @@ class SimpleShell(cmd.Cmd):
         """
 
         # Load config file
-        # with open("config.yaml", "r") as file:
+        # with open("config.yml", "r") as file:
         #     config = yaml.safe_load(file)
         #     output_folder = config["output_folder"]
 
@@ -2498,7 +2515,7 @@ class SimpleShell(cmd.Cmd):
 
     def do_plot_bucketing_limits(self, arg: str):
         # Load config file
-        with open("config.yaml", "r") as file:
+        with open("config.yml", "r") as file:
             config = yaml.safe_load(file)
             scenario_data_folder = config["scenario_data_folder"]
             example_scenario_path = config["example_scenario_path"]
@@ -2837,7 +2854,7 @@ class SimpleShell(cmd.Cmd):
         """
 
         # Load config file
-        with open("config.yaml", "r") as file:
+        with open("config.yml", "r") as file:
             config = yaml.safe_load(file)
             output_folder = config["output_folder"]
 
