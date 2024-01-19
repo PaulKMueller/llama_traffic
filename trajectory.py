@@ -473,7 +473,7 @@ class Trajectory:
 
         absolute_total_delta_angle = abs(total_delta_angle)
 
-        if self.relative_displacement < 0.05:
+        if self.relative_displacement < 0.03:
             bucket = "Stationary"
             return bucket
         elif absolute_total_delta_angle < 15 and absolute_total_delta_angle > -15:

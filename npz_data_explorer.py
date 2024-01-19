@@ -1,8 +1,13 @@
 import numpy as np
 
-with np.load("datasets/vehicle_a_13_00002_1954337085.npz") as data:
+with np.load(
+    "/home/pmueller/llama_traffic/datasets/npz_test_data/train-2e6/vehicle_a_28_00004_2687971216.npz"
+) as data:
     for key in data.keys():
         print(key)
+    print(data["_gt_marginal"].shape)
+    print(data["raster"].shape)
+    print(data["scenario_id"])
     # print(f"Object ID: {data['object_id']}")
     # print(f"Yaw: {data['yaw']}")
     # print(f"Shift: {data['shift']}")

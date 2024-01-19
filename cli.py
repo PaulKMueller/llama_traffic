@@ -24,6 +24,8 @@ from tensorflow.keras.losses import MeanSquaredError
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 
+from npz_utils import list_vehicle_files_absolute
+
 import pandas as pd
 
 from datetime import datetime
@@ -34,13 +36,15 @@ from trajectory import Trajectory
 import numpy as np
 import random
 
+from npz_trajectory import NpzTrajectory
+
 # from llama_test import get_llama_embeddingK
 
 from cohere_encoder import get_cohere_encoding
 
 from uae_explore import get_uae_encoding
 
-from voyage_explore import get_voyage_encoding
+# from voyage_explore import get_voyage_encoding
 
 # from training_dataclass import TrainingData
 
@@ -102,6 +106,7 @@ class SimpleShell(cmd.Cmd):
     prompt = "(waymo_cli) "
     loaded_scenario = None
     loaded_trajectory = None
+    loaded_npz_trajectory = None
 
     with open("config.yaml", "r") as file:
         config = yaml.safe_load(file)
@@ -239,6 +244,66 @@ class SimpleShell(cmd.Cmd):
                 Use -p to specify the scenario path, -i to specify the scenario index
                 or - e to load the example scenario chosen in your config.yaml."""
             )
+
+    def do_test_npz_bucketing(self, arg: str):
+        npz_files = list_vehicle_files_absolute()
+        output = {}
+
+        for file in npz_files:
+            npz_trajectory = NpzTrajectory(file)
+            output[file] = npz_trajectory.direction
+
+        with open("output/npz_bucketing_test.json", "w") as file:
+            json.dump(output, file)
+
+    def do_load_npz_trajectory(self, arg: str):
+        # vehicle is type 1, pedestrian type 2
+        npz_trajectory = NpzTrajectory(
+            "/home/pmueller/llama_traffic/datasets/npz_test_data/train-2e6/vehicle_c_847_00003_2857436651.npz"
+        )
+        # npz_trajectory = NpzTrajectory(
+        #     "/home/pmueller/llama_traffic/datasets/npz_test_data/train-2e6/pedestrian_c_77063_00004_7456769354.npz"
+        # )
+
+        self.loaded_npz_trajectory = npz_trajectory
+
+        print(npz_trajectory._gt_marginal)
+        x = npz_trajectory._gt_marginal[:, 0]
+        y = npz_trajectory._gt_marginal[:, 1]
+        print(x)
+        print(y)
+        coordinates = pd.DataFrame({"X": x, "Y": y})
+        npz_plot = npz_trajectory.visualize_raw_coordinates_without_scenario(
+            coordinates
+        )
+        # npz_plot.savefig("output/test_npz_plot.png")
+        # print(npz_trajectory.get_delta_angles(npz_trajectory.coordinates))
+        # print(npz_trajectory.movement_vectors)
+        # print(npz_trajectory.get_sum_of_delta_angles())
+
+        # plot = npz_trajectory.plot_marginal_predictions_3d(npz_trajectory.vector_data)
+
+        predictions = np.zeros(npz_trajectory.future_val_marginal.shape)
+        prediction_dummy = np.zeros((6, 10, 2))
+
+        print(type(prediction_dummy))
+        print(npz_trajectory.future_val_marginal.shape)
+        print(npz_trajectory.future_val_marginal)
+
+        print(predictions.shape)
+        plot = npz_trajectory.plot_marginal_predictions_3d(
+            vector_data=npz_trajectory.vector_data,
+            is_available=npz_trajectory.future_val_marginal,
+            gt_marginal=npz_trajectory.gt_marginal,
+            predictions=prediction_dummy,
+            confidences=np.zeros((6,)),
+            x_range=(-50, 100),
+            y_range=(-50, 100),
+            # gt_marginal=npz_trajectory.gt_marginal,
+        )
+        plot.savefig("output/3d_test_compare.png")
+
+        print(npz_trajectory.direction)
 
     def do_load_trajectory(self, arg: str):
         """Loads the trajectory specified by the loaded scenario and the given vehicle ID.
@@ -1552,151 +1617,151 @@ class SimpleShell(cmd.Cmd):
         with open("output/uae_embedding_test.json", "w") as file:
             json.dump(str(output), file, indent=4)
 
-    def do_test_voyage_embedding_similarities(self, arg):
-        right_u_turn = [
-            "Rightward complete reversal",
-            "180-degree turn to the right",
-            "Clockwise U-turn",
-            "Right circular turnaround",
-            "Right-hand loopback",
-            "Right flip turn",
-            "Full right pivot",
-            "Right about-face",
-            "Rightward return turn",
-            "Rightward reversing curve",
-        ]
-        left_u_turn = [
-            "Leftward complete reversal",
-            "180-degree turn to the left",
-            "Counterclockwise U-turn",
-            "Left circular turnaround",
-            "Left-hand loopback",
-            "Left flip turn",
-            "Full left pivot",
-            "Left about-face",
-            "Leftward return turn",
-            "Leftward reversing curve",
-        ]
-        stationary = [
-            "At a standstill",
-            "Motionless",
-            "Unmoving",
-            "Static position",
-            "Immobilized",
-            "Not in motion",
-            "Fixed in place",
-            "Idle",
-            "Inert",
-            "Anchored",
-        ]
-        right = [
-            "Rightward",
-            "To the right",
-            "Right-hand side",
-            "Starboard",
-            "Rightward direction",
-            "Clockwise direction",
-            "Right-leaning",
-            "Rightward bound",
-            "Bearing right",
-            "Veering right",
-        ]
-        left = [
-            "Leftward",
-            "To the left",
-            "Left-hand side",
-            "Port",
-            "Leftward direction",
-            "Counterclockwise direction",
-            "Left-leaning",
-            "Leftward bound",
-            "Bearing left",
-            "Veering left",
-        ]
-        straight_right = [
-            "Straight then right",
-            "Forward followed by a right turn",
-            "Proceed straight, then veer right",
-            "Continue straight before turning right",
-            "Advance straight, then bear right",
-            "Go straight, then curve right",
-            "Head straight, then pivot right",
-            "Move straight, then angle right",
-            "Straight-line, followed by a right deviation",
-            "Directly ahead, then a rightward shift",
-        ]
-        straight_left = [
-            "Straight then left",
-            "Forward followed by a left turn",
-            "Proceed straight, then veer left",
-            "Continue straight before turning left",
-            "Advance straight, then bear left",
-            "Go straight, then curve left",
-            "Head straight, then pivot left",
-            "Move straight, then angle left",
-            "Straight-line, followed by a left deviation",
-            "Directly ahead, then a leftward shift",
-        ]
-        straight = [
-            "Directly ahead",
-            "Forward",
-            "Straightforward",
-            "In a straight line",
-            "Linearly",
-            "Unswervingly",
-            "Onward",
-            "Direct path",
-            "True course",
-            "Non-curving path",
-        ]
+    # def do_test_voyage_embedding_similarities(self, arg):
+    #     right_u_turn = [
+    #         "Rightward complete reversal",
+    #         "180-degree turn to the right",
+    #         "Clockwise U-turn",
+    #         "Right circular turnaround",
+    #         "Right-hand loopback",
+    #         "Right flip turn",
+    #         "Full right pivot",
+    #         "Right about-face",
+    #         "Rightward return turn",
+    #         "Rightward reversing curve",
+    #     ]
+    #     left_u_turn = [
+    #         "Leftward complete reversal",
+    #         "180-degree turn to the left",
+    #         "Counterclockwise U-turn",
+    #         "Left circular turnaround",
+    #         "Left-hand loopback",
+    #         "Left flip turn",
+    #         "Full left pivot",
+    #         "Left about-face",
+    #         "Leftward return turn",
+    #         "Leftward reversing curve",
+    #     ]
+    #     stationary = [
+    #         "At a standstill",
+    #         "Motionless",
+    #         "Unmoving",
+    #         "Static position",
+    #         "Immobilized",
+    #         "Not in motion",
+    #         "Fixed in place",
+    #         "Idle",
+    #         "Inert",
+    #         "Anchored",
+    #     ]
+    #     right = [
+    #         "Rightward",
+    #         "To the right",
+    #         "Right-hand side",
+    #         "Starboard",
+    #         "Rightward direction",
+    #         "Clockwise direction",
+    #         "Right-leaning",
+    #         "Rightward bound",
+    #         "Bearing right",
+    #         "Veering right",
+    #     ]
+    #     left = [
+    #         "Leftward",
+    #         "To the left",
+    #         "Left-hand side",
+    #         "Port",
+    #         "Leftward direction",
+    #         "Counterclockwise direction",
+    #         "Left-leaning",
+    #         "Leftward bound",
+    #         "Bearing left",
+    #         "Veering left",
+    #     ]
+    #     straight_right = [
+    #         "Straight then right",
+    #         "Forward followed by a right turn",
+    #         "Proceed straight, then veer right",
+    #         "Continue straight before turning right",
+    #         "Advance straight, then bear right",
+    #         "Go straight, then curve right",
+    #         "Head straight, then pivot right",
+    #         "Move straight, then angle right",
+    #         "Straight-line, followed by a right deviation",
+    #         "Directly ahead, then a rightward shift",
+    #     ]
+    #     straight_left = [
+    #         "Straight then left",
+    #         "Forward followed by a left turn",
+    #         "Proceed straight, then veer left",
+    #         "Continue straight before turning left",
+    #         "Advance straight, then bear left",
+    #         "Go straight, then curve left",
+    #         "Head straight, then pivot left",
+    #         "Move straight, then angle left",
+    #         "Straight-line, followed by a left deviation",
+    #         "Directly ahead, then a leftward shift",
+    #     ]
+    #     straight = [
+    #         "Directly ahead",
+    #         "Forward",
+    #         "Straightforward",
+    #         "In a straight line",
+    #         "Linearly",
+    #         "Unswervingly",
+    #         "Onward",
+    #         "Direct path",
+    #         "True course",
+    #         "Non-curving path",
+    #     ]
 
-        bucket_synonym_lists = [
-            right_u_turn,
-            left_u_turn,
-            stationary,
-            right,
-            left,
-            straight_right,
-            straight_left,
-            straight,
-        ]
+    #     bucket_synonym_lists = [
+    #         right_u_turn,
+    #         left_u_turn,
+    #         stationary,
+    #         right,
+    #         left,
+    #         straight_right,
+    #         straight_left,
+    #         straight,
+    #     ]
 
-        buckets = [
-            "Right-U-Turn",
-            "Left-U-Turn",
-            "Stationary",
-            "Right",
-            "Left",
-            "Straight-Right",
-            "Straight-Left",
-            "Straight",
-        ]
+    #     buckets = [
+    #         "Right-U-Turn",
+    #         "Left-U-Turn",
+    #         "Stationary",
+    #         "Right",
+    #         "Left",
+    #         "Straight-Right",
+    #         "Straight-Left",
+    #         "Straight",
+    #     ]
 
-        output = {}
+    #     output = {}
 
-        for index, synonym_list in enumerate(bucket_synonym_lists):
-            current_bucket = buckets[index]
-            if current_bucket not in output:
-                output[current_bucket] = {}
-            for synonym in synonym_list:
-                bucket_similarities = get_voyage_encoding(synonym)
-                print(synonym)
-                output[buckets[index]][synonym] = bucket_similarities
-                print(bucket_similarities)
-                print()
-        with open("output/voyage_embedding_test.json", "w") as file:
-            json.dump(str(output), file, indent=4)
+    #     for index, synonym_list in enumerate(bucket_synonym_lists):
+    #         current_bucket = buckets[index]
+    #         if current_bucket not in output:
+    #             output[current_bucket] = {}
+    #         for synonym in synonym_list:
+    #             bucket_similarities = get_voyage_encoding(synonym)
+    #             print(synonym)
+    #             output[buckets[index]][synonym] = bucket_similarities
+    #             print(bucket_similarities)
+    #             print()
+    #     with open("output/voyage_embedding_test.json", "w") as file:
+    #         json.dump(str(output), file, indent=4)
 
-    def do_print_scenario_index(self, arg: str):
-        """Returns the ID of the loaded scenario.
+    # def do_print_scenario_index(self, arg: str):
+    #     """Returns the ID of the loaded scenario.
 
-        Args:
-            arg (str): No arguments are required.
-        """
+    #     Args:
+    #         arg (str): No arguments are required.
+    #     """
 
-        print(
-            f"\nThe ID of the loaded scenario is: {get_scenario_index(self.loaded_scenario.name)}\n"
-        )
+    #     print(
+    #         f"\nThe ID of the loaded scenario is: {get_scenario_index(self.loaded_scenario.name)}\n"
+    #     )
 
     def do_test_bert_encoding(self, arg):
         right_u_turn = [
@@ -2430,6 +2495,339 @@ class SimpleShell(cmd.Cmd):
             buckets[value["Direction"]] += 1
 
         print(buckets)
+
+    def do_plot_bucketing_limits(self, arg: str):
+        # Load config file
+        with open("config.yaml", "r") as file:
+            config = yaml.safe_load(file)
+            scenario_data_folder = config["scenario_data_folder"]
+            example_scenario_path = config["example_scenario_path"]
+
+        if not self.scenario_loaded():
+            return
+
+        center_y, center_x, width = self.loaded_scenario.get_viewport()
+
+        # Stationary Plot Creation
+
+        stationary_step_size = (0.03 * width) / 101
+
+        stationary_x = [center_x for i in range(101)]
+        stationary_y = [center_y + (stationary_step_size * i) for i in range(101)]
+
+        stationary_coordinates = pd.DataFrame({"X": stationary_x, "Y": stationary_y})
+
+        stationary_plot = self.loaded_scenario.visualize_coordinates(
+            stationary_coordinates
+        )
+        stationary_plot.savefig("output/stationary_plot.png")
+        plt.close()
+
+        # Straight Plot
+
+        y_straight_step_size = (0.10 * width) / 101
+        x_straight_step_size = math.tan(math.radians(15)) * y_straight_step_size
+
+        straight_x = [
+            center_x + (x_straight_step_size * i) - center_x + 0.01 for i in range(101)
+        ]
+
+        test_straight_x = [center_x + (x_straight_step_size * i) for i in range(101)]
+
+        straight_y = [
+            center_y + (y_straight_step_size * i) - center_y for i in range(101)
+        ]
+
+        y1 = straight_y[0]
+        y2 = straight_y[-1]
+
+        x1 = straight_x[0]
+        x2 = straight_x[-1]
+
+        a, b = self.get_exponential_function(y1, x1, y2, x2)
+
+        straight_x = [a * math.pow(b, y) + center_x for y in straight_y]
+
+        straight_y = [center_y + (y_straight_step_size * i) for i in range(101)]
+
+        straight_coordinates = pd.DataFrame({"X": straight_x, "Y": straight_y})
+
+        straight_plot = self.loaded_scenario.visualize_coordinates(straight_coordinates)
+        straight_plot.savefig("output/straight_plot.png")
+        plt.close()
+
+        # Straight Plot 2
+
+        y_straight_step_size = (0.10 * width) / 101
+        x_straight_step_size = math.tan(math.radians(0)) * y_straight_step_size
+
+        straight_x = [
+            center_x + (x_straight_step_size * i) - center_x + 0.01 for i in range(101)
+        ]
+
+        straight_y = [
+            center_y + (y_straight_step_size * i) - center_y for i in range(101)
+        ]
+
+        y1 = straight_y[0]
+        y2 = straight_y[-1]
+
+        x1 = straight_x[0]
+        x2 = straight_x[-1]
+
+        a, b = self.get_exponential_function(y1, x1, y2, x2)
+
+        straight_x = [a * math.pow(b, y) + center_x for y in straight_y]
+
+        straight_y = [center_y + (y_straight_step_size * i) for i in range(101)]
+
+        straight_coordinates = pd.DataFrame({"X": straight_x, "Y": straight_y})
+
+        straight_plot = self.loaded_scenario.visualize_coordinates(straight_coordinates)
+        straight_plot.savefig("output/straight_plot_2.png")
+        plt.close()
+
+        # Straight Plot 3
+
+        y_straight_step_size = (0.10 * width) / 101
+        x_straight_step_size = math.tan(math.radians(15)) * y_straight_step_size
+
+        straight_x = [
+            center_x + (x_straight_step_size * i) - center_x + 0.01 for i in range(101)
+        ]
+
+        straight_y = [
+            center_y + (y_straight_step_size * i) - center_y for i in range(101)
+        ]
+
+        y1 = straight_y[0]
+        y2 = straight_y[-1]
+
+        x1 = straight_x[0]
+        x2 = straight_x[-1]
+
+        a, b = self.get_exponential_function(y1, x1, y2, x2)
+
+        straight_x = [a * math.pow(b, y) + center_x for y in straight_y]
+        strict_straight_x = [center_x for i in range(101)]
+
+        diffs = []
+
+        for index, x in enumerate(straight_x):
+            diffs.append(straight_x[index] - strict_straight_x[index])
+
+        straight_transformed_x = []
+        for index, diff in enumerate(diffs):
+            straight_transformed_x.append(strict_straight_x[index] - diffs[index])
+
+        straight_y = [center_y + (y_straight_step_size * i) for i in range(101)]
+
+        straight_coordinates = pd.DataFrame(
+            {"X": straight_transformed_x, "Y": straight_y}
+        )
+
+        straight_plot = self.loaded_scenario.visualize_coordinates(straight_coordinates)
+        straight_plot.savefig("output/straight_plot_3.png")
+        plt.close()
+
+        # Straight-Right Plot 1
+
+        y_straight_step_size = (0.10 * width) / 101
+        x_straight_step_size = math.tan(math.radians(40)) * y_straight_step_size
+
+        straight_x = [
+            center_x + (x_straight_step_size * i) - center_x + 0.01 for i in range(101)
+        ]
+
+        test_straight_x = [center_x + (x_straight_step_size * i) for i in range(101)]
+
+        straight_y = [
+            center_y + (y_straight_step_size * i) - center_y for i in range(101)
+        ]
+
+        y1 = straight_y[0]
+        y2 = straight_y[-1]
+
+        x1 = straight_x[0]
+        x2 = straight_x[-1]
+
+        a, b = self.get_exponential_function(y1, x1, y2, x2)
+
+        straight_x = [a * math.pow(b, y) + center_x for y in straight_y]
+
+        straight_y = [center_y + (y_straight_step_size * i) for i in range(101)]
+
+        straight_coordinates = pd.DataFrame({"X": straight_x, "Y": straight_y})
+
+        straight_plot = self.loaded_scenario.visualize_coordinates(straight_coordinates)
+        straight_plot.savefig("output/straight_right_plot_1.png")
+        plt.close()
+
+        # Straight Left Plot
+
+        y_straight_step_size = (0.10 * width) / 101
+        x_straight_step_size = math.tan(math.radians(40)) * y_straight_step_size
+
+        straight_x = [
+            center_x + (x_straight_step_size * i) - center_x + 0.01 for i in range(101)
+        ]
+
+        straight_y = [
+            center_y + (y_straight_step_size * i) - center_y for i in range(101)
+        ]
+
+        y1 = straight_y[0]
+        y2 = straight_y[-1]
+
+        x1 = straight_x[0]
+        x2 = straight_x[-1]
+
+        a, b = self.get_exponential_function(y1, x1, y2, x2)
+
+        straight_x = [a * math.pow(b, y) + center_x for y in straight_y]
+        strict_straight_x = [center_x for i in range(101)]
+
+        diffs = []
+
+        for index, x in enumerate(straight_x):
+            diffs.append(straight_x[index] - strict_straight_x[index])
+
+        straight_transformed_x = []
+        for index, diff in enumerate(diffs):
+            straight_transformed_x.append(strict_straight_x[index] - diffs[index])
+
+        straight_y = [center_y + (y_straight_step_size * i) for i in range(101)]
+
+        straight_coordinates = pd.DataFrame(
+            {"X": straight_transformed_x, "Y": straight_y}
+        )
+
+        straight_plot = self.loaded_scenario.visualize_coordinates(straight_coordinates)
+        straight_plot.savefig("output/straight_right_plot_2.png")
+        plt.close()
+
+        # Left Plot
+
+        step_size = (0.15 * width) / 101
+        starting_vector = np.array([0.001, step_size])
+        angles = [i * 130 / 101 for i in range(101)]
+        vectors = [self.rotate_vector(starting_vector, alpha) for alpha in angles]
+
+        starting_point = np.array([center_x, center_y])
+        coordinates = [starting_point, starting_point + starting_vector]
+        for vector in vectors:
+            coordinates.append(coordinates[-1] + vector)
+
+        print(coordinates)
+
+        x = [coordinate[0] for coordinate in coordinates]
+        y = [coordinate[1] for coordinate in coordinates]
+
+        coordinates = pd.DataFrame({"X": x, "Y": y})
+
+        straight_plot = self.loaded_scenario.visualize_coordinates(coordinates)
+        straight_plot.savefig("output/left_plot.png")
+        plt.close()
+
+        # Right Plot
+
+        step_size = (0.15 * width) / 101
+        starting_vector = np.array([0.001, step_size])
+        angles = [i * -130 / 101 for i in range(101)]
+        vectors = [self.rotate_vector(starting_vector, alpha) for alpha in angles]
+
+        starting_point = np.array([center_x, center_y])
+        coordinates = [starting_point, starting_point + starting_vector]
+        for vector in vectors:
+            coordinates.append(coordinates[-1] + vector)
+
+        print(coordinates)
+
+        x = [coordinate[0] for coordinate in coordinates]
+        y = [coordinate[1] for coordinate in coordinates]
+
+        coordinates = pd.DataFrame({"X": x, "Y": y})
+
+        straight_plot = self.loaded_scenario.visualize_coordinates(coordinates)
+        straight_plot.savefig("output/right_plot.png")
+        plt.close()
+
+        # # Right Plot
+
+        # y_straight_step_size = (0.10 * width) / 101
+        # x_straight_step_size = math.tan(math.radians(130)) * y_straight_step_size
+
+        # straight_x = [
+        #     center_x + (x_straight_step_size * i) - center_x + 0.01 for i in range(101)
+        # ]
+
+        # test_straight_x = [center_x + (x_straight_step_size * i) for i in range(101)]
+        # print(test_straight_x)
+
+        # straight_y = [
+        #     center_y + (y_straight_step_size * i) - center_y for i in range(101)
+        # ]
+
+        # y1 = straight_y[0]
+        # y2 = straight_y[-1]
+
+        # x1 = straight_x[0]
+        # x2 = straight_x[-1]
+
+        # a, b = self.get_exponential_function(y1, x1, y2, x2)
+
+        # straight_x = [a * math.pow(b, y) + center_x for y in straight_y]
+        # print(straight_x)
+
+        # straight_y = [center_y + (y_straight_step_size * i) for i in range(101)]
+
+        # straight_coordinates = pd.DataFrame({"X": straight_x, "Y": straight_y})
+
+        # straight_plot = self.loaded_scenario.visualize_coordinates(straight_coordinates)
+        # straight_plot.savefig("output/right_plot.png")
+        # plt.close()
+
+    @staticmethod
+    def rotate_vector(vector, alpha):
+        # Convert alpha from degrees to radians
+        alpha_rad = math.radians(alpha)
+
+        # Rotation matrix
+        rotation_matrix = np.array(
+            [
+                [math.cos(alpha_rad), -math.sin(alpha_rad)],
+                [math.sin(alpha_rad), math.cos(alpha_rad)],
+            ]
+        )
+
+        # Rotate the vector
+        rotated_vector = np.dot(rotation_matrix, vector)
+        return rotated_vector
+
+    @staticmethod
+    def get_90_degree_vector(alpha, vector):
+        v1 = vector[0]
+        v2 = vector[1]
+
+        v2_star = math.sqrt(
+            (
+                math.pow(math.tan(math.radians(alpha)), 2)
+                * (math.pow(v1, 2) + math.pow(v2, 2))
+                * math.pow(v1, 2)
+            )
+            / ((math.pow(v1, 2) + math.pow(v2, 2)))
+        )
+        v1_star = -(v2_star * v2) / v1
+
+        return np.array([v1_star, v2_star])
+
+    @staticmethod
+    def get_exponential_function(x1, y1, x2, y2):
+        """Returns a and b for an exponential function of form y = a * b^2"""
+        b = math.pow(y2 / y1, 1 / (x2 - x1))
+        a = y1 / math.pow(b, x1)
+
+        return a, b
 
     def do_plot_predicted_trajectory(self, arg: str):
         """Plot the predicted trajectory for the given bucket.

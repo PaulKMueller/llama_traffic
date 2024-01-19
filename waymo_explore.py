@@ -16,13 +16,14 @@ from waymo_open_dataset.utils.sim_agents import submission_specs
 from waymo_open_dataset.utils.sim_agents import test_utils as sim_agents_test_utils
 from waymo_open_dataset.utils.sim_agents import visualizations
 from waymo_open_dataset.utils import trajectory_utils
+from waymo_open_dataset import dataset_pb2 as open_dataset
 
 # Set matplotlib to jshtml so animations work with colab.
 from matplotlib import rc
 
 rc("animation", html="jshtml")
 
-from waymo_open_dataset.protos import scenario_pb2
+# from waymo_open_dataset.protos import scenario_pb2
 
 dataset = tf.data.TFRecordDataset(
     "/mrtstorage/datasets/tmp/waymo_open_motion_v_1_2_0/uncompressed/tf_example/training/training_tfexample.tfrecord-00998-of-01000",
@@ -32,16 +33,22 @@ dataset = tf.data.TFRecordDataset(
 print(dataset)
 
 data = next(dataset.as_numpy_iterator())
+
+with open("text.txt", "w") as file:
+    file.write(str(data))
+
+print(data)
+print(type(data))
 # scenario = scenario_pb2.Scenario.FromString(data)
 
-scenario_data = []
-for data in dataset:
-    proto_string = data.numpy()
-    proto = scenario_pb2.Scenario()
-    proto.ParseFromString(proto_string)
-    scenario_data.append(proto)
+# scenario_data = []
+# for data in dataset:
+#     proto_string = data.numpy()
+#     proto = scenario_pb2.Scenario()
+#     proto.ParseFromString(proto_string)
+#     scenario_data.append(proto)
 
-print(scenario_data)
+# print(scenario_data)
 
 
 # with open("test.txt", "w") as file:
