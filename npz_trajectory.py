@@ -551,6 +551,8 @@ class NpzTrajectory:
             ]
         )
 
+        print(X[0])
+        print(np.unique(idx).shape)
         for i in np.unique(idx):
             _X = X[
                 (idx == i)
@@ -559,7 +561,7 @@ class NpzTrajectory:
                 & (X[:, 0] > x_range[0])
                 & (X[:, 1] > y_range[0])
             ]
-            print(_X)
+            print(_X.shape)
             if _X[:, 8].sum() > 0:
                 # The ego vehicle in this scenario starts at (0, 0). This is checked in the next line.
                 if _X[-1, 0] == 0 and _X[-1, 1] == 0:
@@ -677,9 +679,6 @@ class NpzTrajectory:
             label=label,
             linewidth=4,
         )
-
-        print(gt_marginal[is_available > 0][:, 0])
-        print(gt_marginal[is_available > 0][:, 1])
 
         plt.savefig(filename)
 

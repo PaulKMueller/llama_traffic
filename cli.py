@@ -314,13 +314,16 @@ class SimpleShell(cmd.Cmd):
         output = {}
 
         trajectory_paths = list_vehicle_files_absolute(npz_directory)
+        with open("output/direction_labeled_npz.json", "w") as file:
+            file.write("{")
         for i in tqdm(range(len(trajectory_paths))):
             path = trajectory_paths[i]
             npz_trajectory = NpzTrajectory(path)
             output[path] = npz_trajectory.direction
-
-        with open("output/direction_labeled_npz.json", "w") as file:
-            json.dump(output, file)
+            with open("output/direction_labeled_npz.json", "a") as file:
+                file.write(f'"{path}": "{npz_trajectory.direction}",')
+        with open("output/direction_labeled_npz.json", "a") as file:
+            file.write("}")
 
     def do_load_trajectory(self, arg: str):
         """Loads the trajectory specified by the loaded scenario and the given vehicle ID.

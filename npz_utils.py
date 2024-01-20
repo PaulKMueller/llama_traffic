@@ -13,7 +13,7 @@ def list_vehicle_files_relative(directory="datasets/npz_test_data/train-2e6"):
     """
     vehicle_files = []
     for filename in os.listdir(directory):
-        if filename.startswith("vehicle"):
+        if filename.startswith("vehicle_a"):
             vehicle_files.append(filename)
     return vehicle_files
 
@@ -30,7 +30,7 @@ def list_vehicle_files_absolute(directory="datasets/npz_test_data/train-2e6"):
     """
     vehicle_files = []
     for filename in os.listdir(directory):
-        if filename.startswith("vehicle"):
+        if filename.startswith("vehicle_b"):
             absolute_path = os.path.abspath(os.path.join(directory, filename))
             vehicle_files.append(absolute_path)
     return vehicle_files
