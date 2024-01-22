@@ -3,13 +3,14 @@ import pytorch_lightning as pl
 
 from torch import nn, Tensor
 from local_attention import LocalAttention
+from npz_trajectory import NpzTrajectory
 
 
 class EgoTrajectoryEncoder(nn.Module):
     def __init__(
         self,
         max_dist=50.0,
-        num_timesteps=11,
+        # num_timesteps=11,
         num_layers=6,
         dim_model=128,
         num_heads=8,
@@ -23,7 +24,7 @@ class EgoTrajectoryEncoder(nn.Module):
             out_features=dim_model,
         )
         self.max_dist = max_dist
-        self.num_timesteps = num_timesteps
+        # self.num_timesteps = num_timesteps
 
         self.layers = nn.ModuleList(
             [
@@ -37,8 +38,8 @@ class EgoTrajectoryEncoder(nn.Module):
         pos_src_tokens /= self.max_dist
         batch_size = pos_src_tokens.size(0)
         time_encoding = torch.arange(
-            0, self.num_timesteps, device=pos_src_tokens.device
-        ) / (self.num_timesteps - 1)
+            0, pos_src_tokens.shape[1], device=pos_src_tokens.device
+        ) / (pos_src_tokens.shape[1] - 1)
         time_encoding = time_encoding.expand(batch_size, -1)[:, :, None]
 
         src = torch.cat(
@@ -163,24 +164,39 @@ def feed_forward(dim_input: int = 512, dim_feedforward: int = 2048) -> nn.Module
 
 
 # Initialize the encoder
-encoder = EgoTrajectoryEncoder(num_timesteps=100)
+encoder = EgoTrajectoryEncoder()
+
+npz = NpzTrajectory(
+    "/mrtstorage/datasets/tmp/waymo_open_motion_processed/train-2e6/vehicle_b_78219_00001_4426517365.npz"
+)
+print(npz.coordinates.shape)
+print(type(npz.coordinates.shape))
 
 # Create a dummy trajectory
 # Assuming batch_size = 1 and num_timesteps = 11
 batch_size = 1
-num_timesteps = 100
+data = npz.coordinates.to_numpy()
+print(data)
+pos_src_tokens = torch.Tensor(data.reshape(batch_size, data.shape[0], data.shape[1]))
 
-# Creating a linear trajectory for both x and y
-trajectory = (
-    torch.linspace(0, 1, steps=num_timesteps).repeat(batch_size, 1).unsqueeze(-1)
-)
-trajectory = torch.cat((trajectory, trajectory), dim=-1)  # Same values for x and y
-print(trajectory)
+# trajectory_length = 100
+
+# trajectory = (
+#     torch.linspace(0, 1, steps=trajectory_length).repeat(batch_size, 1).unsqueeze(-1)
+# )
+
+# print(trajectory.shape)  # Should print [batch_size, trajectory_length, 1]
+
+# Concatenate trajectory with itself along the last dimension
+# trajectory = torch.cat((trajectory, trajectory), dim=-1)  # Same values for x and y
+# print("Done")
+# print(trajectory.shape)
 
 # Concatenate trajectory with time steps
-pos_src_tokens = trajectory
+# pos_src_tokens = trajectory
 
-# Process the trajectory through the encoder
+# # Process the trajectory through the encoder
+# # print("Encoder Call reached")
 output = encoder(pos_src_tokens)
 
 # Output

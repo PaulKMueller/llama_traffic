@@ -261,7 +261,7 @@ class SimpleShell(cmd.Cmd):
     def do_load_npz_trajectory(self, arg: str):
         # vehicle is type 1, pedestrian type 2
         npz_trajectory = NpzTrajectory(
-            "/home/pmueller/llama_traffic/datasets/npz_test_data/train-2e6/vehicle_c_847_00003_2857436651.npz"
+            "/mrtstorage/datasets/tmp/waymo_open_motion_processed/train-2e6/vehicle_a_67582_00003_5913311279.npz"
         )
         # npz_trajectory = NpzTrajectory(
         #     "/home/pmueller/llama_traffic/datasets/npz_test_data/train-2e6/pedestrian_c_77063_00004_7456769354.npz"
@@ -310,20 +310,47 @@ class SimpleShell(cmd.Cmd):
         with open("config.yml") as config:
             config = yaml.safe_load(config)
             npz_directory = config["npz_dataset"]
-
-        output = {}
+        print("Config read!")
+        # output = {}
 
         trajectory_paths = list_vehicle_files_absolute(npz_directory)
+        print("Trajectories listed!")
         with open("output/direction_labeled_npz.json", "w") as file:
             file.write("{")
         for i in tqdm(range(len(trajectory_paths))):
             path = trajectory_paths[i]
             npz_trajectory = NpzTrajectory(path)
-            output[path] = npz_trajectory.direction
+            coordinates = list(
+                zip(npz_trajectory.coordinates["X"], npz_trajectory.coordinates["Y"])
+            )
+            local_dict = {
+                "Coordinates": coordinates,
+                "Direction": npz_trajectory.direction,
+            }
+            # output[path] = local_dict
             with open("output/direction_labeled_npz.json", "a") as file:
-                file.write(f'"{path}": "{npz_trajectory.direction}",')
+                file.write(f'"{path}": {local_dict},\n')
         with open("output/direction_labeled_npz.json", "a") as file:
             file.write("}")
+
+    def do_get_u_turn_candidates(self, arg: str):
+        with open("config.yml") as config:
+            config = yaml.safe_load(config)
+            npz_directory = config["npz_dataset"]
+
+        output = {}
+
+        trajectory_paths = list_vehicle_files_absolute(npz_directory)
+        for i in tqdm(range(len(trajectory_paths))):
+            path = trajectory_paths[i]
+            npz_trajectory = NpzTrajectory(path)
+            delta_angle = npz_trajectory.get_sum_of_delta_angles()
+            rel_displacement = npz_trajectory.get_relative_displacement()
+            if delta_angle > 130:
+                with open("output/potential_u_turns.txt", "a") as file:
+                    file.write(
+                        f"Path: {path}, Relative Displacement: {rel_displacement}\n"
+                    )
 
     def do_load_trajectory(self, arg: str):
         """Loads the trajectory specified by the loaded scenario and the given vehicle ID.
@@ -799,6 +826,57 @@ class SimpleShell(cmd.Cmd):
         trajectory_plot.savefig(
             f"{output_folder}raw_rotated_trajectory_{vehicle_id}.png"
         )
+
+    def do_plot_architecture_example_picture(self, arg: str):
+        """Plots a comparison of the coordinates before, during and after their transformation to splined, rotated, ego trajectories.
+        It does so for the vehicle which's ID has been provided in the loaded scenario.
+
+        Args:
+            arg (str): The vehicle ID.
+        """
+
+        # Load config file
+        with open("config.yml", "r") as file:
+            config = yaml.safe_load(file)
+            output_folder = config["output_folder"]
+
+        # Checking if a scenario has been loaded already.
+        if not self.scenario_loaded():
+            return
+
+        # Check for empty arguments (no ID provided)
+        if arg == "":
+            print(
+                (
+                    "\nYou have provided no ID for the vehicle "
+                    "whose trajectory you want to get.\nPlease provide a path!\n"
+                )
+            )
+            return
+
+        vehicle_id = arg.split()[0]
+        trajectory = Trajectory(self.loaded_scenario, vehicle_id)
+
+        # Set the style of the plot using Seaborn
+        sns.set_theme(style="whitegrid")
+
+        # Plot settings
+        plot_settings = {"markersize": 6, "linewidth": 2, "marker": "o"}
+
+        # Original Coordinates
+        plt.plot(
+            trajectory.coordinates["X"],
+            trajectory.coordinates["Y"],
+            "r-",  # blue line
+            **plot_settings,
+        )
+
+        plt.title("Trajectory coordinates")
+
+        # Adjust layout and save the figure
+        plt.tight_layout()
+        plt.savefig("architecure_example_picture.png")
+        plt.close()
 
     def do_plot_compared_raw_coordinates(self, arg: str):
         """Plots a comparison of the coordinates before, during and after their transformation to splined, rotated, ego trajectories.
@@ -2507,12 +2585,58 @@ class SimpleShell(cmd.Cmd):
             "Right-U-Turn": 0,
             "Left-U-Turn": 0,
         }
+        print("Before loading")
+        with open("output/processed.json", "r") as file:
+            text = file.read()
 
-        with open("datasets/labeled_ego_trajectories.json", "r") as file:
-            trajectories_data = json.load(file)
+        print("After loading")
 
-        for value in trajectories_data.values():
-            buckets[value["Direction"]] += 1
+        for bucket in buckets:
+            buckets[bucket] = text.count(bucket)
+
+        # for value in trajectories_data.values():
+        #     for bucket in buckets:
+        #         if value["Direction"] == bucket:
+        #             buckets[value[bucket]] += 1
+
+        sns.set_theme(style="whitegrid")
+
+        # Convert buckets into a DataFrame suitable for plotting
+        buckets_df = pd.DataFrame(buckets, index=[0])
+
+        buckets_df.plot.bar(
+            edgecolor="white", linewidth=3, figsize=(6, 8)
+        ).set_xticklabels("")
+
+        # Adding plot details
+        plt.title("Direction Counts in Trajectory Data")
+        plt.xlabel("Directions")
+        plt.ylabel("Counts")
+
+        plt.savefig("output/training_data_stats_1.png")
+        plt.close()
+
+        print(buckets_df.head())
+
+        buckets_df = buckets_df.loc[:, ["Right-U-Turn", "Left-U-Turn"]]
+        sns.set_theme(style="whitegrid")
+
+        # Convert buckets into a DataFrame suitable for plotting
+
+        buckets_df.plot.bar(
+            edgecolor="white",
+            linewidth=3,
+            figsize=(6, 8),
+            color={"Right-U-Turn": "pink", "Left-U-Turn": "grey"},
+        ).set_xticklabels("")
+
+        # Adding plot details
+        plt.title("Direction Counts in Trajectory Data")
+        plt.xlabel("Directions")
+        plt.ylabel("Counts")
+
+        plt.savefig("output/training_data_stats_2.png")
+        plt.close()
 
         print(buckets)
 
