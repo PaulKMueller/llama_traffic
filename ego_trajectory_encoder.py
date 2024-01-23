@@ -16,7 +16,7 @@ class EgoTrajectoryEncoder(nn.Module):
         num_heads=8,
         dim_feedforward=512,
         dropout=0.1,
-        dim_output=256,
+        dim_output=1024,
     ):
         super().__init__()
         self.to_dim_model = nn.Linear(
@@ -169,14 +169,14 @@ encoder = EgoTrajectoryEncoder()
 npz = NpzTrajectory(
     "/mrtstorage/datasets/tmp/waymo_open_motion_processed/train-2e6/vehicle_b_78219_00001_4426517365.npz"
 )
-print(npz.coordinates.shape)
-print(type(npz.coordinates.shape))
+# print(npz.coordinates.shape)
+# print(type(npz.coordinates.shape))
 
 # Create a dummy trajectory
 # Assuming batch_size = 1 and num_timesteps = 11
 batch_size = 1
 data = npz.coordinates.to_numpy()
-print(data)
+# print(data)
 pos_src_tokens = torch.Tensor(data.reshape(batch_size, data.shape[0], data.shape[1]))
 
 # trajectory_length = 100
@@ -197,8 +197,28 @@ pos_src_tokens = torch.Tensor(data.reshape(batch_size, data.shape[0], data.shape
 
 # # Process the trajectory through the encoder
 # # print("Encoder Call reached")
+
+
+loss = nn.MSELoss()
+from uae_explore import encode_with_uae
+
+input_text = "Right Turn around"
+encoded_input_text = torch.Tensor(encode_with_uae(input_text).reshape(1024))
+print(encoded_input_text.shape)
+
 output = encoder(pos_src_tokens)
+# print(f"Loss: {loss(, output)}")
+
+# Mean Pooling
+output = output.reshape((80, 1024))
+
+sequence_embedding = torch.mean(output, axis=0)
+print(sequence_embedding.shape)
+print(sequence_embedding)
+
+print(loss(encoded_input_text, sequence_embedding))
 
 # Output
-print("Output shape:", output.shape)
-print(output)
+# print("Output shape:", output.shape)
+# Output shape: torch.Size([1, 80, 256])
+# print(output)

@@ -77,3 +77,14 @@ def get_uae_encoding(input_text: str) -> dict:
         output_dict[buckets[idx]] = scores[idx]
     print(output_dict)
     return output_dict
+
+
+def encode_with_uae(input_text: str) -> dict:
+    angle = AnglE.from_pretrained(
+        "WhereIsAI/UAE-Large-V1", pooling_strategy="cls"
+    ).cuda()
+    angle.set_prompt(prompt=Prompts.C)
+
+    input_text_embedding = angle.encode({"text": input_text}, to_numpy=True)
+
+    return input_text_embedding
