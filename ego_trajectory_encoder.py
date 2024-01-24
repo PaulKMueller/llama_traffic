@@ -178,10 +178,10 @@ npz = NpzTrajectory(
 
 # Create a dummy trajectory
 # Assuming batch_size = 1 and num_timesteps = 11
-batch_size = 1
-data = npz.coordinates.to_numpy()
-# print(data)
-pos_src_tokens = torch.Tensor(data.reshape(batch_size, data.shape[0], data.shape[1]))
+# batch_size = 1
+# data = npz.coordinates.to_numpy()
+# # print(data)
+# pos_src_tokens = torch.Tensor(data.reshape(batch_size, data.shape[0], data.shape[1]))
 
 # trajectory_length = 100
 
