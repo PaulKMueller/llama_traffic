@@ -5,6 +5,9 @@ from torch import nn, Tensor
 from local_attention import LocalAttention
 from npz_trajectory import NpzTrajectory
 
+from torch.utils.data import DataLoader
+from trajectory_encoder_dataset import TrajectoryEncoderDataset
+
 
 class EgoTrajectoryEncoder(nn.Module):
     def __init__(
@@ -53,8 +56,9 @@ class EgoTrajectoryEncoder(nn.Module):
 
         for layer in self.layers:
             src = layer(src, src, src)
+        sequence_embedding = torch.mean(self.linear(src), axis=1)
 
-        return self.linear(src)
+        return sequence_embedding
 
 
 # class EgoTrajectoryEncoder(nn.Module):
@@ -199,25 +203,66 @@ pos_src_tokens = torch.Tensor(data.reshape(batch_size, data.shape[0], data.shape
 # # print("Encoder Call reached")
 
 
-loss = nn.MSELoss()
-from uae_explore import encode_with_uae
+# loss = nn.MSELoss()
+# from uae_explore import encode_with_uae
 
-input_text = "Right Turn around"
-encoded_input_text = torch.Tensor(encode_with_uae(input_text).reshape(1024))
-print(encoded_input_text.shape)
+# input_text = "Right Turn around"
+# encoded_input_text = torch.Tensor(encode_with_uae(input_text).reshape(1024))
+# print(encoded_input_text.shape)
 
-output = encoder(pos_src_tokens)
+# sequence_embedding = encoder(pos_src_tokens)
 # print(f"Loss: {loss(, output)}")
 
 # Mean Pooling
-output = output.reshape((80, 1024))
+# output = output.reshape((80, 1024))
 
-sequence_embedding = torch.mean(output, axis=0)
-print(sequence_embedding.shape)
-print(sequence_embedding)
+# sequence_embedding = torch.mean(output, axis=0)
+# print(sequence_embedding.shape)
+# print(sequence_embedding)
 
-print(loss(encoded_input_text, sequence_embedding))
+# print(loss(encoded_input_text, sequence_embedding))
 
+optimizer = torch.optim.Adam(encoder.parameters(), lr=1e-4)
+criterion = torch.nn.MSELoss(reduction="mean")
+
+training_data = TrajectoryEncoderDataset()
+
+train_dataloader = DataLoader(training_data, batch_size=32, shuffle=True)
+
+
+import wandb
+
+wandb.init()
+
+# Magic
+wandb.watch(encoder, log_freq=100)
+
+for epoch in range(2):  # loop over the dataset multiple times
+    running_loss = 0.0
+    for i, data in enumerate(train_dataloader):
+        # get the inputs; data is a list of [inputs, labels]
+        inputs, labels = data
+        print(f"Inputs Shape: {inputs.shape}")
+
+        # zero the parameter gradients
+        optimizer.zero_grad()
+
+        # forward + backward + optimize
+        outputs = encoder(inputs)
+        print(f"Output Shape: {outputs.shape}")
+        print(f"Labels Shape: {labels.shape}")
+        loss = criterion(outputs, labels)
+        loss.backward()
+        optimizer.step()
+
+        if i % 10 == 0:
+            wandb.log({"loss": loss})
+
+        # print statistics
+        running_loss += loss.item()
+        if i % 2000 == 1999:  # print every 2000 mini-batches
+            print(f"[{epoch + 1}, {i + 1:5d}] loss: {running_loss / 2000:.3f}")
+            running_loss = 0.0
 # Output
 # print("Output shape:", output.shape)
 # Output shape: torch.Size([1, 80, 256])

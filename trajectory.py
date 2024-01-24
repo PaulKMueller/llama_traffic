@@ -10,6 +10,8 @@ import matplotlib.pyplot as plt
 
 
 class Trajectory:
+    """This class represents a trajectory in the Waymo Open Motion Dataset.
+    """    
     def __init__(self, scenario: Scenario, specific_id):
         self.scenario = scenario
         self.coordinates = self.get_coordinates(scenario.data, specific_id)
@@ -31,7 +33,7 @@ class Trajectory:
         mask,
         agent_ids=None,
         specific_id: float = None,
-    ):
+    ) -> pd.DataFrame:
         """Get coordinates for one vehicle for one step."""
 
         # If a specific ID is provided, filter the states,
@@ -51,7 +53,7 @@ class Trajectory:
 
         return {"X": masked_x[0], "Y": masked_y[0]}
 
-    def get_coordinates(self, decoded_example, specific_id: float = None):
+    def get_coordinates(self, decoded_example, specific_id: float = None)-> pd.DataFrame:
         """Returns the coordinates of the vehicle identified by its
         specific_id and stores them as a CSV in the output folder.
 
@@ -136,7 +138,12 @@ class Trajectory:
 
         return output_df
 
-    def normalize_coordinates(self):
+    def normalize_coordinates(self) -> pd.DataFrame:
+        """Normalizes the coordinates based on the viewport of the current trajectory
+
+        Returns:
+            pd.DataFrame: Returns a dataframe in the form {"X": [...], "Y": [...]}
+        """
         viewport = self.scenario.get_viewport()
         center_y = viewport[0]
         center_x = viewport[1]
@@ -156,11 +163,12 @@ class Trajectory:
             )
         return normalized_coordinates
 
-    def get_spline_for_coordinates(self, coordinates):
+    def get_spline_for_coordinates(self, coordinates: pd.DataFrame) -> pd.DataFrame:
         """Returns the splined coordinates for the given trajectory coordinates.
 
         Args:
-            coordinates (pd.DataFrame): The coordinates of a vehicle represented as a DataFrame
+            coordinates (pd.DataFrame): The coordinates of a vehicle
+            represented as a DataFrame in the form {"X": [...], "Y": [...]}.
         """
         # Get the x and y coordinates
         x = coordinates["X"]
@@ -203,12 +211,13 @@ class Trajectory:
         return result
 
     @staticmethod
-    def get_adjusted_coordinates(coordinates):
+    def get_adjusted_coordinates(coordinates: pd.DataFrame) -> pd.DataFrame:
         """For given coordinates returns their adjusted coordinates.
         This means that the coordinates are adapted to have 101 X coordinates and 101 Y coordinates.
 
         Args:
-            coordinates (pd.DataFrame): The coordinates of a vehicle represented as a DataFrame
+            coordinates (pd.DataFrame): The coordinates of a vehicle
+            represented as a DataFrame in the form {"X": [...], "Y": [...]}.
         """
 
         adjusted_coordinates = pd.DataFrame(columns=["X", "Y"])
@@ -226,7 +235,8 @@ class Trajectory:
         """Returns the ego coordinates for the trajectory.
 
         Returns:
-            pd.DataFrame: Ego coordinates. These are the coordinates that start at (0, 0).
+            pd.DataFrame: Ego coordinates as a dataframe in the form {"X": [...], "Y": [...]}.
+            These are the coordinates that start at (0, 0).
         """
 
         first_x_coordinate = self.splined_coordinates["X"][0]
@@ -239,6 +249,12 @@ class Trajectory:
         return ego_coordinates
 
     def get_rotated_ego_coordinates(self) -> pd.DataFrame:
+        """Returns the rotated ego coordinates (meaning coordinates that start at (0, 0)) as a dataframe in the form {"X": [...], "Y": [...]}.
+
+        Returns:
+            pd.DataFrame: The transformation of the original coordinates of the trajectory.
+            They have been rotated and adapted to start at (0, 0).
+        """
         rotated_coordinates = self.ego_coordinates.copy()
         for index, row in self.ego_coordinates.iterrows():
             rotated_x = (
@@ -255,6 +271,11 @@ class Trajectory:
         return rotated_coordinates
 
     def get_x_axis_angle(self) -> float:
+        """Returns the angle of the first vector in the trajectory and the x-axis.
+
+        Returns:
+            float: The angle between the first vector in the trajectory and the x-axis.
+        """        
         first_x_coordinate = self.splined_coordinates["X"][0]
         first_y_coordinate = self.splined_coordinates["Y"][0]
         second_x_coordinate = self.splined_coordinates["X"][1]
@@ -274,8 +295,6 @@ class Trajectory:
             - first_move_vector[1] * x_axis_vector[0]
         )
 
-        # dot = x1*x2 + y1*y2
-        # det = x1*y2 - y1*x2
         x_axis_angle = math.atan2(det, dot)
 
         return x_axis_angle
@@ -291,12 +310,15 @@ class Trajectory:
         filtered_delta_angles = self.remove_outlier_angles(delta_angles)
         return sum(filtered_delta_angles)
 
-    def get_delta_angles(self, coordinates: pd.DataFrame):
+    def get_delta_angles(self, coordinates: pd.DataFrame) -> :
         """Returns the angle between each segment in the trajectory.
 
         Args:
             coordinates (pd.DataFrame): A dataframe containing the coordinates
                                         of the vehicle trajectory.
+        Results:
+            list: The delta angles between all
+            pairwise successive vectors as a list of floats.
         """
         delta_angles = []
 
@@ -332,11 +354,15 @@ class Trajectory:
         return delta_angles
 
     @staticmethod
-    def remove_outlier_angles(delta_angles: list):
+    def remove_outlier_angles(delta_angles: list) -> list:
         """Removes outlier angles from a list of angles.
 
         Args:
             delta_angles (list): A list of angles.
+
+        Returns:
+            list: The filtered list of delta angles.
+            All angles between 20 and -20 are assumed to be outliers.
         """
 
         filtered_delta_angles = []
@@ -350,13 +376,17 @@ class Trajectory:
     @staticmethod
     def get_gross_direction_for_three_points(
         start: pd.DataFrame, intermediate: pd.DataFrame, end: pd.DataFrame
-    ):
+    ) -> str:
         """Returns left, right, or straight depending on the direction of the trajectory.
 
         Args:
             start (pd.DataFrame): The coordinates of the starting point.
             intermediate (pd.DataFrame): The coordinates of the intermediate point.
             end (pd.DataFrame): The coordinates of the ending point.
+
+        Returns:
+            str: The gross direction of the trajectory.
+            The gross direction is either "Right", "Left" or "Straight".
         """
         # Calculate vectors
         vector1 = np.array(
@@ -377,12 +407,15 @@ class Trajectory:
 
         return direction
 
-    def get_angle_between_vectors(self, v1, v2):
+    def get_angle_between_vectors(self, v1: np.array, v2: np.array) -> float:
         """Returns the angle between two vectors.
 
         Args:
             v1 (np.array): The first vector.
             v2 (np.array): The second vector.
+
+        Returns:
+            float: The angle between v1 and v2 as a float.
         """
         v1_length = np.linalg.norm(v1)
         v2_length = np.linalg.norm(v2)
@@ -405,7 +438,7 @@ class Trajectory:
 
     def visualize_raw_coordinates_without_scenario(
         self, coordinates, title="Trajectory Visualization", padding=10
-    ):
+    ) -> plt:
         """
         Visualize the trajectory specified by coordinates, scaling to fit the trajectory size.
 
@@ -413,13 +446,15 @@ class Trajectory:
         - coordinates: A DataFrame with 'X' and 'Y' columns, or an array-like structure representing trajectory points.
         - title: The title of the plot.
         - padding: Extra space around the trajectory bounds.
+
+        Returns:
+            matplotlib.pyplot: The plot showing the raw coordinates
+            of the trajectory (meaning without a scenario background).
         """
 
         fig, ax = plt.subplots(
             figsize=(10, 10)
         )  # Create a figure and a set of subplots
-
-        # Scale the normalized trajectory to fit the figure
 
         # Plot the trajectory
         ax.plot(
@@ -430,14 +465,7 @@ class Trajectory:
             linewidth=2,
         )  # 'ro-' creates a red line with circle markers
 
-        # Set aspect of the plot to be equal
         ax.set_aspect("equal")
-
-        # Set title of the plot
-        # ax.set_title(title)
-
-        # Remove axes for a cleaner look since there's no map
-        # ax.axis("off")
 
         return plt
 
@@ -524,6 +552,12 @@ class Trajectory:
             return bucket
 
     def get_relative_displacement(self):
+        """Calculates the relative displacement of a vehicle based on its total displacement.
+        The displacement is the difference between the vehicle's starting and end point.
+
+        Returns:
+            float: The relative displacement of the correspoding vehicle in the interval [0, 1].
+        """
         total_displacement = self.get_total_displacement()
         _, _, width = self.scenario.get_viewport()
 
@@ -616,10 +650,21 @@ class Trajectory:
     @staticmethod
     def get_coordinates_from_rotated_ego_coordinates(
         rotated_ego_coordinates: pd.DataFrame,
-        rotated_angle,
-        original_starting_x,
-        original_starting_y,
+        rotated_angle: float,
+        original_starting_x: float,
+        original_starting_y: float,
     ) -> pd.DataFrame:
+        """Returns the original coordinates based on given rotated ego coordinates.
+
+        Args:
+            rotated_ego_coordinates (pd.DataFrame): The rotated ego trajectory as a dataframe in the form {"X": [...], "Y": [...]}.
+            rotated_angle (float): The angle by which the original trajectory has been rotated.
+            original_starting_x (float): The first x coordinate of the original trajectory coordinates.
+            original_starting_y (float): The first y coordinate of the original trajectory coordinates.
+
+        Returns:
+            pd.DataFrame: The original trajectory coordinates in the form {"X": [...], "Y": [...]}.
+        """
         # Getting rotated coordinates
         unrotated_coordinates = rotated_ego_coordinates.copy()
         for index, row in rotated_ego_coordinates.iterrows():
