@@ -10,8 +10,8 @@ import matplotlib.pyplot as plt
 
 
 class Trajectory:
-    """This class represents a trajectory in the Waymo Open Motion Dataset.
-    """    
+    """This class represents a trajectory in the Waymo Open Motion Dataset."""
+
     def __init__(self, scenario: Scenario, specific_id):
         self.scenario = scenario
         self.coordinates = self.get_coordinates(scenario.data, specific_id)
@@ -53,7 +53,9 @@ class Trajectory:
 
         return {"X": masked_x[0], "Y": masked_y[0]}
 
-    def get_coordinates(self, decoded_example, specific_id: float = None)-> pd.DataFrame:
+    def get_coordinates(
+        self, decoded_example, specific_id: float = None
+    ) -> pd.DataFrame:
         """Returns the coordinates of the vehicle identified by its
         specific_id and stores them as a CSV in the output folder.
 
@@ -275,7 +277,7 @@ class Trajectory:
 
         Returns:
             float: The angle between the first vector in the trajectory and the x-axis.
-        """        
+        """
         first_x_coordinate = self.splined_coordinates["X"][0]
         first_y_coordinate = self.splined_coordinates["Y"][0]
         second_x_coordinate = self.splined_coordinates["X"][1]
@@ -310,7 +312,7 @@ class Trajectory:
         filtered_delta_angles = self.remove_outlier_angles(delta_angles)
         return sum(filtered_delta_angles)
 
-    def get_delta_angles(self, coordinates: pd.DataFrame) -> :
+    def get_delta_angles(self, coordinates: pd.DataFrame) -> list:
         """Returns the angle between each segment in the trajectory.
 
         Args:

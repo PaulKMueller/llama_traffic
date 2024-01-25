@@ -170,9 +170,8 @@ def feed_forward(dim_input: int = 512, dim_feedforward: int = 2048) -> nn.Module
 # Initialize the encoder
 encoder = EgoTrajectoryEncoder()
 
-npz = NpzTrajectory(
-    "/mrtstorage/datasets/tmp/waymo_open_motion_processed/train-2e6/vehicle_b_78219_00001_4426517365.npz"
-)
+# npz = NpzTrajectory(
+#     "/mrtstorage/datasets/tmp/waymo_open_motion_processed/train-2e6/vehicle_b_78219_00001_4426517365.npz"
 # print(npz.coordinates.shape)
 # print(type(npz.coordinates.shape))
 
