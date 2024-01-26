@@ -178,7 +178,7 @@ datasets/
 models/
 
 # Config
-*.yaml
+*.yml
 
 # Weights and Biases
 wandb/
