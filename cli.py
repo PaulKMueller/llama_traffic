@@ -24,7 +24,6 @@ import tensorflow as tf
 from tensorflow.keras.losses import MeanSquaredError
 
 import matplotlib.pyplot as plt
-import matplotlib.image as mpimg
 
 from npz_utils import list_vehicle_files_absolute
 
@@ -302,9 +301,25 @@ class SimpleShell(cmd.Cmd):
         #     # gt_marginal=npz_trajectory.gt_marginal,
         # )
 
-        npz_trajectory.plot_trajectory()
+        # npz_trajectory.plot_trajectory()
 
-        print(npz_trajectory.direction)
+        # print(npz_trajectory.direction)
+
+    def do_plot_npz_trajectory(self, arg: str):
+        if self.loaded_npz_trajectory == None:
+            print(
+                "No NPZ trajectory has been loaded yet. Please load a scenario before calling this command."
+            )
+            return
+        self.loaded_npz_trajectory.plot_trajectory()
+
+    def do_animate_npz_trajectory(self, arg: str):
+        if self.loaded_npz_trajectory == None:
+            print(
+                "No NPZ trajectory has been loaded yet. Please load a scenario before calling this command."
+            )
+            return
+        self.loaded_npz_trajectory.animate_trajectory_one_step()
 
     def do_create_direction_labeled_npz_dataset(self, arg: str):
         with open("config.yml") as config:

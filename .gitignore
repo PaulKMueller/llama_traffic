@@ -162,14 +162,14 @@ cython_debug/
 
 # Output folders
 output/
-# Left/
-# Left-U-Turn/
-# Right/
-# Right-U-Turn/
-# Stationary/
-# Straight/
-# Straight-Left/
-# Straight-Right/
+Left/
+Left-U-Turn/
+Right/
+Right-U-Turn/
+Stationary/
+Straight/
+Straight-Left/
+Straight-Right/
 
 # Datasets
 datasets/

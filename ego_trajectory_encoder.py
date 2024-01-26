@@ -226,7 +226,7 @@ criterion = torch.nn.MSELoss(reduction="mean")
 
 training_data = TrajectoryEncoderDataset()
 
-train_dataloader = DataLoader(training_data, batch_size=32, shuffle=True)
+train_dataloader = DataLoader(training_data, batch_size=64, shuffle=True)
 
 
 import wandb
@@ -236,7 +236,7 @@ wandb.init()
 # Magic
 wandb.watch(encoder, log_freq=100)
 
-for epoch in range(2):  # loop over the dataset multiple times
+for epoch in range(1):  # loop over the dataset multiple times
     running_loss = 0.0
     for i, data in enumerate(train_dataloader):
         # get the inputs; data is a list of [inputs, labels]
@@ -256,6 +256,9 @@ for epoch in range(2):  # loop over the dataset multiple times
 
         if i % 10 == 0:
             wandb.log({"loss": loss})
+
+        if i % 10 == 0:
+            torch.save(encoder.state_dict(), "models/trajectory_encoder.pth")
 
         # print statistics
         running_loss += loss.item()

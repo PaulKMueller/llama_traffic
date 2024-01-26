@@ -521,7 +521,8 @@ class NpzTrajectory:
 
     def animate_trajectory_one_step(
         self,
-        filename="output/3D_animated_trajectory",
+        step=0,
+        filename="output/3D_trajectory_plot",
         x_range=(-50, 50),
         y_range=(-50, 50),
         prediction_subsampling_rate=8,
@@ -530,7 +531,6 @@ class NpzTrajectory:
         dpi=400,
         is_available=None,
         gt_marginal=None,
-        step=0,
     ):
         gt_marginal = self.gt_marginal
         is_available = self.future_val_marginal
@@ -579,8 +579,8 @@ class NpzTrajectory:
             ]
         )
 
-        print(X[0])
-        print(np.unique(idx).shape)
+        # print(X[0])
+        # print(np.unique(idx).shape)
         for i in np.unique(idx):
             _X = X[
                 (idx == i)
@@ -589,16 +589,22 @@ class NpzTrajectory:
                 & (X[:, 0] > x_range[0])
                 & (X[:, 1] > y_range[0])
             ]
-            print(_X.shape)
+            # print(_X.shape)
             if _X[:, 8].sum() > 0:
                 # The ego vehicle in this scenario starts at (0, 0). This is checked in the next line.
                 if _X[-1, 0] == 0 and _X[-1, 1] == 0:
+                    print(_X[-2, 0])
                     plt.plot(_X[:, 0], _X[:, 1], 0, linewidth=4, color="red")
                     plt.plot(_X[-1, 0], _X[-1, 1], 0, "o", markersize=10, color="blue")
-                # plt.plot(_X[-1, 0], _X[-1, 1], 0, linewidth=4, color="red")
 
                 bbox = self.rotate_bbox_zxis(car, _X[-1, 4])
                 bbox = self.shift_cuboid(_X[-1, 0], _X[-1, 1], bbox)
+                # self.add_cube(bbox, ax, color="tab:blue", alpha=0.5)
+
+                # plt.plot(_X[-1, 0], _X[-1, 1], 0, linewidth=4, color="red")
+
+                # bbox = self.rotate_bbox_zxis(car, _X[-1, 4])
+                # bbox = self.shift_cuboid(_X[-1, 0], _X[-1, 1], bbox)
 
                 if _X[-1, 2]:  # speed to determine dynamic or static
                     self.add_cube(bbox, ax, color="tab:blue", alpha=0.5)
@@ -625,14 +631,14 @@ class NpzTrajectory:
             elif _X[:, 16].sum() > 0:  # Bike lanes
                 plt.plot(_X[:, 0], _X[:, 1], 0, color="tab:red")
             elif _X[:, 18:26].sum() > 0:  # Road lines
-                plt.plot(_X[:, 0], _X[:, 1], 0, "--", color="white")
+                plt.plot(_X[:, 0], _X[:, 1], 0, "--", color="grey")
             elif _X[:, 26:29].sum() > 0:  # Road edges
-                plt.plot(_X[:, 0], _X[:, 1], 0, linewidth=2, color="white")
+                plt.plot(_X[:, 0], _X[:, 1], 0, linewidth=2, color="grey")
 
         ax.set_zlim(bottom=0, top=5)
         ax.set_aspect("equal")
         ax.set_axis_off()
-        ax.set_facecolor("tab:grey")
+        ax.set_facecolor("white")
 
         is_available = is_available[
             prediction_subsampling_rate
@@ -708,8 +714,30 @@ class NpzTrajectory:
             linewidth=4,
         )
 
-        plt.savefig(f"filename_{step}")
-        plt.close()
+        len_coordinates = len(gt_marginal[is_available > 0][::plot_subsampling_rate])
+        print(len_coordinates)
+
+        for i in range(len_coordinates - 1):
+            print(gt_marginal[:, 4])
+            bbox = self.rotate_bbox_zxis(car, gt_marginal[:, 4][i])
+            bbox = self.shift_cuboid(
+                gt_marginal[is_available > 0][:, 0][i],
+                gt_marginal[is_available > 0][:, 1][i],
+                bbox,
+            )
+            if _X[-1, 2]:  # speed to determine dynamic or static
+                self.add_cube(bbox, ax, color="tab:blue", alpha=0.5)
+            else:
+                self.add_cube(bbox, ax, color="tab:grey", alpha=0.5)
+
+        # self.add_cube(bbox, ax, color="tab:blue", alpha=0.5)
+
+        # plt.plot(_X[-1, 0], _X[-1, 1], 0, linewidth=4, color="red")
+
+        # bbox = self.rotate_bbox_zxis(car, _X[-1, 4])
+        # bbox = self.shift_cuboid(_X[-1, 0], _X[-1, 1], bbox)
+
+        plt.savefig(f"output/{step}")
 
     def plot_trajectory(
         self,
@@ -770,8 +798,8 @@ class NpzTrajectory:
             ]
         )
 
-        print(X[0])
-        print(np.unique(idx).shape)
+        # print(X[0])
+        # print(np.unique(idx).shape)
         for i in np.unique(idx):
             _X = X[
                 (idx == i)
@@ -780,7 +808,7 @@ class NpzTrajectory:
                 & (X[:, 0] > x_range[0])
                 & (X[:, 1] > y_range[0])
             ]
-            print(_X.shape)
+            # print(_X.shape)
             if _X[:, 8].sum() > 0:
                 # The ego vehicle in this scenario starts at (0, 0). This is checked in the next line.
                 if _X[-1, 0] == 0 and _X[-1, 1] == 0:
