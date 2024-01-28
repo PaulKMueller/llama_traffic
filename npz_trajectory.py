@@ -5,6 +5,12 @@ import pandas as pd
 from matplotlib.pyplot import figure
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
+import sys
+
+from PIL import Image
+import glob
+from PIL import Image
+
 
 class NpzTrajectory:
     # print(f"Object ID: {data['object_id']}")
@@ -514,231 +520,6 @@ class NpzTrajectory:
 
         return plt
 
-    # def animate_trajectory():
-    #     images = []
-    #     for i in range(x):
-    #         image =
-
-    def animate_trajectory_one_step(
-        self,
-        step=0,
-        filename="output/3D_trajectory_plot",
-        x_range=(-50, 50),
-        y_range=(-50, 50),
-        prediction_subsampling_rate=8,
-        prediction_horizon=80,
-        plot_subsampling_rate=2,
-        dpi=400,
-        is_available=None,
-        gt_marginal=None,
-    ):
-        gt_marginal = self.gt_marginal
-        is_available = self.future_val_marginal
-        predictions = np.zeros(self.future_val_marginal.shape)
-        predictions = np.zeros((6, 10, 2))
-        confidences = np.zeros((6,))
-
-        # print(predictions.shape)
-        # plot = self.plot_marginal_predictions_3d(
-        #     vector_data=self.vector_data,
-        #     is_available=self.future_val_marginal,
-        #     gt_marginal=self.gt_marginal,
-        #     predictions=prediction_dummy,
-        #     confidences=np.zeros((6,)),
-        #     # gt_marginal=npz_trajectory.gt_marginal,
-        # )
-
-        ax = plt.figure(figsize=(15, 15), dpi=dpi).add_subplot(projection="3d")
-        V = self.vector_data
-        X, idx = V[:, :44], V[:, 44].flatten()
-
-        car = np.array(
-            [
-                (-2.25, -1, 0),  # left bottom front
-                (-2.25, 1, 0),  # left bottom back
-                (2.25, -1, 0),  # right bottom front
-                (-2.25, -1, 1.5),  # left top front -> height
-            ]
-        )
-
-        pedestrian = np.array(
-            [
-                (-0.3, -0.3, 0),  # left bottom front
-                (-0.3, 0.3, 0),  # left bottom back
-                (0.3, -0.3, 0),  # right bottom front
-                (-0.3, -0.3, 2),  # left top front -> height
-            ]
-        )
-
-        cyclist = np.array(
-            [
-                (-1, -0.3, 0),  # left bottom front
-                (-1, 0.3, 0),  # left bottom back
-                (1, -0.3, 0),  # right bottom front
-                (-1, -0.3, 2),  # left top front -> height
-            ]
-        )
-
-        # print(X[0])
-        # print(np.unique(idx).shape)
-        for i in np.unique(idx):
-            _X = X[
-                (idx == i)
-                & (X[:, 0] < x_range[1])
-                & (X[:, 1] < y_range[1])
-                & (X[:, 0] > x_range[0])
-                & (X[:, 1] > y_range[0])
-            ]
-            # print(_X.shape)
-            if _X[:, 8].sum() > 0:
-                # The ego vehicle in this scenario starts at (0, 0). This is checked in the next line.
-                if _X[-1, 0] == 0 and _X[-1, 1] == 0:
-                    print(_X[-2, 0])
-                    plt.plot(_X[:, 0], _X[:, 1], 0, linewidth=4, color="red")
-                    plt.plot(_X[-1, 0], _X[-1, 1], 0, "o", markersize=10, color="blue")
-
-                bbox = self.rotate_bbox_zxis(car, _X[-1, 4])
-                bbox = self.shift_cuboid(_X[-1, 0], _X[-1, 1], bbox)
-                # self.add_cube(bbox, ax, color="tab:blue", alpha=0.5)
-
-                # plt.plot(_X[-1, 0], _X[-1, 1], 0, linewidth=4, color="red")
-
-                # bbox = self.rotate_bbox_zxis(car, _X[-1, 4])
-                # bbox = self.shift_cuboid(_X[-1, 0], _X[-1, 1], bbox)
-
-                if _X[-1, 2]:  # speed to determine dynamic or static
-                    self.add_cube(bbox, ax, color="tab:blue", alpha=0.5)
-                else:
-                    self.add_cube(bbox, ax, color="tab:grey", alpha=0.5)
-            elif _X[:, 9].sum() > 0:
-                if _X[-1, 0] == 0 and _X[-1, 1] == 0:
-                    plt.plot(_X[:, 0], _X[:, 1], 0, linewidth=4, color="orange")
-                    plt.plot(
-                        _X[-1, 0], _X[-1, 1], 0, "o", markersize=10, color="orange"
-                    )
-                bbox = self.rotate_bbox_zxis(pedestrian, _X[-1, 4])
-                bbox = self.shift_cuboid(_X[-1, 0], _X[-1, 1], bbox)
-                self.add_cube(bbox, ax, color="tab:orange", alpha=0.5)
-            elif _X[:, 10].sum() > 0:
-                if _X[-1, 0] == 0 and _X[-1, 1] == 0:
-                    plt.plot(_X[:, 0], _X[:, 1], 0, linewidth=4, color="green")
-                    plt.plot(_X[-1, 0], _X[-1, 1], 0, "o", markersize=10, color="green")
-                bbox = self.rotate_bbox_zxis(cyclist, _X[-1, 4])
-                bbox = self.shift_cuboid(_X[-1, 0], _X[-1, 1], bbox)
-                self.add_cube(bbox, ax, color="tab:green", alpha=0.5)
-            elif _X[:, 13:16].sum() > 0:  # Traffic lanes
-                plt.plot(_X[:, 0], _X[:, 1], 0, color="black")
-            elif _X[:, 16].sum() > 0:  # Bike lanes
-                plt.plot(_X[:, 0], _X[:, 1], 0, color="tab:red")
-            elif _X[:, 18:26].sum() > 0:  # Road lines
-                plt.plot(_X[:, 0], _X[:, 1], 0, "--", color="grey")
-            elif _X[:, 26:29].sum() > 0:  # Road edges
-                plt.plot(_X[:, 0], _X[:, 1], 0, linewidth=2, color="grey")
-
-        ax.set_zlim(bottom=0, top=5)
-        ax.set_aspect("equal")
-        ax.set_axis_off()
-        ax.set_facecolor("white")
-
-        is_available = is_available[
-            prediction_subsampling_rate
-            - 1 : prediction_horizon : prediction_subsampling_rate
-        ]
-        gt_marginal = gt_marginal[
-            prediction_subsampling_rate
-            - 1 : prediction_horizon : prediction_subsampling_rate
-        ]
-
-        confids_scaled = self.sigmoid(confidences)
-        colors = plt.cm.viridis(confidences * 4)
-
-        for pred_id in np.argsort(confidences):
-            confid = confidences[pred_id]
-            label = f"Pred {pred_id}, confid: {confid:.2f}" if False else ""
-            confid_scaled = confids_scaled[pred_id]
-            plt.plot(
-                np.concatenate(
-                    (
-                        np.array([[0.0, 0.0]]),
-                        predictions[pred_id][is_available > 0][::plot_subsampling_rate],
-                    )
-                )[:, 0],
-                np.concatenate(
-                    (
-                        np.array([[0.0, 0.0]]),
-                        predictions[pred_id][is_available > 0][::plot_subsampling_rate],
-                    )
-                )[:, 1],
-                "-o",
-                color=colors[pred_id],
-                label=label,
-                linewidth=3,  # linewidth,
-                markersize=10,  # linewidth+3,
-            )
-
-        # plt.plot(
-        #     np.concatenate(
-        #         (
-        #             np.array([0.0]),
-        #             gt_marginal[is_available > 0][:, 0][::plot_subsampling_rate],
-        #         )
-        #     ),
-        #     np.concatenate(
-        #         (
-        #             np.array([0.0]),
-        #             gt_marginal[is_available > 0][:, 1][::plot_subsampling_rate],
-        #         )
-        #     ),
-        #     "--o",
-        #     color="tab:cyan",
-        #     label=label,
-        #     linewidth=4,  # 4
-        #     markersize=10,
-        # )
-
-        plt.plot(
-            np.concatenate(
-                (
-                    np.array([0.0]),
-                    gt_marginal[is_available > 0][:, 0][::plot_subsampling_rate],
-                )
-            ),
-            np.concatenate(
-                (
-                    np.array([0.0]),
-                    gt_marginal[is_available > 0][:, 1][::plot_subsampling_rate],
-                )
-            ),
-            color="tab:red",
-            label=label,
-            linewidth=4,
-        )
-
-        len_coordinates = len(gt_marginal[is_available > 0][::plot_subsampling_rate])
-        print(len_coordinates)
-
-        for i in range(len_coordinates - 1):
-            print(gt_marginal[:, 4])
-            bbox = self.rotate_bbox_zxis(car, gt_marginal[:, 4][i])
-            bbox = self.shift_cuboid(
-                gt_marginal[is_available > 0][:, 0][i],
-                gt_marginal[is_available > 0][:, 1][i],
-                bbox,
-            )
-            if _X[-1, 2]:  # speed to determine dynamic or static
-                self.add_cube(bbox, ax, color="tab:blue", alpha=0.5)
-            else:
-                self.add_cube(bbox, ax, color="tab:grey", alpha=0.5)
-
-        # self.add_cube(bbox, ax, color="tab:blue", alpha=0.5)
-
-        # plt.plot(_X[-1, 0], _X[-1, 1], 0, linewidth=4, color="red")
-
-        # bbox = self.rotate_bbox_zxis(car, _X[-1, 4])
-        # bbox = self.shift_cuboid(_X[-1, 0], _X[-1, 1], bbox)
-
-        plt.savefig(f"output/{step}")
-
     def plot_trajectory(
         self,
         filename="output/3D_trajectory_plot",
@@ -800,6 +581,14 @@ class NpzTrajectory:
 
         # print(X[0])
         # print(np.unique(idx).shape)
+
+        print(np.unique(idx))
+        # print(X[(idx == 220)].shape)
+
+        print(X[X[:, 8] == 1].shape)
+
+        # print(X[(idx == 0)][:, 0])
+        print(X.shape)
         for i in np.unique(idx):
             _X = X[
                 (idx == i)
@@ -840,6 +629,9 @@ class NpzTrajectory:
                 bbox = self.shift_cuboid(_X[-1, 0], _X[-1, 1], bbox)
                 self.add_cube(bbox, ax, color="tab:green", alpha=0.5)
             elif _X[:, 13:16].sum() > 0:  # Traffic lanes
+                # print("Something to plot")
+                # print(_X[:, 13:16])
+                # print(_X[:, 13:16].shape)
                 plt.plot(_X[:, 0], _X[:, 1], 0, color="black")
             elif _X[:, 16].sum() > 0:  # Bike lanes
                 plt.plot(_X[:, 0], _X[:, 1], 0, color="tab:red")
@@ -929,6 +721,293 @@ class NpzTrajectory:
 
         plt.savefig(filename)
 
+    def get_map_plot(self):
+        ax = plt.figure(figsize=(15, 15), dpi=400).add_subplot(projection="3d")
+
+        car = np.array(
+            [
+                (-2.25, -1, 0),  # left bottom front
+                (-2.25, 1, 0),  # left bottom back
+                (2.25, -1, 0),  # right bottom front
+                (-2.25, -1, 1.5),  # left top front -> height
+            ]
+        )
+
+        pedestrian = np.array(
+            [
+                (-0.3, -0.3, 0),  # left bottom front
+                (-0.3, 0.3, 0),  # left bottom back
+                (0.3, -0.3, 0),  # right bottom front
+                (-0.3, -0.3, 2),  # left top front -> height
+            ]
+        )
+
+        cyclist = np.array(
+            [
+                (-1, -0.3, 0),  # left bottom front
+                (-1, 0.3, 0),  # left bottom back
+                (1, -0.3, 0),  # right bottom front
+                (-1, -0.3, 2),  # left top front -> height
+            ]
+        )
+
+        V = self.vector_data
+        X, idx = V[:, :45], V[:, 44].flatten()
+
+        for i in np.unique(idx):
+            _X = X[
+                (idx == i)
+                & (X[:, 0] < (-50, 50)[1])
+                & (X[:, 1] < (-50, 50)[1])
+                & (X[:, 0] > (-50, 50)[0])
+                & (X[:, 1] > (-50, 50)[0])
+            ]
+            # print(_X.shape)
+            if _X[:, 8].sum() > 0:
+                pass
+                # The ego vehicle in this scenario starts at (0, 0). This is checked in the next line.
+                # if _X[-1, 0] == 0 and _X[-1, 1] == 0:
+                #     plt.plot(_X[:, 0], _X[:, 1], 0, linewidth=4, color="red")
+                #     plt.plot(_X[-1, 0], _X[-1, 1], 0, "o", markersize=10, color="blue")
+                # # plt.plot(_X[-1, 0], _X[-1, 1], 0, linewidth=4, color="red")
+
+                # bbox = self.rotate_bbox_zxis(car, _X[-1, 4])
+                # bbox = self.shift_cuboid(_X[-1, 0], _X[-1, 1], bbox)
+
+                # if _X[-1, 2]:  # speed to determine dynamic or static
+                #     self.add_cube(bbox, ax, color="tab:blue", alpha=0.5)
+                # else:
+                #     self.add_cube(bbox, ax, color="tab:grey", alpha=0.5)
+            elif _X[:, 9].sum() > 0:
+                if _X[-1, 0] == 0 and _X[-1, 1] == 0:
+                    ax.plot(_X[:, 0], _X[:, 1], 0, linewidth=4, color="orange")
+                    ax.plot(_X[-1, 0], _X[-1, 1], 0, "o", markersize=10, color="orange")
+                bbox = self.rotate_bbox_zxis(pedestrian, _X[-1, 4])
+                bbox = self.shift_cuboid(_X[-1, 0], _X[-1, 1], bbox)
+                self.add_cube(bbox, ax, color="tab:orange", alpha=0.5)
+            elif _X[:, 10].sum() > 0:
+                if _X[-1, 0] == 0 and _X[-1, 1] == 0:
+                    ax.plot(_X[:, 0], _X[:, 1], 0, linewidth=4, color="green")
+                    ax.plot(_X[-1, 0], _X[-1, 1], 0, "o", markersize=10, color="green")
+                bbox = self.rotate_bbox_zxis(cyclist, _X[-1, 4])
+                bbox = self.shift_cuboid(_X[-1, 0], _X[-1, 1], bbox)
+                self.add_cube(bbox, ax, color="tab:green", alpha=0.5)
+            elif _X[:, 13:16].sum() > 0:  # Traffic lanes
+                # print("Something to plot")
+                # print(_X[:, 13:16])
+                # print(_X[:, 13:16].shape)
+                ax.plot(_X[:, 0], _X[:, 1], 0, color="black")
+            elif _X[:, 16].sum() > 0:  # Bike lanes
+                ax.plot(_X[:, 0], _X[:, 1], 0, color="tab:red")
+            elif _X[:, 18:26].sum() > 0:  # Road lines
+                ax.plot(_X[:, 0], _X[:, 1], 0, "--", color="white")
+            elif _X[:, 26:29].sum() > 0:  # Road edges
+                ax.plot(_X[:, 0], _X[:, 1], 0, linewidth=2, color="white")
+
+            return ax
+
+    def animate_scenario_past(self):
+        car = np.array(
+            [
+                (-2.25, -1, 0),  # left bottom front
+                (-2.25, 1, 0),  # left bottom back
+                (2.25, -1, 0),  # right bottom front
+                (-2.25, -1, 1.5),  # left top front -> height
+            ]
+        )
+
+        V = self.vector_data
+        X, idx = V[:, :45], V[:, 44].flatten()
+
+        vehicles = X[X[:, 8] == 1]
+        vehicles_idx = idx[X[:, 8] == 1]
+
+        # max = 1000
+        # for i in np.unique(idx):
+        #     vehicle = vehicles[(vehicles_idx == i)]
+        #     if vehicle[:, 0:2].shape[0] < max:
+        #         max = vehicle[:, 0:2].shape[0]
+        #     for j in range(11):
+        #         if vehicle[:, 0:2].shape[0] > j:
+        #             coordinates = vehicle[:, 0:2][j]
+        #             print(coordinates)
+        #             angle = vehicle[:, 4][j]
+
+        #             bbox = self.rotate_bbox_zxis(car, angle)
+        #             bbox = self.shift_cuboid(coordinates[0], coordinates[1], bbox)
+        #             ax = self.add_cube(bbox, ax, color="tab:blue", alpha=0.5)
+
+        #         else:
+        #             pass
+
+        images = []
+        data = np.zeros((np.unique(idx).shape[0], 11, 3))
+        for j in range(11):
+            ax = plt.figure(figsize=(15, 15), dpi=400).add_subplot(projection="3d")
+
+            pedestrian = np.array(
+                [
+                    (-0.3, -0.3, 0),  # left bottom front
+                    (-0.3, 0.3, 0),  # left bottom back
+                    (0.3, -0.3, 0),  # right bottom front
+                    (-0.3, -0.3, 2),  # left top front -> height
+                ]
+            )
+
+            cyclist = np.array(
+                [
+                    (-1, -0.3, 0),  # left bottom front
+                    (-1, 0.3, 0),  # left bottom back
+                    (1, -0.3, 0),  # right bottom front
+                    (-1, -0.3, 2),  # left top front -> height
+                ]
+            )
+
+            for i in np.unique(idx):
+                _X = X[
+                    (idx == i)
+                    & (X[:, 0] < (-50, 50)[1])
+                    & (X[:, 1] < (-50, 50)[1])
+                    & (X[:, 0] > (-50, 50)[0])
+                    & (X[:, 1] > (-50, 50)[0])
+                ]
+                # print(_X.shape)
+                if _X[:, 8].sum() > 0:
+                    pass
+                    # The ego vehicle in this scenario starts at (0, 0). This is checked in the next line.
+                    # if _X[-1, 0] == 0 and _X[-1, 1] == 0:
+                    #     plt.plot(_X[:, 0], _X[:, 1], 0, linewidth=4, color="red")
+                    #     plt.plot(_X[-1, 0], _X[-1, 1], 0, "o", markersize=10, color="blue")
+                    # # plt.plot(_X[-1, 0], _X[-1, 1], 0, linewidth=4, color="red")
+
+                    # bbox = self.rotate_bbox_zxis(car, _X[-1, 4])
+                    # bbox = self.shift_cuboid(_X[-1, 0], _X[-1, 1], bbox)
+
+                    # if _X[-1, 2]:  # speed to determine dynamic or static
+                    #     self.add_cube(bbox, ax, color="tab:blue", alpha=0.5)
+                    # else:
+                    #     self.add_cube(bbox, ax, color="tab:grey", alpha=0.5)
+                elif _X[:, 9].sum() > 0:
+                    if _X[-1, 0] == 0 and _X[-1, 1] == 0:
+                        ax.plot(_X[:, 0], _X[:, 1], 0, linewidth=4, color="orange")
+                        ax.plot(
+                            _X[-1, 0], _X[-1, 1], 0, "o", markersize=10, color="orange"
+                        )
+                    bbox = self.rotate_bbox_zxis(pedestrian, _X[-1, 4])
+                    bbox = self.shift_cuboid(_X[-1, 0], _X[-1, 1], bbox)
+                    self.add_cube(bbox, ax, color="tab:orange", alpha=0.5)
+                elif _X[:, 10].sum() > 0:
+                    if _X[-1, 0] == 0 and _X[-1, 1] == 0:
+                        plt.plot(_X[:, 0], _X[:, 1], 0, linewidth=4, color="green")
+                        plt.plot(
+                            _X[-1, 0], _X[-1, 1], 0, "o", markersize=10, color="green"
+                        )
+                    bbox = self.rotate_bbox_zxis(cyclist, _X[-1, 4])
+                    bbox = self.shift_cuboid(_X[-1, 0], _X[-1, 1], bbox)
+                    self.add_cube(bbox, ax, color="tab:green", alpha=0.5)
+                elif _X[:, 13:16].sum() > 0:  # Traffic lanes
+                    # print("Something to plot")
+                    # print(_X[:, 13:16])
+                    # print(_X[:, 13:16].shape)
+                    plt.plot(_X[:, 0], _X[:, 1], 0, color="black")
+                elif _X[:, 16].sum() > 0:  # Bike lanes
+                    plt.plot(_X[:, 0], _X[:, 1], 0, color="tab:red")
+                elif _X[:, 18:26].sum() > 0:  # Road lines
+                    plt.plot(_X[:, 0], _X[:, 1], 0, "--", color="white")
+                elif _X[:, 26:29].sum() > 0:  # Road edges
+                    plt.plot(_X[:, 0], _X[:, 1], 0, linewidth=2, color="white")
+
+            for i in np.unique(idx):
+                vehicle = vehicles[(vehicles_idx == i)]
+                if vehicle[:, 0:2].shape[0] > j:
+                    coordinates = vehicle[:, 0:2][j]
+                    print(coordinates)
+                    angle = vehicle[:, 4][j]
+                    print(angle)
+
+                    data[int(i)][j][0] = coordinates[0]
+                    print(data[int(i)][j][0])
+                    data[int(i)][j][1] = coordinates[1]
+                    data[int(i)][j][2] = angle
+
+                    bbox = self.rotate_bbox_zxis(car, angle)
+                    bbox = self.shift_cuboid(coordinates[0], coordinates[1], bbox)
+                    # ax = self.add_cube(bbox, ax, color="tab:blue", alpha=0.5)
+
+                else:
+                    pass
+
+            ax.set_zlim(bottom=0, top=5)
+            ax.set_aspect("equal")
+            ax.set_axis_off()
+            ax.set_facecolor("white")
+
+            # plt.savefig(f"output/animation_{j}.png")
+            # plt.close()
+
+            print()
+
+        # sort_indices = np.argsort(data[..., 0], axis=-1)
+        # data = np.array(
+        #     [subarray[indices] for subarray, indices in zip(data, sort_indices)]
+        # )
+
+        # data = np.sort(data, axis=1)
+
+        # print(data)
+        sort_idx = np.argsort(data[:, :, 0], axis=1)
+
+        # We now want to sort the entire 'data' array based on these indices.
+        # Initialize an empty array with the same shape as 'data' to hold the sorted data
+        sorted_data = np.empty_like(data)
+
+        # Apply the sorted indices to each slice of the data
+        for i in range(data.shape[0]):  # Loop over the first dimension
+            sorted_data[i] = data[i, sort_idx[i]]
+
+        print(sorted_data.shape)
+        with open("output/test.txt", "w") as file:
+            np.set_printoptions(threshold=sys.maxsize)
+            file.write(str(sorted_data))
+        # data = np.sort(data, axis=1)
+
+        for j in range(11):
+            print(f"J: {j}")
+            for i in np.unique(idx):
+                x = sorted_data[int(i)][j][0]
+                y = sorted_data[int(i)][j][1]
+
+                # if i == 230:
+                #     print(x, y)
+
+                angle = sorted_data[int(i)][j][2]
+                bbox = self.rotate_bbox_zxis(car, angle)
+                bbox = self.shift_cuboid(x, y, bbox)
+                ax = self.add_cube(bbox, ax, color="tab:blue", alpha=0.5)
+
+                ax.set_zlim(bottom=0, top=5)
+                ax.set_aspect("equal")
+                ax.set_axis_off()
+                ax.set_facecolor("white")
+
+                plt.savefig(f"output/animation_v2_{j}.png")
+            plt.close()
+
+        self.make_gif("output")
+
+    @staticmethod
+    def make_gif(frame_folder):
+        frames = [Image.open(image) for image in glob.glob(f"{frame_folder}/*.png")]
+        frame_one = frames[0]
+        frame_one.save(
+            "output/my_awesome.gif",
+            format="GIF",
+            append_images=frames,
+            save_all=True,
+            duration=100,
+            loop=0,
+        )
+
     def add_cube(self, cube_definition, ax, color="b", edgecolor="k", alpha=0.2):
         cube_definition_array = [np.array(list(item)) for item in cube_definition]
 
@@ -963,6 +1042,7 @@ class NpzTrajectory:
         ax.add_collection3d(faces)
         # Plot the points themselves to force the scaling of the axes
         ax.scatter(points[:, 0], points[:, 1], points[:, 2], s=0)
+        return ax
 
     def shift_cuboid(self, x_shift, y_shift, cuboid):
         cuboid = np.copy(cuboid)

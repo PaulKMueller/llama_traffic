@@ -259,8 +259,11 @@ class SimpleShell(cmd.Cmd):
 
     def do_load_npz_trajectory(self, arg: str):
         # vehicle is type 1, pedestrian type 2
+        # npz_trajectory = NpzTrajectory(
+        #     "/mrtstorage/datasets/tmp/waymo_open_motion_processed/train-2e6/vehicle_a_67582_00003_5913311279.npz"
+        # )
         npz_trajectory = NpzTrajectory(
-            "/mrtstorage/datasets/tmp/waymo_open_motion_processed/train-2e6/vehicle_a_67582_00003_5913311279.npz"
+            "/home/pmueller/llama_traffic/datasets/npz_test_data/train-2e6/vehicle_b_121122_00001_8644612152.npz"
         )
         # npz_trajectory = NpzTrajectory(
         #     "/home/pmueller/llama_traffic/datasets/npz_test_data/train-2e6/pedestrian_c_77063_00004_7456769354.npz"
@@ -319,7 +322,7 @@ class SimpleShell(cmd.Cmd):
                 "No NPZ trajectory has been loaded yet. Please load a scenario before calling this command."
             )
             return
-        self.loaded_npz_trajectory.animate_trajectory_one_step()
+        self.loaded_npz_trajectory.animate_scenario_past()
 
     def do_create_direction_labeled_npz_dataset(self, arg: str):
         with open("config.yml") as config:
