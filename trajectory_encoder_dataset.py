@@ -6,7 +6,7 @@ import json
 
 
 class TrajectoryEncoderDataset(Dataset):
-    def __init__(self, device="cuda"):
+    def __init__(self, device="cuda:0"):
         with open("datasets/processed_vehicle_a.json") as file:
             self.data_json = json.load(file)
             self.items = list(self.data_json.values())

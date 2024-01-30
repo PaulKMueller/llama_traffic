@@ -39,6 +39,8 @@ import random
 
 from npz_trajectory import NpzTrajectory
 
+from ego_trajectory_encoder import EgoTrajectoryEncoder
+
 # from llama_test import get_llama_embeddingK
 
 from cohere_encoder import get_cohere_encoding
@@ -352,6 +354,26 @@ class SimpleShell(cmd.Cmd):
                 file.write(f'"{path}": {local_dict},\n')
         with open("output/direction_labeled_npz.json", "a") as file:
             file.write("}")
+
+    def do_create_trajectory_encoder_labeled_npz_dataset(self, arg: str):
+        torch.set_printoptions(profile="full")
+        model = EgoTrajectoryEncoder()
+        model.load_state_dict(torch.load("/home/pmueller/llama_traffic/models/trajectory_encoder.pth"))
+        model.eval()
+        with torch.no_grad():
+            with open("datasets/processed_vehicle_a.json") as file:
+                data_json = json.load(file)
+                keys = list(data_json.keys())
+                # coordinates = torch.Tensor(item["Coordinates"] for item in list(data_json.values()))
+                with open("datasets/trajectory_encoder_output.json", "a") as output:
+                    output.write("{")
+                    for i in tqdm(range(len(keys))):
+                        key = keys[i]
+                        coordinates = torch.Tensor(data_json[key]["Coordinates"])
+
+                        encoder_output = model(coordinates.unsqueeze(0)).squeeze()
+                        output.write(f"{key} : {encoder_output},\n")
+                    output.write("}")
 
     def do_get_u_turn_candidates(self, arg: str):
         with open("config.yml") as config:
