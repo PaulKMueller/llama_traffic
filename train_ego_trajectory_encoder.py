@@ -23,20 +23,23 @@ wandb.init()
 # Magic
 wandb.watch(encoder, log_freq=100)
 
-for epoch in range(2):  # loop over the dataset multiple times
+device="cuda"
+encoder.cuda()
+
+for epoch in range(1):  # loop over the dataset multiple times
     running_loss = 0.0
     for i, data in enumerate(train_dataloader):
         # get the inputs; data is a list of [inputs, labels]
         inputs, labels = data
-        print(f"Inputs Shape: {inputs.shape}")
+        # print(f"Inputs Shape: {inputs.shape}")
 
         # zero the parameter gradients
         optimizer.zero_grad()
 
         # forward + backward + optimize
         outputs = encoder(inputs)
-        print(f"Output Shape: {outputs.shape}")
-        print(f"Labels Shape: {labels.shape}")
+        # print(f"Output Shape: {outputs.shape}")
+        # print(f"Labels Shape: {labels.shape}")
         loss = criterion(outputs, labels)
         loss.backward()
         optimizer.step()
@@ -49,3 +52,5 @@ for epoch in range(2):  # loop over the dataset multiple times
         if i % 2000 == 1999:  # print every 2000 mini-batches
             print(f"[{epoch + 1}, {i + 1:5d}] loss: {running_loss / 2000:.3f}")
             running_loss = 0.0
+
+torch.save(encoder.state_dict(), "models/trajectory_encoder.pth")

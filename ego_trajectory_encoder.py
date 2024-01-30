@@ -168,7 +168,7 @@ def feed_forward(dim_input: int = 512, dim_feedforward: int = 2048) -> nn.Module
 
 
 # Initialize the encoder
-encoder = EgoTrajectoryEncoder()
+# encoder = EgoTrajectoryEncoder()
 
 # npz = NpzTrajectory(
 #     "/mrtstorage/datasets/tmp/waymo_open_motion_processed/train-2e6/vehicle_b_78219_00001_4426517365.npz"
@@ -221,50 +221,50 @@ encoder = EgoTrajectoryEncoder()
 
 # print(loss(encoded_input_text, sequence_embedding))
 
-optimizer = torch.optim.Adam(encoder.parameters(), lr=1e-4)
-criterion = torch.nn.MSELoss(reduction="mean")
+# optimizer = torch.optim.Adam(encoder.parameters(), lr=1e-4)
+# criterion = torch.nn.MSELoss(reduction="mean")
 
-training_data = TrajectoryEncoderDataset()
+# training_data = TrajectoryEncoderDataset()
 
-train_dataloader = DataLoader(training_data, batch_size=64, shuffle=True)
+# train_dataloader = DataLoader(training_data, batch_size=64, shuffle=True)
 
 
-import wandb
+# import wandb
 
-wandb.init()
+# wandb.init()
 
-# Magic
-wandb.watch(encoder, log_freq=100)
+# # Magic
+# wandb.watch(encoder, log_freq=100)
 
-for epoch in range(1):  # loop over the dataset multiple times
-    running_loss = 0.0
-    for i, data in enumerate(train_dataloader):
-        # get the inputs; data is a list of [inputs, labels]
-        inputs, labels = data
-        print(f"Inputs Shape: {inputs.shape}")
+# for epoch in range(1):  # loop over the dataset multiple times
+#     running_loss = 0.0
+#     for i, data in enumerate(train_dataloader):
+#         # get the inputs; data is a list of [inputs, labels]
+#         inputs, labels = data
+#         # print(f"Inputs Shape: {inputs.shape}")
 
-        # zero the parameter gradients
-        optimizer.zero_grad()
+#         # zero the parameter gradients
+#         optimizer.zero_grad()
 
-        # forward + backward + optimize
-        outputs = encoder(inputs)
-        print(f"Output Shape: {outputs.shape}")
-        print(f"Labels Shape: {labels.shape}")
-        loss = criterion(outputs, labels)
-        loss.backward()
-        optimizer.step()
+#         # forward + backward + optimize
+#         outputs = encoder(inputs)
+#         # print(f"Output Shape: {outputs.shape}")
+#         # print(f"Labels Shape: {labels.shape}")
+#         loss = criterion(outputs, labels)
+#         loss.backward()
+#         optimizer.step()
 
-        if i % 10 == 0:
-            wandb.log({"loss": loss})
+#         if i % 10 == 0:
+#             wandb.log({"loss": loss})
 
-        if i % 10 == 0:
-            torch.save(encoder.state_dict(), "models/trajectory_encoder.pth")
+#         if i % 10 == 0:
+#             torch.save(encoder.state_dict(), "models/trajectory_encoder.pth")
 
-        # print statistics
-        running_loss += loss.item()
-        if i % 2000 == 1999:  # print every 2000 mini-batches
-            print(f"[{epoch + 1}, {i + 1:5d}] loss: {running_loss / 2000:.3f}")
-            running_loss = 0.0
+#         # print statistics
+#         running_loss += loss.item()
+#         if i % 2000 == 1999:  # print every 2000 mini-batches
+#             print(f"[{epoch + 1}, {i + 1:5d}] loss: {running_loss / 2000:.3f}")
+#             running_loss = 0.0
 # Output
 # print("Output shape:", output.shape)
 # Output shape: torch.Size([1, 80, 256])

@@ -262,8 +262,10 @@ class SimpleShell(cmd.Cmd):
         # npz_trajectory = NpzTrajectory(
         #     "/mrtstorage/datasets/tmp/waymo_open_motion_processed/train-2e6/vehicle_a_67582_00003_5913311279.npz"
         # )
+
+        # print(os.listdir("/storage_local/fzi_datasets_tmp/waymo_open_motion_dataset/unzipped/train-2e6"))
         npz_trajectory = NpzTrajectory(
-            "/home/pmueller/llama_traffic/datasets/npz_test_data/train-2e6/vehicle_b_121122_00001_8644612152.npz"
+            "/storage_local/fzi_datasets_tmp/waymo_open_motion_dataset/unzipped/train-2e6/vehicle_d_13657_00002_4856147881.npz"
         )
         # npz_trajectory = NpzTrajectory(
         #     "/home/pmueller/llama_traffic/datasets/npz_test_data/train-2e6/pedestrian_c_77063_00004_7456769354.npz"
