@@ -16,15 +16,15 @@ criterion = torch.nn.MSELoss(reduction="mean").cuda()
 dataset = TrajectoryEncoderDataset()
 
 batch_size = 16
-validation_split = .2
+validation_split = 0.2
 shuffle_dataset = True
-random_seed= 42
+random_seed = 42
 
 # Creating data indices for training and validation splits:
 dataset_size = len(dataset)
 indices = list(range(dataset_size))
 split = int(np.floor(validation_split * dataset_size))
-if shuffle_dataset :
+if shuffle_dataset:
     np.random.seed(random_seed)
     np.random.shuffle(indices)
 train_indices, val_indices = indices[split:], indices[:split]
@@ -33,10 +33,12 @@ train_indices, val_indices = indices[split:], indices[:split]
 train_sampler = SubsetRandomSampler(train_indices)
 valid_sampler = SubsetRandomSampler(val_indices)
 
-train_dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, 
-                                           sampler=train_sampler)
-validation_dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size,
-                                                sampler=valid_sampler)
+train_dataloader = torch.utils.data.DataLoader(
+    dataset, batch_size=batch_size, sampler=train_sampler
+)
+validation_dataloader = torch.utils.data.DataLoader(
+    dataset, batch_size=batch_size, sampler=valid_sampler
+)
 
 
 # train_dataloader = DataLoader(training_data, batch_size=32, shuffle=True)
@@ -48,7 +50,7 @@ wandb.init()
 # Magic
 wandb.watch(encoder, log_freq=100)
 
-device="cuda:0"
+device = "cuda:0"
 encoder.to(device)
 
 for epoch in range(1):  # loop over the dataset multiple times
@@ -80,4 +82,4 @@ for epoch in range(1):  # loop over the dataset multiple times
             print(f"[{epoch + 1}, {i + 1:5d}] loss: {running_loss / 2000:.3f}")
             running_loss = 0.0
 
-torch.save(encoder.state_dict(), "models/trajectory_encoder.pth")
+torch.save(encoder.state_dict(), "models/trajectory_encoder_mae.pth")

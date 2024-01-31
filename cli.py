@@ -266,6 +266,9 @@ class SimpleShell(cmd.Cmd):
         # )
 
         # print(os.listdir("/storage_local/fzi_datasets_tmp/waymo_open_motion_dataset/unzipped/train-2e6"))
+        # npz_trajectory = NpzTrajectory(
+        #     "/storage_local/fzi_datasets_tmp/waymo_open_motion_dataset/unzipped/train-2e6/vehicle_d_13657_00002_4856147881.npz"
+        # )
         npz_trajectory = NpzTrajectory(
             "/storage_local/fzi_datasets_tmp/waymo_open_motion_dataset/unzipped/train-2e6/vehicle_d_13657_00002_4856147881.npz"
         )
@@ -358,21 +361,29 @@ class SimpleShell(cmd.Cmd):
     def do_create_trajectory_encoder_labeled_npz_dataset(self, arg: str):
         torch.set_printoptions(profile="full")
         model = EgoTrajectoryEncoder()
-        model.load_state_dict(torch.load("/home/pmueller/llama_traffic/models/trajectory_encoder.pth"))
+        model.load_state_dict(
+            torch.load("/home/pmueller/llama_traffic/models/trajectory_encoder.pth")
+        )
         model.eval()
+        model.to("cuda")
         with torch.no_grad():
             with open("datasets/processed_vehicle_a.json") as file:
                 data_json = json.load(file)
                 keys = list(data_json.keys())
                 # coordinates = torch.Tensor(item["Coordinates"] for item in list(data_json.values()))
-                with open("datasets/trajectory_encoder_output.json", "a") as output:
+                with open("datasets/trajectory_encoder_output_v2.json", "a") as output:
                     output.write("{")
                     for i in tqdm(range(len(keys))):
                         key = keys[i]
-                        coordinates = torch.Tensor(data_json[key]["Coordinates"])
+                        coordinates = torch.Tensor(data_json[key]["Coordinates"]).to(
+                            "cuda"
+                        )
 
                         encoder_output = model(coordinates.unsqueeze(0)).squeeze()
-                        output.write(f"{key} : {encoder_output},\n")
+                        output.write(
+                            f'"{key.split("/")[-1]}" : {encoder_output.tolist()}'
+                            + ",\n"
+                        )
                     output.write("}")
 
     def do_get_u_turn_candidates(self, arg: str):
