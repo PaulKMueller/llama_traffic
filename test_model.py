@@ -67,26 +67,32 @@ def compute_similarities(
 
 
 def benchmark_model_retrieval():
+    similarities = {}
     preds = {}
     with open("datasets/trajectory_encoder_output_v2.json") as enc_output:
         enc_output_data = enc_output.read()
-        with open("datasets/processed_vehicle_a.json") as processed:
-            processed_data = processed.read()
-            processed_data = json.loads(processed_data)
-            enc_output_data = json.loads(enc_output_data)
-            processed_keys = processed_data.keys()
-            enc_output_keys = [key.split("/")[-1] for key in processed_data.keys()]
-            for index in tqdm(range(len(processed_keys))):
-                similarities = np.dot(
-                    np.array(
-                        processed_data[list(processed_keys)[index]],
-                        np.array(enc_output_data[list(enc_output_keys)[index]]),
-                    ),
-                )
-                max_sim = max(similarities, key=similarities.get)
-                preds[enc_output_keys[index]] == max_sim
+        enc_output_data = json.loads(enc_output_data)
+    with open("datasets/processed_vehicle_a.json") as processed:
+        processed_data = processed.read()
+        processed_data = json.loads(processed_data)
+        processed_keys = processed_data.keys()
+        enc_output_keys = [key.split("/")[-1] for key in processed_data.keys()]
+    with open("datasets/uae_buckets_cache.json") as cache:
+        cache_data = json.load(cache)
+    for index in tqdm(range(len(processed_keys))):
+        encoder_embedding = np.array(enc_output_data[list(enc_output_keys)[index]])
+        print(encoder_embedding)
+        for bucket in cache_data.keys():
+            similarities[bucket] = np.dot(
+                cache_data[bucket],
+                encoder_embedding.T,
+            )
+        print(similarities)
+        max_sim = max(similarities, key=similarities.get)
+        pred_key = enc_output_keys[index]
+        preds[pred_key] = max_sim
 
-    with open("datasets/trajectory_encoder_preds.json") as output:
+    with open("datasets/trajectory_encoder_preds.json", "w") as output:
         json.dump(preds, output, indent=4)
         print("finished")
 
