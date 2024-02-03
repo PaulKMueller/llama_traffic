@@ -334,7 +334,8 @@ class SimpleShell(cmd.Cmd):
     def do_create_direction_labeled_npz_dataset(self, arg: str):
         with open("config.yml") as config:
             config = yaml.safe_load(config)
-            npz_directory = config["npz_dataset"]
+            npz_directory = "/storage_local/fzi_datasets_tmp/waymo_open_motion_dataset/unzipped/train-2e6/"
+
         print("Config read!")
         # output = {}
 
@@ -362,16 +363,20 @@ class SimpleShell(cmd.Cmd):
         torch.set_printoptions(profile="full")
         model = EgoTrajectoryEncoder()
         model.load_state_dict(
-            torch.load("/home/pmueller/llama_traffic/models/trajectory_encoder.pth")
+            torch.load(
+                "/home/pmueller/llama_traffic/models/trajectory_encoder_wv_mse.pth"
+            )
         )
         model.eval()
         model.to("cuda")
         with torch.no_grad():
-            with open("datasets/processed_vehicle_a.json") as file:
+            with open("datasets/direction_labeled_npz_vehicle_b.json") as file:
                 data_json = json.load(file)
                 keys = list(data_json.keys())
                 # coordinates = torch.Tensor(item["Coordinates"] for item in list(data_json.values()))
-                with open("datasets/trajectory_encoder_output_v2.json", "a") as output:
+                with open(
+                    "datasets/trajectory_encoder_output_vehicle_b_mse.json", "a"
+                ) as output:
                     output.write("{")
                     for i in tqdm(range(len(keys))):
                         key = keys[i]
@@ -2411,9 +2416,7 @@ class SimpleShell(cmd.Cmd):
         device = (
             "cuda"
             if torch.cuda.is_available()
-            else "mps"
-            if torch.backends.mps.is_available()
-            else "cpu"
+            else "mps" if torch.backends.mps.is_available() else "cpu"
         )
         print(f"Using {device} device")
 

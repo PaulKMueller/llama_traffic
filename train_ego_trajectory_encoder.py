@@ -127,7 +127,13 @@ for epoch in range(10):  # Assuming you want to train for 10 epochs
             inputs, labels = inputs.to(device), labels.to(device)
 
             outputs = encoder(inputs)
-            loss = criterion(outputs, labels)
+            # loss = criterion(outputs, labels)
+            loss = torch.mean(torch.abs(criterion(labels, outputs)))
+            print(loss)
+
+            # back-propagation on the above *loss* will try cos(angle) = 0. But I want angle between the vectors to be 0 or cos(angle) = 1.
+
+            loss = 1 - loss
 
             val_running_loss += loss.item()
 
