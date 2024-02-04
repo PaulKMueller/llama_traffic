@@ -364,7 +364,7 @@ class SimpleShell(cmd.Cmd):
         model = EgoTrajectoryEncoder()
         model.load_state_dict(
             torch.load(
-                "/home/pmueller/llama_traffic/models/trajectory_encoder_wv_mse.pth"
+                "/home/pmueller/llama_traffic/models/trajectory_encoder_wv_mae.pth"
             )
         )
         model.eval()
@@ -374,9 +374,7 @@ class SimpleShell(cmd.Cmd):
                 data_json = json.load(file)
                 keys = list(data_json.keys())
                 # coordinates = torch.Tensor(item["Coordinates"] for item in list(data_json.values()))
-                with open(
-                    "datasets/trajectory_encoder_output_vehicle_b_mse.json", "a"
-                ) as output:
+                with open("datasets/encoder_output_vehicle_b_mae.json", "a") as output:
                     output.write("{")
                     for i in tqdm(range(len(keys))):
                         key = keys[i]

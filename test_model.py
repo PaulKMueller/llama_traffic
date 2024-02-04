@@ -67,12 +67,20 @@ def compute_similarities(
 
 
 def benchmark_model_retrieval():
+    """This method transforms the raw calculations of the trajectory encoder to their corresponding best matching bucket based on the cosine similarity.
+    The output is a dictionary with the trajectory's key and its key and the corresponding best matching bucket as its value.
+
+    {"vehicle_d_13657_00002_4856147881.npz": "Straight,
+     "vehicle_d_13657_00032_4852345321.npz": Right-U-Turn,
+     ...
+     }
+    """
     similarities = {}
     preds = {}
-    with open("datasets/encoder_output_vehicle_b_mse.json") as enc_output:
+    with open("datasets/encoder_output_vehicle_a_cos.json") as enc_output:
         enc_output_data = enc_output.read()
         enc_output_data = json.loads(enc_output_data)
-    with open("datasets/direction_labeled_npz_vehicle_b.json") as processed:
+    with open("datasets/direction_labeled_npz_vehicle_a.json") as processed:
         processed_data = processed.read()
         processed_data = json.loads(processed_data)
         processed_keys = processed_data.keys()
@@ -92,7 +100,7 @@ def benchmark_model_retrieval():
         pred_key = enc_output_keys[index]
         preds[pred_key] = max_sim
 
-    with open("datasets/encoder_preds_vehicle_b_mse.json", "w") as output:
+    with open("datasets/encoder_preds_vehicle_a_cos.json", "w") as output:
         json.dump(preds, output, indent=4)
         print("finished")
 
