@@ -158,7 +158,7 @@ def test_trajectory_encoder_on_synonyms():
     output = {}
     model = EgoTrajectoryEncoder()
     model.load_state_dict(
-        torch.load("/home/pmueller/llama_traffic/models/trajectory_encoder.pth")
+        torch.load("/home/pmueller/llama_traffic/models/trajectory_encoder_wv_mae.pth")
     )
     model.eval()
 
