@@ -1,5 +1,7 @@
 import numpy as np
 import os
+from tqdm import tqdm
+
 
 path = "/home/pmueller/llama_traffic/datasets/npz_test_data/train-2e6/vehicle_d_119014_00001_5453322049.npz"
 
@@ -70,92 +72,152 @@ vectors = {
     44: "global_idx",
 }
 
+result = {
+    0: 339036,
+    1: 281681,
+    2: 468108,
+    3: 240047,
+    4: 366851,
+    5: 468108,
+    6: 468108,
+    7: 0,
+    8: 468108,
+    9: 296067,
+    10: 84441,
+    11: 0,
+    12: 0,
+    13: 0,
+    14: 42215,
+    15: 466749,
+    16: 361176,
+    17: 0,
+    18: 0,
+    19: 392401,
+    20: 406947,
+    21: 1525,
+    22: 71703,
+    23: 8415,
+    24: 222725,
+    25: 289073,
+    26: 101676,
+    27: 0,
+    28: 429464,
+    29: 316558,
+    30: 161908,
+    31: 209908,
+    32: 179437,
+    33: 0,
+    34: 0,
+    35: 0,
+    36: 0,
+    37: 0,
+    38: 0,
+    39: 0,
+    40: 0,
+    41: 0,
+    42: 0,
+    43: 468108,
+    44: 468108,
+}
 
-for file in test_vehicle_files:
-    path = "/storage_local/fzi_datasets_tmp/waymo_open_motion_dataset/unzipped/train-2e6/vehicle_d_13657_00002_4856147881.npz"
-    with np.load(path) as data:
-        object_id = data["object_id"]
-        raster = data["raster"]
-        yaw = data["yaw"]
-        shift = data["shift"]
-        _gt_marginal = data["_gt_marginal"]
-        gt_marginal = data["gt_marginal"]
-        future_val_marginal = data["future_val_marginal"]
-        gt_joint = data["gt_joint"]
-        scenario_id = data["scenario_id"]
-        type = data["self_type"]
-        vector_data = data["vector_data"]
-        # print(data.shape)
+output = {
+    0: 0,
+    1: 0,
+    2: 0,
+    3: 0,
+    4: 0,
+    5: 0,
+    6: 0,
+    7: 0,
+    8: 0,
+    9: 0,
+    10: 0,
+    11: 0,
+    12: 0,
+    13: 0,
+    14: 0,
+    15: 0,
+    16: 0,
+    17: 0,
+    18: 0,
+    19: 0,
+    20: 0,
+    21: 0,
+    22: 0,
+    23: 0,
+    24: 0,
+    25: 0,
+    26: 0,
+    27: 0,
+    28: 0,
+    29: 0,
+    30: 0,
+    31: 0,
+    32: 0,
+    33: 0,
+    34: 0,
+    35: 0,
+    36: 0,
+    37: 0,
+    38: 0,
+    39: 0,
+    40: 0,
+    41: 0,
+    42: 0,
+    43: 0,
+    44: 0,
+}
 
-        V = vector_data
-        # print(V.shape)
-        X, idx = V[:, :45], V[:, 44].flatten()
-        # print(X.shape)
-        # print()
+keys = list(vectors.keys())
 
-        # print(idx)
-        # print(idx.shape)
-        # print(X.shape)
-        output = {
-            0: 0,
-            1: 0,
-            2: 0,
-            3: 0,
-            4: 0,
-            5: 0,
-            6: 0,
-            7: 0,
-            8: 0,
-            9: 0,
-            10: 0,
-            11: 0,
-            12: 0,
-            13: 0,
-            14: 0,
-            15: 0,
-            16: 0,
-            17: 0,
-            18: 0,
-            19: 0,
-            20: 0,
-            21: 0,
-            22: 0,
-            23: 0,
-            24: 0,
-            25: 0,
-            26: 0,
-            27: 0,
-            28: 0,
-            29: 0,
-            30: 0,
-            31: 0,
-            32: 0,
-            33: 0,
-            34: 0,
-            35: 0,
-            36: 0,
-            37: 0,
-            38: 0,
-            39: 0,
-            40: 0,
-            41: 0,
-            42: 0,
-            43: 0,
-            44: 0,
-        }
-        for i in np.unique(idx):
-            _X = X[(i == idx)]
-            print(_X.shape)
-            for key in list(vectors.keys()):
-                if _X[:, key].sum() > 0:
-                    output[key] += 1
+formatted = {}
 
-        print(output)
+for key in keys:
+    formatted[vectors[key]] = result[key]
 
-        # crosswalk = X[:, 29]
+print(formatted)
 
-        # if crosswalk.sum() > 1:
-        #     print(file)
-        #     print(crosswalk)
-        #     print(crosswalk.shape)
-        #     print()
+# for index in tqdm(range(len(test_vehicle_files))):
+#     file = test_vehicle_files[index]
+#     path = (
+#         "/storage_local/fzi_datasets_tmp/waymo_open_motion_dataset/unzipped/train-2e6/"
+#     )
+#     with np.load(path + file) as data:
+#         object_id = data["object_id"]
+#         raster = data["raster"]
+#         yaw = data["yaw"]
+#         shift = data["shift"]
+#         _gt_marginal = data["_gt_marginal"]
+#         gt_marginal = data["gt_marginal"]
+#         future_val_marginal = data["future_val_marginal"]
+#         gt_joint = data["gt_joint"]
+#         scenario_id = data["scenario_id"]
+#         type = data["self_type"]
+#         vector_data = data["vector_data"]
+#         # print(data.shape)
+
+#         V = vector_data
+#         # print(V.shape)
+#         X, idx = V[:, :45], V[:, 44].flatten()
+#         # print(X.shape)
+#         # print()
+
+#         # print(idx)
+#         # print(idx.shape)
+#         # print(X.shape)
+#         # for i in np.unique(idx):
+#         #     _X = X[(i == idx)]
+#         #     print(_X.shape)
+#         for key in list(vectors.keys()):
+#             if X[:, key].sum() > 0:
+#                 output[key] += 1
+
+# print(output)
+
+# # crosswalk = X[:, 29]
+
+# # if crosswalk.sum() > 1:
+# #     print(file)
+# #     print(crosswalk)
+# #     print(crosswalk.shape)
+# #     print()

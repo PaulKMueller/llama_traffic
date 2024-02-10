@@ -25,7 +25,7 @@ from tensorflow.keras.losses import MeanSquaredError
 
 import matplotlib.pyplot as plt
 
-from npz_utils import list_vehicle_files_absolute
+from npz_utils import list_vehicle_files_absolute, list_vehicle_files_relative
 
 import pandas as pd
 
@@ -341,7 +341,7 @@ class SimpleShell(cmd.Cmd):
 
         trajectory_paths = list_vehicle_files_absolute(npz_directory)
         print("Trajectories listed!")
-        with open("output/direction_labeled_npz.json", "w") as file:
+        with open("output/direction_labeled_npz_vehicle_a.json", "w") as file:
             file.write("{")
         for i in tqdm(range(len(trajectory_paths))):
             path = trajectory_paths[i]
@@ -354,9 +354,9 @@ class SimpleShell(cmd.Cmd):
                 "Direction": npz_trajectory.direction,
             }
             # output[path] = local_dict
-            with open("output/direction_labeled_npz.json", "a") as file:
-                file.write(f'"{path}": {local_dict},\n')
-        with open("output/direction_labeled_npz.json", "a") as file:
+            with open("output/direction_labeled_npz_vehicle_a.json", "a") as file:
+                file.write(f'"{path.split("/")[-1]}": {local_dict},\n')
+        with open("output/direction_labeled_npz_vehicle_a.json", "a") as file:
             file.write("}")
 
     def do_create_trajectory_encoder_labeled_npz_dataset(self, arg: str):
@@ -364,17 +364,17 @@ class SimpleShell(cmd.Cmd):
         model = EgoTrajectoryEncoder()
         model.load_state_dict(
             torch.load(
-                "/home/pmueller/llama_traffic/models/trajectory_encoder_wv_mae.pth"
+                "/home/pmueller/llama_traffic/models/trajectory_encoder_wv_cos.pth"
             )
         )
         model.eval()
         model.to("cuda")
         with torch.no_grad():
-            with open("datasets/direction_labeled_npz_vehicle_b.json") as file:
+            with open("datasets/direction_labeled_npz_vehicle_a.json") as file:
                 data_json = json.load(file)
                 keys = list(data_json.keys())
                 # coordinates = torch.Tensor(item["Coordinates"] for item in list(data_json.values()))
-                with open("datasets/encoder_output_vehicle_b_mae.json", "a") as output:
+                with open("datasets/encoder_output_vehicle_a_cos.json", "a") as output:
                     output.write("{")
                     for i in tqdm(range(len(keys))):
                         key = keys[i]
@@ -388,6 +388,13 @@ class SimpleShell(cmd.Cmd):
                             + ",\n"
                         )
                     output.write("}")
+
+    def do_create_scenario_labeled_scenarios(self, arg: str):
+        vehicle_a_file_paths = list_vehicle_files_absolute()
+
+        for vehicle_file in vehicle_a_file_paths:
+            npz_trajectory = NpzTrajectory(vehicle_file)
+
 
     def do_get_u_turn_candidates(self, arg: str):
         with open("config.yml") as config:
@@ -2640,7 +2647,7 @@ class SimpleShell(cmd.Cmd):
             "Left-U-Turn": 0,
         }
         print("Before loading")
-        with open("output/processed.json", "r") as file:
+        with open("datasets/direction_labeled_npz_vehicle_b.json", "r") as file:
             text = file.read()
 
         print("After loading")

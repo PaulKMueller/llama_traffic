@@ -52,7 +52,7 @@ def compute_similarities(
 
     with open("datasets/uae_buckets_cache.json") as cache:
         print("Test2")
-        loaded_cache = json.load(cache)
+        loaded_cache = json5.load(cache)
         similarities = {}
 
         for bucket in loaded_cache.keys():
@@ -77,15 +77,20 @@ def benchmark_model_retrieval():
     """
     similarities = {}
     preds = {}
+    # labeled_path = "datasets/direction_labeled_npz_vehicle_a.json"
     with open("datasets/encoder_output_vehicle_a_cos.json") as enc_output:
-        enc_output_data = enc_output.read()
-        enc_output_data = json.loads(enc_output_data)
+        print("Before loading encoded data")
+        enc_output_data = json.load(enc_output)
+        print("After loading encoded data")
+        # enc_output_data = enc_output.read()
     with open("datasets/direction_labeled_npz_vehicle_a.json") as processed:
+        print("Second")
         processed_data = processed.read()
         processed_data = json.loads(processed_data)
         processed_keys = processed_data.keys()
         enc_output_keys = [key.split("/")[-1] for key in processed_data.keys()]
     with open("datasets/uae_buckets_cache.json") as cache:
+        print("Third")
         cache_data = json.load(cache)
     for index in tqdm(range(len(processed_keys))):
         encoder_embedding = np.array(enc_output_data[list(enc_output_keys)[index]])

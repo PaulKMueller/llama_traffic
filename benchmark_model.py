@@ -8,9 +8,9 @@ from tqdm import tqdm
 true = 0
 false = 0
 
-with open("datasets/encoder_preds_mse.json") as predictions:
+with open("datasets/encoder_preds_vehicle_b_mae.json") as predictions:
     pred_data = json.load(predictions)
-with open("datasets/processed_vehicle_a.json") as ground_truth:
+with open("datasets/direction_labeled_npz_vehicle_b.json") as ground_truth:
     ground_truth_data = json.load(ground_truth)
 
 
@@ -19,12 +19,12 @@ pred_data_keys = list(pred_data.keys())
 
 for i in tqdm(range(len(ground_truth_data_keys))):
     pred_label = pred_data[pred_data_keys[i]]
-    print(pred_data_keys[i])
-    print(pred_label)
+    # print(pred_data_keys[i])
+    # print(pred_label)
     ground_truth_label = ground_truth_data[ground_truth_data_keys[i]]["Direction"]
-    print(ground_truth_data_keys[i])
-    print(ground_truth_label)
-    print()
+    # print(ground_truth_data_keys[i])
+    # print(ground_truth_label)
+    # print()
 
     if ground_truth_label == pred_label:
         true += 1
