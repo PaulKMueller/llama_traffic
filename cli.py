@@ -259,7 +259,10 @@ class SimpleShell(cmd.Cmd):
         with open("output/npz_bucketing_test.json", "w") as file:
             json.dump(output, file)
 
-    def do_load_npz_trajectory(self, arg: str):
+    def do_load_npz_trajectory(
+        self,
+        arg: str = "/storage_local/fzi_datasets_tmp/waymo_open_motion_dataset/unzipped/train-2e6/vehicle_d_13657_00002_4856147881.npz",
+    ):
         # vehicle is type 1, pedestrian type 2
         # npz_trajectory = NpzTrajectory(
         #     "/mrtstorage/datasets/tmp/waymo_open_motion_processed/train-2e6/vehicle_a_67582_00003_5913311279.npz"
@@ -269,9 +272,8 @@ class SimpleShell(cmd.Cmd):
         # npz_trajectory = NpzTrajectory(
         #     "/storage_local/fzi_datasets_tmp/waymo_open_motion_dataset/unzipped/train-2e6/vehicle_d_13657_00002_4856147881.npz"
         # )
-        npz_trajectory = NpzTrajectory(
-            "/storage_local/fzi_datasets_tmp/waymo_open_motion_dataset/unzipped/train-2e6/vehicle_d_13657_00002_4856147881.npz"
-        )
+        npz_filepath = arg
+        npz_trajectory = NpzTrajectory(npz_filepath)
         # npz_trajectory = NpzTrajectory(
         #     "/home/pmueller/llama_traffic/datasets/npz_test_data/train-2e6/pedestrian_c_77063_00004_7456769354.npz"
         # )
@@ -389,12 +391,142 @@ class SimpleShell(cmd.Cmd):
                         )
                     output.write("}")
 
+    def do_has_feature(self, arg: str):
+        if arg == "":
+            print("No feature given!")
+            return
+        features = {
+            "position_x": 0,
+            "position_y": 1,
+            "speed": 2,
+            "velocity_yaw": 3,
+            "bbox_yaw": 4,
+            "length": 5,
+            "width": 6,
+            "agent_unset": 7,
+            "agent_vehicle": 8,
+            "agent_pedestrian": 9,
+            "agent_cyclist": 10,
+            "agent_other": 11,
+            "IDX_NOT_USED": 33,
+            "lane_center_undefined": 13,
+            "lane_center_freeway": 14,
+            "lane_center_surface_street": 15,
+            "lane_center_bike_lane": 16,
+            "road_line_unknowm": 17,
+            "road_line_broken_single_white": 18,
+            "road_line_solid_single_white": 19,
+            "road_line_solid_double_white": 20,
+            "road_line_broken_single_yellow": 21,
+            "road_line_broken_double_yellow": 22,
+            "road_line_solid_single_yellow": 23,
+            "road_line_solid_double_yellow": 24,
+            "road_line_passing_double_yellow": 25,
+            "road_edge_unknown": 26,
+            "road_edge_boundary": 27,
+            "road_edge_median": 28,
+            "stop_sign": 29,
+            "crosswalk": 30,
+            "speed_bump": 31,
+            "driveway": 32,
+            "traffic_light_state_unknown": 34,
+            "traffic_light_state_arrow_stop": 35,
+            "traffic_light_state_arrow_caution": 36,
+            "traffic_light_state_arrow_go": 37,
+            "traffic_light_state_stop": 38,
+            "traffic_light_state_caution": 39,
+            "traffic_light_state_go": 40,
+            "traffic_light_state_flashing_stop": 41,
+            "traffic_light_state_flashing_caution": 42,
+            "timestamp": 43,
+            "global_idx": 44,
+        }
+        vehicle_path = "/storage_local/fzi_datasets_tmp/waymo_open_motion_dataset/unzipped/train-2e6/vehicle_d_13657_00002_4856147881.npz"
+        vehicle_path = "/storage_local/fzi_datasets_tmp/waymo_open_motion_dataset/unzipped/train-2e6/vehicle_a_25972_00006_9317225410.npz"
+        # /storage_local/fzi_datasets_tmp/waymo_open_motion_dataset/unzipped/train-2e6/vehicle_a_84559_00003_3143712003.npz
+        # /storage_local/fzi_datasets_tmp/waymo_open_motion_dataset/unzipped/train-2e6/vehicle_a_80216_00003_536845315.npz
+        # /storage_local/fzi_datasets_tmp/waymo_open_motion_dataset/unzipped/train-2e6/vehicle_a_82420_00002_2301414027.npz
+        # /storage_local/fzi_datasets_tmp/waymo_open_motion_dataset/unzipped/train-2e6/vehicle_a_62891_00004_7533961705.npz
+        # /storage_local/fzi_datasets_tmp/waymo_open_motion_dataset/unzipped/train-2e6/vehicle_a_31226_00003_532688195.npz
+        # /storage_local/fzi_datasets_tmp/waymo_open_motion_dataset/unzipped/train-2e6/vehicle_a_114724_00000_389619377.npz
+        # /storage_local/fzi_datasets_tmp/waymo_open_motion_dataset/unzipped/train-2e6/vehicle_a_39001_00001_6094040646.npz
+        # /storage_local/fzi_datasets_tmp/waymo_open_motion_dataset/unzipped/train-2e6/vehicle_a_10749_00002_3702461762.npz
+        # /storage_local/fzi_datasets_tmp/waymo_open_motion_dataset/unzipped/train-2e6/vehicle_a_115558_00002_7015306401.npz
+        # /storage_local/fzi_datasets_tmp/waymo_open_motion_dataset/unzipped/train-2e6/vehicle_a_25972_00006_9317225410.npz
+
+        with np.load(vehicle_path) as data:
+            V = data["vector_data"]
+            X = V[:, :45]
+
+            try:
+                numeric_key = features[arg]
+                if X[:, numeric_key].sum() > 0:
+                    print(True)
+                    print(X[:, numeric_key])
+                    print(X.shape)
+                else:
+                    print(False)
+            except KeyError:
+                print(f"No feature named {arg} exists!")
+
     def do_create_scenario_labeled_scenarios(self, arg: str):
-        vehicle_a_file_paths = list_vehicle_files_absolute()
 
-        for vehicle_file in vehicle_a_file_paths:
-            npz_trajectory = NpzTrajectory(vehicle_file)
+        vectors = {
+            # 0: "position_x",
+            # 1: "position_y",
+            # 2: "speed",
+            # 3: "velocity_yaw",
+            # 4: "bbox_yaw",
+            # 5: "length",
+            # 6: "width",
+            # 7-11: Agent type one-hot encoded
+            # 7: "agent_unset",
+            8: "vehicle",
+            9: "pedestrian",
+            10: "cyclist",
+            # 11: "agent_other",
+            # 13-32: Lane and road line type one-hot encoded
+            # 13: "lane_center_undefined",
+            14: "freeway",
+            15: "surface_street",
+            16: "bike_lane",
+            # 17: "road_line_unknowm",
+            18: "road_line_broken_single_white",
+            19: "road_line_solid_single_white",
+            20: "road_line_solid_double_white",
+            21: "road_line_broken_single_yellow",
+            22: "road_line_broken_double_yellow",
+            23: "road_line_solid_single_yellow",
+            24: "road_line_solid_double_yellow",
+            25: "road_line_passing_double_yellow",
+            # 26: "road_edge_unknown",
+            # 27: "road_edge_boundary",
+            # 28: "road_edge_median",
+            29: "stop_sign",
+            30: "crosswalk",
+            31: "speed_bump",
+            32: "driveway",
+            # 34-42: Traffic light state one-hot encoded
+            # 34: "traffic_light_state_unknown",
+            # 35: "traffic_light_state_arrow_stop",
+            # 36: "traffic_light_state_arrow_caution",
+            # 37: "traffic_light_state_arrow_go",
+            # 38: "traffic_light_state_stop",
+            # 39: "traffic_light_state_caution",
+            # 40: "traffic_light_state_go",
+            # 41: "traffic_light_state_flashing_stop",
+            # 42: "traffic_light_state_flashing_caution",
+        }
+        vehicle_a_file_paths = [arg]
+        label = ""
+        for vehicle_file_path in vehicle_a_file_paths:
+            with np.load(vehicle_file_path) as vehicle_data:
+                X = vehicle_data["vector_data"][:, :45]
+                for vector in list(vectors.keys()):
+                    if X[:, vector].sum() > 0:
+                        label += vectors[vector] + " "
 
+        print(label.strip())
 
     def do_get_u_turn_candidates(self, arg: str):
         with open("config.yml") as config:

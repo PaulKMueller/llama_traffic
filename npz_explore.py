@@ -19,6 +19,8 @@ for filename in os.listdir(
     if filename.startswith("vehicle_a"):
         test_vehicle_files.append(filename)
 
+print(test_vehicle_files[:10])
+
 print("Got data")
 
 vectors = {
@@ -168,14 +170,14 @@ output = {
     44: 0,
 }
 
-keys = list(vectors.keys())
+# keys = list(vectors.keys())
 
-formatted = {}
+# formatted = {}
 
-for key in keys:
-    formatted[vectors[key]] = result[key]
+# for key in keys:
+#     formatted[vectors[key]] = result[key]
 
-print(formatted)
+# print(formatted)
 
 # for index in tqdm(range(len(test_vehicle_files))):
 #     file = test_vehicle_files[index]
@@ -196,7 +198,7 @@ print(formatted)
 #         vector_data = data["vector_data"]
 #         # print(data.shape)
 
-#         V = vector_data
+# V = vector_data
 #         # print(V.shape)
 #         X, idx = V[:, :45], V[:, 44].flatten()
 #         # print(X.shape)
