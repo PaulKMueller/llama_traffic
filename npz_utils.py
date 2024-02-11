@@ -38,3 +38,37 @@ def list_vehicle_files_absolute(
             absolute_path = os.path.abspath(os.path.join(directory, filename))
             vehicle_files.append(absolute_path)
     return vehicle_files
+
+
+def one_hot_encode_trajectory(input_string, vocabulary):
+    # Split the input string into words
+    words = input_string.split(" ")
+
+    # Initialize the one-hot-encoded vector with zeros
+    one_hot_encoded_vector = [0] * len(vocabulary)
+
+    # Create a dictionary for faster lookup
+    word_to_index = {word: i for i, word in enumerate(vocabulary)}
+
+    # Set the corresponding index to 1 for each word in the input that is in the vocabulary
+    for word in words:
+        if word in word_to_index:
+            one_hot_encoded_vector[word_to_index[word]] = 1
+
+    return one_hot_encoded_vector
+
+
+def decode_one_hot_vector(one_hot_encoded_vector, vocabulary):
+    # Initialize an empty list to hold words that are present (indicated by a 1 in the vector)
+    words_present = []
+
+    # Iterate over the one-hot-encoded vector
+    for i, value in enumerate(one_hot_encoded_vector):
+        # If the value at the current position is 1, append the corresponding word from the vocabulary
+        if value == 1:
+            words_present.append(vocabulary[i])
+
+    # Join the words present into a single string, separated by spaces
+    decoded_string = " ".join(words_present)
+
+    return decoded_string

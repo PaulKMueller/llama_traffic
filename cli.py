@@ -1,3 +1,4 @@
+import sys
 import cmd
 import argparse
 import os
@@ -325,6 +326,14 @@ class SimpleShell(cmd.Cmd):
             return
         self.loaded_npz_trajectory.plot_trajectory()
 
+    def do_plot_npz_scenario(self, arg: str):
+        if self.loaded_npz_trajectory == None:
+            print(
+                "No NPZ trajectory has been loaded yet. Please load a scenario before calling this command."
+            )
+            return
+        self.loaded_npz_trajectory.plot_scenario()
+
     def do_animate_npz_trajectory(self, arg: str):
         if self.loaded_npz_trajectory == None:
             print(
@@ -425,10 +434,10 @@ class SimpleShell(cmd.Cmd):
             "road_edge_unknown": 26,
             "road_edge_boundary": 27,
             "road_edge_median": 28,
-            "stop_sign": 29,
-            "crosswalk": 30,
-            "speed_bump": 31,
-            "driveway": 32,
+            "stop_sign": 30,
+            "crosswalk": 31,
+            "speed_bump": 32,
+            "driveway": 33,
             "traffic_light_state_unknown": 34,
             "traffic_light_state_arrow_stop": 35,
             "traffic_light_state_arrow_caution": 36,
@@ -457,6 +466,7 @@ class SimpleShell(cmd.Cmd):
         with np.load(vehicle_path) as data:
             V = data["vector_data"]
             X = V[:, :45]
+            np.set_printoptions(threshold=sys.maxsize)
 
             try:
                 numeric_key = features[arg]
@@ -466,10 +476,33 @@ class SimpleShell(cmd.Cmd):
                     print(X.shape)
                 else:
                     print(False)
+                    print(X[:, numeric_key])
+                    print(numeric_key)
             except KeyError:
                 print(f"No feature named {arg} exists!")
 
     def do_create_scenario_labeled_scenarios(self, arg: str):
+
+        vehicle_file_paths = list_vehicle_files_absolute(
+            directory="/storage_local/fzi_datasets_tmp/waymo_open_motion_dataset/unzipped/train-2e6/"
+        )
+
+        def one_hot_encode_trajectory(input_string, vocabulary):
+            # Split the input string into words
+            words = input_string.split(" ")
+
+            # Initialize the one-hot-encoded vector with zeros
+            one_hot_encoded_vector = [0] * len(vocabulary)
+
+            # Create a dictionary for faster lookup
+            word_to_index = {word: i for i, word in enumerate(vocabulary)}
+
+            # Set the corresponding index to 1 for each word in the input that is in the vocabulary
+            for word in words:
+                if word in word_to_index:
+                    one_hot_encoded_vector[word_to_index[word]] = 1
+
+            return one_hot_encoded_vector
 
         vectors = {
             # 0: "position_x",
@@ -491,21 +524,21 @@ class SimpleShell(cmd.Cmd):
             15: "surface_street",
             16: "bike_lane",
             # 17: "road_line_unknowm",
-            18: "road_line_broken_single_white",
-            19: "road_line_solid_single_white",
-            20: "road_line_solid_double_white",
-            21: "road_line_broken_single_yellow",
-            22: "road_line_broken_double_yellow",
-            23: "road_line_solid_single_yellow",
-            24: "road_line_solid_double_yellow",
-            25: "road_line_passing_double_yellow",
+            # 18: "road_line_broken_single_white",
+            # 19: "road_line_solid_single_white",
+            # 20: "road_line_solid_double_white",
+            # 21: "road_line_broken_single_yellow",
+            # 22: "road_line_broken_double_yellow",
+            # 23: "road_line_solid_single_yellow",
+            # 24: "road_line_solid_double_yellow",
+            # 25: "road_line_passing_double_yellow",
             # 26: "road_edge_unknown",
             # 27: "road_edge_boundary",
             # 28: "road_edge_median",
-            29: "stop_sign",
-            30: "crosswalk",
-            31: "speed_bump",
-            32: "driveway",
+            30: "stop_sign",
+            31: "crosswalk",
+            32: "speed_bump",
+            33: "driveway",
             # 34-42: Traffic light state one-hot encoded
             # 34: "traffic_light_state_unknown",
             # 35: "traffic_light_state_arrow_stop",
@@ -517,16 +550,37 @@ class SimpleShell(cmd.Cmd):
             # 41: "traffic_light_state_flashing_stop",
             # 42: "traffic_light_state_flashing_caution",
         }
-        vehicle_a_file_paths = [arg]
+        # vehicle_a_file_paths = [arg]
         label = ""
-        for vehicle_file_path in vehicle_a_file_paths:
+        with open("output/labeled_scenarios_vehicle_a.json", "a") as file:
+            file.write("{")
+        for index in tqdm(range(len(vehicle_file_paths))):
+            vehicle_file_path = vehicle_file_paths[index]
             with np.load(vehicle_file_path) as vehicle_data:
                 X = vehicle_data["vector_data"][:, :45]
                 for vector in list(vectors.keys()):
                     if X[:, vector].sum() > 0:
                         label += vectors[vector] + " "
+            encoding = one_hot_encode_trajectory(
+                label,
+                [
+                    "vehicle",
+                    "pedestrian",
+                    "cyclist",
+                    "freeway",
+                    "surface_street",
+                    "bike_lane",
+                    "stop_sign",
+                    "crosswalk",
+                    "speed_bump",
+                    "driveway",
+                ],
+            )
+            with open("output/labeled_scenarios_vehicle_a.json", "a") as file:
+                file.write(f'"{vehicle_file_path.split("/")[-1]}": "{encoding}",\n')
 
-        print(label.strip())
+        with open("output/labeled_scenarios_vehicle_a.json", "a") as file:
+            file.write("}")
 
     def do_get_u_turn_candidates(self, arg: str):
         with open("config.yml") as config:

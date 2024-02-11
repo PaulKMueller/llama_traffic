@@ -1,21 +1,18 @@
-def insert_newline_after_comma(file_path):
-    try:
-        with open(file_path, "r") as file:
-            content = file.read()
+file_path = "/home/pmueller/llama_traffic/output/test_2.json"
 
-        # Replace every comma with a comma followed by a newline
-        modified_content = content.replace(",", ",\n")
+try:
+    with open(file_path, "r") as file:
+        content = file.readlines()
 
-        return modified_content
+    for line in content:
+        modified_line = line.replace("(", "[")
+        with open("output/test_3.json", "a") as file:
+            file.write(modified_line)
 
-    except FileNotFoundError:
-        return "File not found."
-    except Exception as e:
-        return f"An error occurred: {e}"
+    # Replace every comma with a comma followed by a newline
+    modified_content = content.replace("'", '"')
 
-
-# Usage example:
-file_path = "/home/pmueller/llama_traffic/output/direction_labeled_npz_vehicle_b.json"
-with open("output/test.json", "w") as file:
-    content = insert_newline_after_comma(file_path)
-    file.write(content)
+except FileNotFoundError:
+    print("File not found.")
+except Exception as e:
+    print(f"An error occurred: {e}")

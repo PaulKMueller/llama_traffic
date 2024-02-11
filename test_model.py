@@ -52,7 +52,7 @@ def compute_similarities(
 
     with open("datasets/uae_buckets_cache.json") as cache:
         print("Test2")
-        loaded_cache = json5.load(cache)
+        loaded_cache = json.load(cache)
         similarities = {}
 
         for bucket in loaded_cache.keys():
@@ -83,7 +83,7 @@ def benchmark_model_retrieval():
         enc_output_data = json.load(enc_output)
         print("After loading encoded data")
         # enc_output_data = enc_output.read()
-    with open("datasets/direction_labeled_npz_vehicle_a.json") as processed:
+    with open("output/test_3.json") as processed:
         print("Second")
         processed_data = processed.read()
         processed_data = json.loads(processed_data)

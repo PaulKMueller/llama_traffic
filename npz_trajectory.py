@@ -443,9 +443,9 @@ class NpzTrajectory:
             elif _X[:, 16].sum() > 0:  # Bike lanes
                 plt.plot(_X[:, 0], _X[:, 1], 0, color="tab:red")
             elif _X[:, 18:26].sum() > 0:  # Road lines
-                plt.plot(_X[:, 0], _X[:, 1], 0, "--", color="white")
+                plt.plot(_X[:, 0], _X[:, 1], 0, "--", color="grey")
             elif _X[:, 26:29].sum() > 0:  # Road edges
-                plt.plot(_X[:, 0], _X[:, 1], 0, linewidth=2, color="white")
+                plt.plot(_X[:, 0], _X[:, 1], 0, linewidth=2, color="grey")
 
         ax.set_zlim(bottom=0, top=5)
         ax.set_aspect("equal")
@@ -510,11 +510,9 @@ class NpzTrajectory:
 
         return plt
 
-    def plot_trajectory(
+    def plot_scenario(
         self,
-        filename="output/3D_trajectory_plot",
-        x_range=(-50, 50),
-        y_range=(-50, 50),
+        filename="output/3D_scenario_plot",
         prediction_subsampling_rate=8,
         prediction_horizon=80,
         plot_subsampling_rate=2,
@@ -572,13 +570,229 @@ class NpzTrajectory:
         # print(X[0])
         # print(np.unique(idx).shape)
 
-        print(np.unique(idx))
+        # print(np.unique(idx))
         # print(X[(idx == 220)].shape)
 
-        print(X[X[:, 8] == 1].shape)
+        # print(X[X[:, 8] == 1].shape)
 
         # print(X[(idx == 0)][:, 0])
-        print(X.shape)
+        # print(X.shape)
+        for i in np.unique(idx):
+            _X = X[(idx == i)]
+            # print(_X.shape)
+            if _X[:, 8].sum() > 0:
+                # The ego vehicle in this scenario starts at (0, 0). This is checked in the next line.
+                # if _X[-1, 0] == 0 and _X[-1, 1] == 0:
+                #     plt.plot(_X[:, 0], _X[:, 1], 0, linewidth=4, color="red")
+                #     plt.plot(_X[-1, 0], _X[-1, 1], 0, "o", markersize=10, color="blue")
+                # plt.plot(_X[-1, 0], _X[-1, 1], 0, linewidth=4, color="red")
+
+                bbox = self.rotate_bbox_zxis(car, _X[-1, 4])
+                bbox = self.shift_cuboid(_X[-1, 0], _X[-1, 1], bbox)
+
+                if _X[-1, 2]:  # speed to determine dynamic or static
+                    self.add_cube(bbox, ax, color="tab:blue", alpha=0.5)
+                else:
+                    self.add_cube(bbox, ax, color="tab:grey", alpha=0.5)
+            elif _X[:, 9].sum() > 0:
+                if _X[-1, 0] == 0 and _X[-1, 1] == 0:
+                    plt.plot(_X[:, 0], _X[:, 1], 0, linewidth=4, color="orange")
+                    plt.plot(
+                        _X[-1, 0], _X[-1, 1], 0, "o", markersize=10, color="orange"
+                    )
+                bbox = self.rotate_bbox_zxis(pedestrian, _X[-1, 4])
+                bbox = self.shift_cuboid(_X[-1, 0], _X[-1, 1], bbox)
+                self.add_cube(bbox, ax, color="tab:orange", alpha=0.5)
+            elif _X[:, 10].sum() > 0:
+                if _X[-1, 0] == 0 and _X[-1, 1] == 0:
+                    plt.plot(_X[:, 0], _X[:, 1], 0, linewidth=4, color="green")
+                    plt.plot(_X[-1, 0], _X[-1, 1], 0, "o", markersize=10, color="green")
+                bbox = self.rotate_bbox_zxis(cyclist, _X[-1, 4])
+                bbox = self.shift_cuboid(_X[-1, 0], _X[-1, 1], bbox)
+                self.add_cube(bbox, ax, color="tab:green", alpha=0.5)
+            elif _X[:, 13:16].sum() > 0:  # Traffic lanes
+                # print("Something to plot")
+                # print(_X[:, 13:16])
+                # print(_X[:, 13:16].shape)
+                plt.plot(_X[:, 0], _X[:, 1], 0, color="black")
+            elif _X[:, 16].sum() > 0:  # Bike lanes
+                plt.plot(_X[:, 0], _X[:, 1], 0, color="tab:red")
+            elif _X[:, 18:26].sum() > 0:  # Road lines
+                plt.plot(_X[:, 0], _X[:, 1], 0, "--", color="grey")
+            elif _X[:, 26:29].sum() > 0:  # Road edges
+                plt.plot(_X[:, 0], _X[:, 1], 0, linewidth=2, color="grey")
+            elif _X[:, 30].sum() > 0:  # Stop Signs
+                print(_X[:, 30])
+                x = _X[:, 0]
+                y = _X[:, 1]
+                z = 0
+                plt.plot(x, y, 0, color="red", marker="H")
+            elif _X[:, 31].sum() > 0:  # Crosswalks
+                x = _X[:, 0]
+                y = _X[:, 1]
+                z = 0
+                plt.plot(x, y, 0, "--", color="green", linewidth=5, alpha=0.5)
+            elif _X[:, 32].sum() > 0:  # Speedbumps
+                x = _X[:, 0]
+                y = _X[:, 1]
+                z = 0
+                plt.plot(x, y, 0, color="black", marker="s")
+            elif _X[:, 33].sum() > 0:
+                x = _X[:, 0]
+                y = _X[:, 1]
+                z = 0
+                plt.plot(x, y, 0, linewidth=2, color="orange", marker="o")
+
+        ax.set_zlim(bottom=0, top=5)
+        ax.set_aspect("equal")
+        ax.set_axis_off()
+        ax.set_facecolor("white")
+
+        is_available = is_available[
+            prediction_subsampling_rate
+            - 1 : prediction_horizon : prediction_subsampling_rate
+        ]
+        gt_marginal = gt_marginal[
+            prediction_subsampling_rate
+            - 1 : prediction_horizon : prediction_subsampling_rate
+        ]
+
+        confids_scaled = self.sigmoid(confidences)
+        colors = plt.cm.viridis(confidences * 4)
+
+        for pred_id in np.argsort(confidences):
+            confid = confidences[pred_id]
+            label = f"Pred {pred_id}, confid: {confid:.2f}" if False else ""
+            confid_scaled = confids_scaled[pred_id]
+            plt.plot(
+                np.concatenate(
+                    (
+                        np.array([[0.0, 0.0]]),
+                        predictions[pred_id][is_available > 0][::plot_subsampling_rate],
+                    )
+                )[:, 0],
+                np.concatenate(
+                    (
+                        np.array([[0.0, 0.0]]),
+                        predictions[pred_id][is_available > 0][::plot_subsampling_rate],
+                    )
+                )[:, 1],
+                "-o",
+                color=colors[pred_id],
+                label=label,
+                linewidth=3,  # linewidth,
+                markersize=10,  # linewidth+3,
+            )
+
+        # plt.plot(
+        #     np.concatenate(
+        #         (
+        #             np.array([0.0]),
+        #             gt_marginal[is_available > 0][:, 0][::plot_subsampling_rate],
+        #         )
+        #     ),
+        #     np.concatenate(
+        #         (
+        #             np.array([0.0]),
+        #             gt_marginal[is_available > 0][:, 1][::plot_subsampling_rate],
+        #         )
+        #     ),
+        #     "--o",
+        #     color="tab:cyan",
+        #     label=label,
+        #     linewidth=4,  # 4
+        #     markersize=10,
+        # )
+
+        # plt.plot(
+        #     np.concatenate(
+        #         (
+        #             np.array([0.0]),
+        #             gt_marginal[is_available > 0][:, 0][::plot_subsampling_rate],
+        #         )
+        #     ),
+        #     np.concatenate(
+        #         (
+        #             np.array([0.0]),
+        #             gt_marginal[is_available > 0][:, 1][::plot_subsampling_rate],
+        #         )
+        #     ),
+        #     color="tab:red",
+        #     label=label,
+        #     linewidth=4,
+        # )
+
+        plt.savefig(filename)
+
+    def plot_trajectory(
+        self,
+        filename="output/3D_trajectory_plot",
+        x_range=(-100, 100),
+        y_range=(-100, 100),
+        prediction_subsampling_rate=8,
+        prediction_horizon=80,
+        plot_subsampling_rate=2,
+        dpi=400,
+        is_available=None,
+        gt_marginal=None,
+    ):
+        gt_marginal = self.gt_marginal
+        is_available = self.future_val_marginal
+        predictions = np.zeros(self.future_val_marginal.shape)
+        predictions = np.zeros((6, 10, 2))
+        confidences = np.zeros((6,))
+
+        # print(predictions.shape)
+        # plot = self.plot_marginal_predictions_3d(
+        #     vector_data=self.vector_data,
+        #     is_available=self.future_val_marginal,
+        #     gt_marginal=self.gt_marginal,
+        #     predictions=prediction_dummy,
+        #     confidences=np.zeros((6,)),
+        #     # gt_marginal=npz_trajectory.gt_marginal,
+        # )
+
+        ax = plt.figure(figsize=(15, 15), dpi=dpi).add_subplot(projection="3d")
+        V = self.vector_data
+        X, idx = V[:, :44], V[:, 44].flatten()
+
+        car = np.array(
+            [
+                (-2.25, -1, 0),  # left bottom front
+                (-2.25, 1, 0),  # left bottom back
+                (2.25, -1, 0),  # right bottom front
+                (-2.25, -1, 1.5),  # left top front -> height
+            ]
+        )
+
+        pedestrian = np.array(
+            [
+                (-0.3, -0.3, 0),  # left bottom front
+                (-0.3, 0.3, 0),  # left bottom back
+                (0.3, -0.3, 0),  # right bottom front
+                (-0.3, -0.3, 2),  # left top front -> height
+            ]
+        )
+
+        cyclist = np.array(
+            [
+                (-1, -0.3, 0),  # left bottom front
+                (-1, 0.3, 0),  # left bottom back
+                (1, -0.3, 0),  # right bottom front
+                (-1, -0.3, 2),  # left top front -> height
+            ]
+        )
+
+        # print(X[0])
+        # print(np.unique(idx).shape)
+
+        # print(np.unique(idx))
+        # print(X[(idx == 220)].shape)
+
+        # print(X[X[:, 8] == 1].shape)
+
+        # print(X[(idx == 0)][:, 0])
+        # print(X.shape)
         for i in np.unique(idx):
             _X = X[
                 (idx == i)
@@ -626,9 +840,9 @@ class NpzTrajectory:
             elif _X[:, 16].sum() > 0:  # Bike lanes
                 plt.plot(_X[:, 0], _X[:, 1], 0, color="tab:red")
             elif _X[:, 18:26].sum() > 0:  # Road lines
-                plt.plot(_X[:, 0], _X[:, 1], 0, "--", color="white")
+                plt.plot(_X[:, 0], _X[:, 1], 0, "--", color="grey")
             elif _X[:, 26:29].sum() > 0:  # Road edges
-                plt.plot(_X[:, 0], _X[:, 1], 0, linewidth=2, color="white")
+                plt.plot(_X[:, 0], _X[:, 1], 0, linewidth=2, color="grey")
 
         ax.set_zlim(bottom=0, top=5)
         ax.set_aspect("equal")
@@ -790,9 +1004,9 @@ class NpzTrajectory:
             elif _X[:, 16].sum() > 0:  # Bike lanes
                 ax.plot(_X[:, 0], _X[:, 1], 0, color="tab:red")
             elif _X[:, 18:26].sum() > 0:  # Road lines
-                ax.plot(_X[:, 0], _X[:, 1], 0, "--", color="white")
+                ax.plot(_X[:, 0], _X[:, 1], 0, "--", color="grey")
             elif _X[:, 26:29].sum() > 0:  # Road edges
-                ax.plot(_X[:, 0], _X[:, 1], 0, linewidth=2, color="white")
+                ax.plot(_X[:, 0], _X[:, 1], 0, linewidth=2, color="grey")
 
             return ax
 
@@ -903,9 +1117,9 @@ class NpzTrajectory:
                 elif _X[:, 16].sum() > 0:  # Bike lanes
                     plt.plot(_X[:, 0], _X[:, 1], 0, color="tab:red")
                 elif _X[:, 18:26].sum() > 0:  # Road lines
-                    plt.plot(_X[:, 0], _X[:, 1], 0, "--", color="white")
+                    plt.plot(_X[:, 0], _X[:, 1], 0, "--", color="grey")
                 elif _X[:, 26:29].sum() > 0:  # Road edges
-                    plt.plot(_X[:, 0], _X[:, 1], 0, linewidth=2, color="white")
+                    plt.plot(_X[:, 0], _X[:, 1], 0, linewidth=2, color="grey")
 
             for i in np.unique(idx):
                 vehicle = vehicles[(vehicles_idx == i)]
@@ -1093,9 +1307,9 @@ class NpzTrajectory:
                 elif _X[:, 16].sum() > 0:  # Bike lanes
                     plt.plot(_X[:, 0], _X[:, 1], 0, color="tab:red")
                 elif _X[:, 18:26].sum() > 0:  # Road lines
-                    plt.plot(_X[:, 0], _X[:, 1], 0, "--", color="white")
+                    plt.plot(_X[:, 0], _X[:, 1], 0, "--", color="grey")
                 elif _X[:, 26:29].sum() > 0:  # Road edges
-                    plt.plot(_X[:, 0], _X[:, 1], 0, linewidth=2, color="white")
+                    plt.plot(_X[:, 0], _X[:, 1], 0, linewidth=2, color="grey")
 
             for i in np.unique(idx):
                 vehicle = vehicles[(vehicles_idx == i)]
