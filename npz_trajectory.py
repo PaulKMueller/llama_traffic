@@ -513,10 +513,12 @@ class NpzTrajectory:
     def plot_scenario(
         self,
         filename="output/3D_scenario_plot",
+        x_range=(-100, 100),
+        y_range=(-100, 100),
         prediction_subsampling_rate=8,
         prediction_horizon=80,
         plot_subsampling_rate=2,
-        dpi=400,
+        dpi=800,
         is_available=None,
         gt_marginal=None,
     ):
@@ -536,7 +538,7 @@ class NpzTrajectory:
         #     # gt_marginal=npz_trajectory.gt_marginal,
         # )
 
-        ax = plt.figure(figsize=(15, 15), dpi=dpi).add_subplot(projection="3d")
+        ax = plt.figure(figsize=(10, 10), dpi=dpi).add_subplot(projection="3d")
         V = self.vector_data
         X, idx = V[:, :44], V[:, 44].flatten()
 
@@ -578,7 +580,13 @@ class NpzTrajectory:
         # print(X[(idx == 0)][:, 0])
         # print(X.shape)
         for i in np.unique(idx):
-            _X = X[(idx == i)]
+            _X = X[
+                (idx == i)
+                & (X[:, 0] < x_range[1])
+                & (X[:, 1] < y_range[1])
+                & (X[:, 0] > x_range[0])
+                & (X[:, 1] > y_range[0])
+            ]
             # print(_X.shape)
             if _X[:, 8].sum() > 0:
                 # The ego vehicle in this scenario starts at (0, 0). This is checked in the next line.
@@ -596,10 +604,10 @@ class NpzTrajectory:
                     self.add_cube(bbox, ax, color="tab:grey", alpha=0.5)
             elif _X[:, 9].sum() > 0:
                 if _X[-1, 0] == 0 and _X[-1, 1] == 0:
-                    plt.plot(_X[:, 0], _X[:, 1], 0, linewidth=4, color="orange")
-                    plt.plot(
-                        _X[-1, 0], _X[-1, 1], 0, "o", markersize=10, color="orange"
-                    )
+                    plt.plot(_X[:, 0], _X[:, 1], 0, linewidth=1, color="orange")
+                    # plt.plot(
+                    #     _X[-1, 0], _X[-1, 1], 0, "o", markersize=10, color="orange"
+                    # )
                 bbox = self.rotate_bbox_zxis(pedestrian, _X[-1, 4])
                 bbox = self.shift_cuboid(_X[-1, 0], _X[-1, 1], bbox)
                 self.add_cube(bbox, ax, color="tab:orange", alpha=0.5)
@@ -621,27 +629,84 @@ class NpzTrajectory:
                 plt.plot(_X[:, 0], _X[:, 1], 0, "--", color="grey")
             elif _X[:, 26:29].sum() > 0:  # Road edges
                 plt.plot(_X[:, 0], _X[:, 1], 0, linewidth=2, color="grey")
+            elif _X[:, 29].sum() > 0:  # Test
+                plt.plot(_X[:, 0], _X[:, 1], 0, color="orange", marker="o")
             elif _X[:, 30].sum() > 0:  # Stop Signs
-                print(_X[:, 30])
+                # print(_X[:, 30])
                 x = _X[:, 0]
                 y = _X[:, 1]
                 z = 0
-                plt.plot(x, y, 0, color="red", marker="H")
+                plt.plot(
+                    x,
+                    y,
+                    0,
+                    color="red",
+                    marker="8",
+                    markeredgewidth=0.5,
+                    markeredgecolor="black",
+                )
+                for i in range(len(x)):
+                    ax.text(
+                        x[i],
+                        y[i],
+                        z,
+                        "STOP",
+                        color="white",
+                        ha="center",
+                        va="center",
+                        fontsize=1.8,
+                        weight="bold",
+                    )  # Adds "Stop" text
             elif _X[:, 31].sum() > 0:  # Crosswalks
                 x = _X[:, 0]
                 y = _X[:, 1]
                 z = 0
-                plt.plot(x, y, 0, "--", color="green", linewidth=5, alpha=0.5)
+                plt.plot(
+                    x,
+                    y,
+                    0,
+                    linestyle="dashed",
+                    dashes=(0.5, 0.2),
+                    color="black",
+                    linewidth=2,
+                )
+
             elif _X[:, 32].sum() > 0:  # Speedbumps
                 x = _X[:, 0]
                 y = _X[:, 1]
                 z = 0
-                plt.plot(x, y, 0, color="black", marker="s")
-            elif _X[:, 33].sum() > 0:
+                # plt.plot(x, y, 0, color="black", marker="s")
+
+                line_length = 2  # Length of the entire speed bump line
+                stripe_length = 0.2  # Length of each stripe
+                stripe_width = 1  # Width of the stripes, making it look more line-like
+
+                for i in range(len(x)):
+                    start_x = x[i] - line_length / 2
+                    end_x = x[i] + line_length / 2
+                    current_x = start_x
+
+                    while current_x < end_x:
+                        # Alternating colors for stripes
+                        color = (
+                            "yellow"
+                            if (current_x - start_x) // stripe_length % 2 == 0
+                            else "black"
+                        )
+                        # Plot each stripe as a thin rectangle (or extended line)
+                        ax.plot(
+                            [current_x, current_x + stripe_length],
+                            [y[i], y[i]],
+                            [z, z],
+                            color=color,
+                            linewidth=stripe_width,
+                        )
+                        current_x += stripe_length
+            elif _X[:, 33].sum() > 0:  # Driveways
                 x = _X[:, 0]
                 y = _X[:, 1]
                 z = 0
-                plt.plot(x, y, 0, linewidth=2, color="orange", marker="o")
+                plt.plot(x, y, 0, linewidth=2, color="orange")
 
         ax.set_zlim(bottom=0, top=5)
         ax.set_aspect("equal")
@@ -664,25 +729,25 @@ class NpzTrajectory:
             confid = confidences[pred_id]
             label = f"Pred {pred_id}, confid: {confid:.2f}" if False else ""
             confid_scaled = confids_scaled[pred_id]
-            plt.plot(
-                np.concatenate(
-                    (
-                        np.array([[0.0, 0.0]]),
-                        predictions[pred_id][is_available > 0][::plot_subsampling_rate],
-                    )
-                )[:, 0],
-                np.concatenate(
-                    (
-                        np.array([[0.0, 0.0]]),
-                        predictions[pred_id][is_available > 0][::plot_subsampling_rate],
-                    )
-                )[:, 1],
-                "-o",
-                color=colors[pred_id],
-                label=label,
-                linewidth=3,  # linewidth,
-                markersize=10,  # linewidth+3,
-            )
+            # plt.plot(
+            #     np.concatenate(
+            #         (
+            #             np.array([[0.0, 0.0]]),
+            #             predictions[pred_id][is_available > 0][::plot_subsampling_rate],
+            #         )
+            #     )[:, 0],
+            #     np.concatenate(
+            #         (
+            #             np.array([[0.0, 0.0]]),
+            #             predictions[pred_id][is_available > 0][::plot_subsampling_rate],
+            #         )
+            #     )[:, 1],
+            #     "-o",
+            #     color=colors[pred_id],
+            #     label=label,
+            #     linewidth=3,  # linewidth,
+            #     markersize=10,  # linewidth+3,
+            # )
 
         # plt.plot(
         #     np.concatenate(
@@ -732,7 +797,7 @@ class NpzTrajectory:
         prediction_subsampling_rate=8,
         prediction_horizon=80,
         plot_subsampling_rate=2,
-        dpi=400,
+        dpi=800,
         is_available=None,
         gt_marginal=None,
     ):
@@ -752,7 +817,7 @@ class NpzTrajectory:
         #     # gt_marginal=npz_trajectory.gt_marginal,
         # )
 
-        ax = plt.figure(figsize=(15, 15), dpi=dpi).add_subplot(projection="3d")
+        ax = plt.figure(figsize=(10, 10), dpi=dpi).add_subplot(projection="3d")
         V = self.vector_data
         X, idx = V[:, :44], V[:, 44].flatten()
 
@@ -817,11 +882,11 @@ class NpzTrajectory:
                 else:
                     self.add_cube(bbox, ax, color="tab:grey", alpha=0.5)
             elif _X[:, 9].sum() > 0:
-                if _X[-1, 0] == 0 and _X[-1, 1] == 0:
-                    plt.plot(_X[:, 0], _X[:, 1], 0, linewidth=4, color="orange")
-                    plt.plot(
-                        _X[-1, 0], _X[-1, 1], 0, "o", markersize=10, color="orange"
-                    )
+                # if _X[-1, 0] == 0 and _X[-1, 1] == 0:
+                # plt.plot(_X[:, 0], _X[:, 1], 0, linewidth=4, color="orange")
+                # plt.plot(
+                #     _X[-1, 0], _X[-1, 1], 0, "o", markersize=10, color="orange"
+                # )
                 bbox = self.rotate_bbox_zxis(pedestrian, _X[-1, 4])
                 bbox = self.shift_cuboid(_X[-1, 0], _X[-1, 1], bbox)
                 self.add_cube(bbox, ax, color="tab:orange", alpha=0.5)
@@ -865,25 +930,25 @@ class NpzTrajectory:
             confid = confidences[pred_id]
             label = f"Pred {pred_id}, confid: {confid:.2f}" if False else ""
             confid_scaled = confids_scaled[pred_id]
-            plt.plot(
-                np.concatenate(
-                    (
-                        np.array([[0.0, 0.0]]),
-                        predictions[pred_id][is_available > 0][::plot_subsampling_rate],
-                    )
-                )[:, 0],
-                np.concatenate(
-                    (
-                        np.array([[0.0, 0.0]]),
-                        predictions[pred_id][is_available > 0][::plot_subsampling_rate],
-                    )
-                )[:, 1],
-                "-o",
-                color=colors[pred_id],
-                label=label,
-                linewidth=3,  # linewidth,
-                markersize=10,  # linewidth+3,
-            )
+            # plt.plot(
+            #     np.concatenate(
+            #         (
+            #             np.array([[0.0, 0.0]]),
+            #             predictions[pred_id][is_available > 0][::plot_subsampling_rate],
+            #         )
+            #     )[:, 0],
+            #     np.concatenate(
+            #         (
+            #             np.array([[0.0, 0.0]]),
+            #             predictions[pred_id][is_available > 0][::plot_subsampling_rate],
+            #         )
+            #     )[:, 1],
+            #     "-o",
+            #     color=colors[pred_id],
+            #     label=label,
+            #     linewidth=3,  # linewidth,
+            #     markersize=10,  # linewidth+3,
+            # )
 
         # plt.plot(
         #     np.concatenate(
@@ -920,10 +985,12 @@ class NpzTrajectory:
             ),
             color="tab:red",
             label=label,
-            linewidth=4,
+            linewidth=2,
         )
+        plt.tight_layout()
+        ax.margins(x=0, y=0)
 
-        plt.savefig(filename)
+        plt.savefig(filename, bbox_inches="tight", pad_inches=0)
 
     def get_map_plot(self):
         ax = plt.figure(figsize=(15, 15), dpi=400).add_subplot(projection="3d")

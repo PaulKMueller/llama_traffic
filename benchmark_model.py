@@ -8,9 +8,9 @@ from tqdm import tqdm
 true = 0
 false = 0
 
-with open("datasets/encoder_preds_vehicle_b_mae.json") as predictions:
+with open("datasets/encoder_preds_vehicle_a_cos.json") as predictions:
     pred_data = json.load(predictions)
-with open("datasets/direction_labeled_npz_vehicle_b.json") as ground_truth:
+with open("output/test_3.json") as ground_truth:
     ground_truth_data = json.load(ground_truth)
 
 

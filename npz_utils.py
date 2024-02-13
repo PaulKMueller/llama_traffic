@@ -1,5 +1,18 @@
 import os
 
+SCENARIO_LABEL_LIST = [
+    "vehicle",
+    "pedestrian",
+    "cyclist",
+    "freeway",
+    "surface_street",
+    "bike_lane",
+    "stop_sign",
+    "crosswalk",
+    "speed_bump",
+    "driveway",
+]
+
 
 def list_vehicle_files_relative(
     directory="/storage_local/fzi_datasets_tmp/waymo_open_motion_dataset/unzipped/train-2e6/",

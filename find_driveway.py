@@ -1,6 +1,7 @@
 import numpy as np
 from npz_utils import list_vehicle_files_absolute
 import random
+from tqdm import tqdm
 
 
 vehicles = list_vehicle_files_absolute(
@@ -54,11 +55,31 @@ vectors = {
     # 42: "traffic_light_state_flashing_caution",
 }
 for vehicle_file_path in vehicles:
-    label = ""
-    with np.load(vehicle_file_path) as vehicle_data:
-        X = vehicle_data["vector_data"][:, :45]
-        for vector in list(vectors.keys()):
-            if X[:, vector].sum() > 0:
-                label += vectors[vector] + " "
-    if "driveway" in label:
-        print(vehicle_file_path)
+    with np.load(vehicle_file_path) as data:
+        object_id = data["object_id"]
+        raster = data["raster"]
+        yaw = data["yaw"]
+        shift = data["shift"]
+        _gt_marginal = data["_gt_marginal"]
+        gt_marginal = data["gt_marginal"]
+        future_val_marginal = data["future_val_marginal"]
+        gt_joint = data["gt_joint"]
+        scenario_id = data["scenario_id"]
+        type = data["self_type"]
+        vector_data = data["vector_data"]
+        # print(data.shape)
+
+        V = vector_data
+        # print(V.shape)
+        X, idx = V[:, :45], V[:, 44].flatten()
+        # print(X.shape)
+        # print()
+
+        # print(idx)
+        # print(idx.shape)
+        # print(X.shape)
+        # for i in np.unique(idx):
+        #     _X = X[(i == idx)]
+        #     print(_X.shape)
+        if X[:, 32].sum() > 0:
+            print(f"Driveway in: {vehicle_file_path.split('/')[-1]}")
