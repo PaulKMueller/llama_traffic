@@ -630,7 +630,7 @@ class NpzTrajectory:
             elif _X[:, 26:29].sum() > 0:  # Road edges
                 plt.plot(_X[:, 0], _X[:, 1], 0, linewidth=2, color="grey")
             elif _X[:, 29].sum() > 0:  # Test
-                plt.plot(_X[:, 0], _X[:, 1], 0, color="orange", marker="o")
+                plt.plot(_X[:, 0], _X[:, 1], 0, color="orange", linewidth=1)
             elif _X[:, 30].sum() > 0:  # Stop Signs
                 # print(_X[:, 30])
                 x = _X[:, 0]
@@ -675,7 +675,7 @@ class NpzTrajectory:
                 x = _X[:, 0]
                 y = _X[:, 1]
                 z = 0
-                # plt.plot(x, y, 0, color="black", marker="s")
+                plt.plot(x, y, 0, color="green", marker="o")
 
                 line_length = 2  # Length of the entire speed bump line
                 stripe_length = 0.2  # Length of each stripe
@@ -702,11 +702,11 @@ class NpzTrajectory:
                             linewidth=stripe_width,
                         )
                         current_x += stripe_length
-            elif _X[:, 33].sum() > 0:  # Driveways
-                x = _X[:, 0]
-                y = _X[:, 1]
-                z = 0
-                plt.plot(x, y, 0, linewidth=2, color="orange")
+            # elif _X[:, 33].sum() > 0:  # Driveways
+            #     x = _X[:, 0]
+            #     y = _X[:, 1]
+            #     z = 0
+            #     plt.plot(x, y, 0, linewidth=2, color="orange")
 
         ax.set_zlim(bottom=0, top=5)
         ax.set_aspect("equal")

@@ -249,7 +249,7 @@ class SimpleShell(cmd.Cmd):
             return
         else:
             print(
-                """Invalid input, please try again. 
+                """Invalid input, please try again.
                 Use -p to specify the scenario path, -i to specify the scenario index
                 or - e to load the example scenario chosen in your config.yml."""
             )
@@ -409,6 +409,19 @@ class SimpleShell(cmd.Cmd):
                         )
                     output.write("}")
 
+    def do_plot_random_npz_trajectory(self, arg: str):
+
+        with open("config.yml") as config:
+            config = yaml.safe_load(config)
+            data_directory = config["npz_dataset"]
+        vehicles_file_paths = list_vehicle_files_absolute(data_directory)
+
+        chosen_vehicle = random.choice(vehicles_file_paths)
+        npz_trajectory = NpzTrajectory(chosen_vehicle)
+        npz_trajectory.plot_trajectory()
+        npz_trajectory.plot_scenario()
+        print(chosen_vehicle)
+
     def do_has_feature(self, arg: str):
         if arg == "":
             print("No feature given!")
@@ -443,11 +456,11 @@ class SimpleShell(cmd.Cmd):
             "road_edge_unknown": 26,
             "road_edge_boundary": 27,
             "road_edge_median": 28,
-            "test": 29,
-            "stop_sign": 30,
-            "crosswalk": 31,
-            "speed_bump": 32,
-            "driveway": 33,
+            "stop_sign": 29,
+            "crosswalk": 30,
+            "speed_bump": 31,
+            "driveway": 32,
+            "IDX_NOT_USED": 33,
             "traffic_light_state_unknown": 34,
             "traffic_light_state_arrow_stop": 35,
             "traffic_light_state_arrow_caution": 36,
@@ -460,8 +473,8 @@ class SimpleShell(cmd.Cmd):
             "timestamp": 43,
             "global_idx": 44,
         }
-        vehicle_path = "/storage_local/fzi_datasets_tmp/waymo_open_motion_dataset/unzipped/train-2e6/vehicle_d_13657_00002_4856147881.npz"
-        vehicle_path = "/storage_local/fzi_datasets_tmp/waymo_open_motion_dataset/unzipped/train-2e6/vehicle_a_25972_00006_9317225410.npz"
+        # vehicle_path = "/storage_local/fzi_datasets_tmp/waymo_open_motion_dataset/unzipped/train-2e6/vehicle_d_13657_00002_4856147881.npz"
+        # vehicle_path = "/storage_local/fzi_datasets_tmp/waymo_open_motion_dataset/unzipped/train-2e6/vehicle_a_25972_00006_9317225410.npz"
         # /storage_local/fzi_datasets_tmp/waymo_open_motion_dataset/unzipped/train-2e6/vehicle_a_84559_00003_3143712003.npz
         # /storage_local/fzi_datasets_tmp/waymo_open_motion_dataset/unzipped/train-2e6/vehicle_a_80216_00003_536845315.npz
         # /storage_local/fzi_datasets_tmp/waymo_open_motion_dataset/unzipped/train-2e6/vehicle_a_82420_00002_2301414027.npz
@@ -472,24 +485,27 @@ class SimpleShell(cmd.Cmd):
         # /storage_local/fzi_datasets_tmp/waymo_open_motion_dataset/unzipped/train-2e6/vehicle_a_10749_00002_3702461762.npz
         # /storage_local/fzi_datasets_tmp/waymo_open_motion_dataset/unzipped/train-2e6/vehicle_a_115558_00002_7015306401.npz
         # /storage_local/fzi_datasets_tmp/waymo_open_motion_dataset/unzipped/train-2e6/vehicle_a_25972_00006_9317225410.npz
-
+        vehicle_path = self.loaded_npz_trajectory.path
         with np.load(vehicle_path) as data:
             V = data["vector_data"]
-            X = V[:, :45]
+            X, idx = V[:, :44], V[:, 44].flatten()
             np.set_printoptions(threshold=sys.maxsize)
-
-            try:
-                numeric_key = features[arg]
-                if X[:, numeric_key].sum() > 0:
-                    print(True)
-                    print(X[:, numeric_key])
-                    print(X.shape)
-                else:
-                    print(False)
-                    print(X[:, numeric_key])
-                    print(numeric_key)
-            except KeyError:
-                print(f"No feature named {arg} exists!")
+            for i in np.unique(idx):
+                _X = X[i == idx]
+                try:
+                    numeric_key = features[arg]
+                    if _X[:, numeric_key].sum() > 0:
+                        print(True)
+                        return
+                        # print(X[:, numeric_key])
+                        # print(X.shape)
+                    # else:
+                    # print(False)
+                    # print(X[:, numeric_key])
+                    # print(numeric_key)
+                except KeyError:
+                    print(f"No feature named {arg} exists!")
+        print(False)
 
     def do_print_feature_coordinates(self, arg: str):
         if arg == "":
@@ -525,11 +541,11 @@ class SimpleShell(cmd.Cmd):
             "road_edge_unknown": 26,
             "road_edge_boundary": 27,
             "road_edge_median": 28,
-            "test": 29,
-            "stop_sign": 30,
-            "crosswalk": 31,
-            "speed_bump": 32,
-            "driveway": 33,
+            "stop_sign": 29,
+            "crosswalk": 30,
+            "speed_bump": 31,
+            "driveway": 32,
+            "IDX_NOT_USED": 33,
             "traffic_light_state_unknown": 34,
             "traffic_light_state_arrow_stop": 35,
             "traffic_light_state_arrow_caution": 36,
@@ -542,36 +558,46 @@ class SimpleShell(cmd.Cmd):
             "timestamp": 43,
             "global_idx": 44,
         }
-        vehicle_path = "/storage_local/fzi_datasets_tmp/waymo_open_motion_dataset/unzipped/train-2e6/vehicle_d_13657_00002_4856147881.npz"
-        vehicle_path = "/storage_local/fzi_datasets_tmp/waymo_open_motion_dataset/unzipped/train-2e6/vehicle_a_25972_00006_9317225410.npz"
-        # /storage_local/fzi_datasets_tmp/waymo_open_motion_dataset/unzipped/train-2e6/vehicle_a_84559_00003_3143712003.npz
-        # /storage_local/fzi_datasets_tmp/waymo_open_motion_dataset/unzipped/train-2e6/vehicle_a_80216_00003_536845315.npz
-        # /storage_local/fzi_datasets_tmp/waymo_open_motion_dataset/unzipped/train-2e6/vehicle_a_82420_00002_2301414027.npz
-        # /storage_local/fzi_datasets_tmp/waymo_open_motion_dataset/unzipped/train-2e6/vehicle_a_62891_00004_7533961705.npz
-        # /storage_local/fzi_datasets_tmp/waymo_open_motion_dataset/unzipped/train-2e6/vehicle_a_31226_00003_532688195.npz
-        # /storage_local/fzi_datasets_tmp/waymo_open_motion_dataset/unzipped/train-2e6/vehicle_a_114724_00000_389619377.npz
-        # /storage_local/fzi_datasets_tmp/waymo_open_motion_dataset/unzipped/train-2e6/vehicle_a_39001_00001_6094040646.npz
-        # /storage_local/fzi_datasets_tmp/waymo_open_motion_dataset/unzipped/train-2e6/vehicle_a_10749_00002_3702461762.npz
-        # /storage_local/fzi_datasets_tmp/waymo_open_motion_dataset/unzipped/train-2e6/vehicle_a_115558_00002_7015306401.npz
-        # /storage_local/fzi_datasets_tmp/waymo_open_motion_dataset/unzipped/train-2e6/vehicle_a_25972_00006_9317225410.npz
+        # vehicle_path = "/storage_local/fzi_datasets_tmp/waymo_open_motion_dataset/unzipped/train-2e6/vehicle_d_13657_00002_4856147881.npz"
+        # vehicle_path = "/storage_local/fzi_datasets_tmp/waymo_open_motion_dataset/unzipped/train-2e6/vehicle_a_25972_00006_9317225410.npz"
+        # vehicle_path = "/storage_local/fzi_datasets_tmp/waymo_open_motion_dataset/unzipped/train-2e6/vehicle_a_84559_00003_3143712003.npz"
+        # vehicle_path = "/storage_local/fzi_datasets_tmp/waymo_open_motion_dataset/unzipped/train-2e6/vehicle_a_80216_00003_536845315.npz"
+        # vehicle_path = "/storage_local/fzi_datasets_tmp/waymo_open_motion_dataset/unzipped/train-2e6/vehicle_a_82420_00002_2301414027.npz"
+        # vehicle_path = "/storage_local/fzi_datasets_tmp/waymo_open_motion_dataset/unzipped/train-2e6/vehicle_a_62891_00004_7533961705.npz"
+        # vehicle_path = "/storage_local/fzi_datasets_tmp/waymo_open_motion_dataset/unzipped/train-2e6/vehicle_a_31226_00003_532688195.npz"
+        # vehicle_path = "/storage_local/fzi_datasets_tmp/waymo_open_motion_dataset/unzipped/train-2e6/vehicle_a_114724_00000_389619377.npz"
+        # vehicle_path = "/storage_local/fzi_datasets_tmp/waymo_open_motion_dataset/unzipped/train-2e6/vehicle_a_39001_00001_6094040646.npz"
 
+        # Has driveway:
+        # vehicle_path = "/storage_local/fzi_datasets_tmp/waymo_open_motion_dataset/unzipped/train-2e6/vehicle_a_115558_00002_7015306401.npz"
+        # vehicle_path = "/storage_local/fzi_datasets_tmp/waymo_open_motion_dataset/unzipped/train-2e6/vehicle_a_10749_00002_3702461762.npz"
+
+        # vehicle_path = "/storage_local/fzi_datasets_tmp/waymo_open_motion_dataset/unzipped/train-2e6/vehicle_a_25972_00006_9317225410.npz"
+
+        # with np.load(vehicle_path) as data:
+        #     V = data["vector_data"]
+        #     X = V[:, :45]
+        #     np.set_printoptions(threshold=sys.maxsize)
+
+        vehicle_path = self.loaded_npz_trajectory.path
         with np.load(vehicle_path) as data:
             V = data["vector_data"]
-            X = V[:, :45]
+            X, idx = V[:, :44], V[:, 44].flatten()
             np.set_printoptions(threshold=sys.maxsize)
-
-            try:
-                numeric_key = features[arg]
-                if X[:, numeric_key].sum() > 0:
-                    print(True)
-                    print(X[:, numeric_key])
-                    print(X.shape)
-                else:
-                    print(False)
-                    print(X[:, numeric_key])
-                    print(numeric_key)
-            except KeyError:
-                print(f"No feature named {arg} exists!")
+            for i in np.unique(idx):
+                _X = X[i == idx]
+                try:
+                    numeric_key = features[arg]
+                    if _X[:, numeric_key].sum() > 0:
+                        print(_X[:, 0])
+                        # print(X[:, numeric_key])
+                        # print(X.shape)
+                    # else:
+                    # print(False)
+                    # print(X[:, numeric_key])
+                    # print(numeric_key)
+                except KeyError:
+                    print(f"No feature named {arg} exists!")
 
     def do_print_labels_for_scenario(self, arg: str):
 
@@ -579,6 +605,51 @@ class SimpleShell(cmd.Cmd):
             labeled_scenarios = json.load(labeled_scenarios)
             one_hot_encoding = labeled_scenarios[arg]
         print(decode_one_hot_vector(one_hot_encoding, SCENARIO_LABEL_LIST))
+
+    def do_print_npz_direction(self, arg: str):
+        print(self.loaded_npz_trajectory.direction)
+
+    def do_get_bucket_similarities(self, arg: str):
+        vehicle_path = self.loaded_npz_trajectory.path.split("/")[-1]
+        with open("datasets/encoder_output_vehicle_a_mse.json") as encoder_output:
+            encoder_output_data = json.load(encoder_output)
+        with open("datasets/uae_buckets_cache.json") as uae_cache:
+            uae_cache_data = json.load(uae_cache)
+
+        cos_sim = torch.nn.CosineSimilarity(dim=0)
+
+        encoded_trajectory = encoder_output_data[vehicle_path]
+
+        bucket_keys = list(uae_cache_data.keys())
+        print(bucket_keys)
+        for key in bucket_keys:
+            print(
+                f"{key}: {cos_sim(torch.Tensor(uae_cache_data[key]), torch.Tensor(encoded_trajectory))}"
+            )
+
+    def do_get_bucket_similarities_softmax(self, arg: str):
+        vehicle_path = self.loaded_npz_trajectory.path.split("/")[-1]
+        with open("datasets/encoder_output_vehicle_a_mse.json") as encoder_output:
+            encoder_output_data = json.load(encoder_output)
+        with open("datasets/uae_buckets_cache.json") as uae_cache:
+            uae_cache_data = json.load(uae_cache)
+
+        cos_sim = torch.nn.CosineSimilarity(dim=0)
+
+        encoded_trajectory = encoder_output_data[vehicle_path]
+
+        bucket_keys = list(uae_cache_data.keys())
+        print(bucket_keys)
+        similarities = []
+        for key in bucket_keys:
+            similarity = cos_sim(
+                torch.Tensor(uae_cache_data[key]), torch.Tensor(encoded_trajectory)
+            )
+            print(f"{key}: {similarity}")
+            similarities.append(similarity)
+
+        softmax = torch.nn.Softmax()
+        print(softmax(torch.Tensor(similarities)))
 
     def do_create_scenario_labeled_scenarios(self, arg: str):
 
