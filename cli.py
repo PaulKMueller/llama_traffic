@@ -351,32 +351,82 @@ class SimpleShell(cmd.Cmd):
             return
         self.loaded_npz_trajectory.animate_scenario_past()
 
+    def do_create_intra_distribution_for(self, arg: str):
+        with open("config.yml") as config:
+            config = yaml.safe_load(config)
+            npz_dataset = config["npz_dataset"]
+
+        chosen_bucket = arg
+        bucket_indeces = {
+            "Left": 0,
+            "Right": 0,
+            "Stationary": 0,
+            "Straight": 0,
+            "Straight-Left": 0,
+            "Straight-Right": 0,
+            "Right-U-Turn": 0,
+            "Left-U-Turn": 0,
+        }
+        bucket_cos_sim_sum = np.zeros(8)
+
+        with open("datasets/similarity_dataset.json") as similarities:
+            similarity_data = json.load(similarities)
+
+        similarity_data_keys = list(similarity_data.keys())
+
+        similarity_data_keys = [
+            key
+            for key in similarity_data_keys
+            if NpzTrajectory(npz_dataset + key).direction == arg
+        ]
+        print(len(similarity_data_keys))
+
+        for key in similarity_data_keys:
+            sim_data_for_entry = np.array(similarity_data[key])
+            bucket_cos_sim_sum += sim_data_for_entry
+
+        print(np.divide(bucket_cos_sim_sum, 468108))
+
     def do_create_direction_labeled_npz_dataset(self, arg: str):
         with open("config.yml") as config:
             config = yaml.safe_load(config)
             npz_directory = "/storage_local/fzi_datasets_tmp/waymo_open_motion_dataset/unzipped/train-2e6/"
 
+            bucket_indeces = {
+                "Left": 0,
+                "Right": 1,
+                "Stationary": 2,
+                "Straight": 3,
+                "Straight-Left": 4,
+                "Straight-Right": 5,
+                "Right-U-Turn": 6,
+                "Left-U-Turn": 7,
+            }
+
         print("Config read!")
-        # output = {}
+        output = {}
 
         trajectory_paths = list_vehicle_files_absolute(npz_directory)
         print("Trajectories listed!")
-        with open("output/direction_labeled_npz_vehicle_a.json", "w") as file:
-            file.write("{")
-        for i in tqdm(range(len(trajectory_paths))):
-            path = trajectory_paths[i]
-            npz_trajectory = NpzTrajectory(path)
-            coordinates = list(
-                zip(npz_trajectory.coordinates["X"], npz_trajectory.coordinates["Y"])
-            )
-            local_dict = {
-                "Coordinates": coordinates,
-                "Direction": npz_trajectory.direction,
-            }
-            # output[path] = local_dict
-            with open("output/direction_labeled_npz_vehicle_a.json", "a") as file:
-                file.write(f'"{path.split("/")[-1]}": {local_dict},\n')
         with open("output/direction_labeled_npz_vehicle_a.json", "a") as file:
+            file.write("{")
+            for i in tqdm(range(len(trajectory_paths))):
+                path = trajectory_paths[i]
+                npz_trajectory = NpzTrajectory(path)
+                file.write(
+                    f"{path.split('/')[-1]}: {bucket_indeces[npz_trajectory.direction]},\n"
+                )
+                # output[path.split("/")[-1]] = bucket_indeces[npz_trajectory.direction]
+                # coordinates = list(
+                #     zip(npz_trajectory.coordinates["X"], npz_trajectory.coordinates["Y"])
+                # )
+                # local_dict = {
+                #     "Coordinates": coordinates,
+                #     "Direction": npz_trajectory.direction,
+                # }
+                # output[path] = local_dict
+                # with open("output/direction_labeled_npz_vehicle_a.json", "a") as file:
+                # file.write(f'"{path.split("/")[-1]}": {local_dict},\n')
             file.write("}")
 
     def do_create_trajectory_encoder_labeled_npz_dataset(self, arg: str):
@@ -421,6 +471,31 @@ class SimpleShell(cmd.Cmd):
         npz_trajectory.plot_trajectory()
         npz_trajectory.plot_scenario()
         print(chosen_vehicle)
+
+    def do_plot_random_test_npz_trajectories(self, arg: str):
+        labels = {}
+        names = {}
+        with open("config.yml") as config:
+            config = yaml.safe_load(config)
+            data_directory = config["npz_dataset"]
+        vehicles_file_paths = list_vehicle_files_absolute(data_directory)
+        for i in tqdm(range(100)):
+            chosen_vehicle = random.choice(vehicles_file_paths)
+            npz_trajectory = NpzTrajectory(chosen_vehicle)
+            # npz_trajectory.plot_trajectory(filename=f"output/{i}.png")
+            raw_trajectory_plot = visualize_raw_coordinates_without_scenario(
+                npz_trajectory.coordinates["X"],
+                npz_trajectory.coordinates["Y"],
+                title=i,
+            )
+            raw_trajectory_plot.savefig(f"output/{i}.png")
+            labels[i] = npz_trajectory.direction
+            names[i] = npz_trajectory.path
+            # npz_trajectory.plot_scenario()
+        with open("output/labels_test.json", "w") as labels_file:
+            json.dump(labels, labels_file, indent=4)
+        with open("output/names_test.json", "w") as names_file:
+            json.dump(names, names_file, indent=4)
 
     def do_has_feature(self, arg: str):
         if arg == "":
@@ -627,6 +702,44 @@ class SimpleShell(cmd.Cmd):
                 f"{key}: {cos_sim(torch.Tensor(uae_cache_data[key]), torch.Tensor(encoded_trajectory))}"
             )
 
+    def do_create_bucket_similarities_dataset(self, arg: str):
+        with open("config.yml") as config:
+            config_data = yaml.safe_load(config)
+            npz_directory = config_data["npz_dataset"]
+        similarity_dataset = {}
+        vehicle_paths = list_vehicle_files_absolute(npz_directory)
+        with open("datasets/encoder_output_vehicle_a_mse.json") as encoder_output:
+            encoder_output_data = json.load(encoder_output)
+        with open("datasets/uae_buckets_cache.json") as uae_cache:
+            # Bucket order in cache:
+            # 0 Left
+            # 1 Right
+            # 2 Stationary
+            # 3 Straight
+            # 4 Straight-Left
+            # 5 Straight-Right
+            # 6 Right-U-Turn
+            # 7 Left-U-Turn
+            uae_cache_data = json.load(uae_cache)
+
+        cos_sim = torch.nn.CosineSimilarity(dim=0)
+
+        for i in tqdm(range(len(vehicle_paths))):
+            vehicle_path = vehicle_paths[i].split("/")[-1]
+            encoded_trajectory = encoder_output_data[vehicle_path]
+            bucket_keys = list(uae_cache_data.keys())
+            bucket_similarities = []
+            for key in bucket_keys:
+                bucket_similarities.append(
+                    cos_sim(
+                        torch.Tensor(uae_cache_data[key]),
+                        torch.Tensor(encoded_trajectory),
+                    ).tolist()
+                )
+            similarity_dataset[vehicle_path] = bucket_similarities
+        with open("datasets/similarity_dataset.json", "w") as similarity_dataset_file:
+            json.dump(similarity_dataset, similarity_dataset_file)
+
     def do_get_bucket_similarities_softmax(self, arg: str):
         vehicle_path = self.loaded_npz_trajectory.path.split("/")[-1]
         with open("datasets/encoder_output_vehicle_a_mse.json") as encoder_output:
@@ -651,6 +764,18 @@ class SimpleShell(cmd.Cmd):
         softmax = torch.nn.Softmax()
         print(softmax(torch.Tensor(similarities)))
 
+    def do_has_parking_lot(self, arg: str):
+        npz_trajectory = self.loaded_npz_trajectory
+        V = npz_trajectory.vector_data
+        X, idx = V[:, :44], V[:, 44].flatten()
+
+        for i in np.unique(idx):
+            _X = X[idx == i]
+            if _X[:, 13:16].sum() > 0:
+
+                print(_X[:, 0])
+                print(_X[:, 1])
+
     def do_create_scenario_labeled_scenarios(self, arg: str):
 
         vehicle_file_paths = list_vehicle_files_absolute(
@@ -658,65 +783,32 @@ class SimpleShell(cmd.Cmd):
         )
 
         vectors = {
-            # 0: "position_x",
-            # 1: "position_y",
-            # 2: "speed",
-            # 3: "velocity_yaw",
-            # 4: "bbox_yaw",
-            # 5: "length",
-            # 6: "width",
-            # 7-11: Agent type one-hot encoded
-            # 7: "agent_unset",
             8: "vehicle",
             9: "pedestrian",
             10: "cyclist",
-            # 11: "agent_other",
-            # 13-32: Lane and road line type one-hot encoded
-            # 13: "lane_center_undefined",
             14: "freeway",
             15: "surface_street",
             16: "bike_lane",
-            # 17: "road_line_unknowm",
-            # 18: "road_line_broken_single_white",
-            # 19: "road_line_solid_single_white",
-            # 20: "road_line_solid_double_white",
-            # 21: "road_line_broken_single_yellow",
-            # 22: "road_line_broken_double_yellow",
-            # 23: "road_line_solid_single_yellow",
-            # 24: "road_line_solid_double_yellow",
-            # 25: "road_line_passing_double_yellow",
-            # 26: "road_edge_unknown",
-            # 27: "road_edge_boundary",
-            # 28: "road_edge_median",
             30: "stop_sign",
             31: "crosswalk",
-            32: "speed_bump",
-            33: "driveway",
-            # 34-42: Traffic light state one-hot encoded
-            # 34: "traffic_light_state_unknown",
-            # 35: "traffic_light_state_arrow_stop",
-            # 36: "traffic_light_state_arrow_caution",
-            # 37: "traffic_light_state_arrow_go",
-            # 38: "traffic_light_state_stop",
-            # 39: "traffic_light_state_caution",
-            # 40: "traffic_light_state_go",
-            # 41: "traffic_light_state_flashing_stop",
-            # 42: "traffic_light_state_flashing_caution",
+            32: "driveway",
         }
         # vehicle_a_file_paths = [arg]
-        label = ""
-        write = False
+        # write = True
         # with open("output/labeled_scenarios_vehicle_a.json", "a") as file:
         #     file.write("{")
-        for index in tqdm(range(len(vehicle_file_paths))):
-            vehicle_file_path = vehicle_file_paths[index]
-            if (
-                vehicle_file_path.split("/")[-1]
-                == "vehicle_a_76106_00000_6478343393.npz"
-            ):
-                write = True
-                continue
-            if write:
+        with open("output/labeled_scenarios_vehicle_b.json", "a") as file:
+            file.write("{")
+            for index in tqdm(range(len(vehicle_file_paths))):
+                label = ""
+                vehicle_file_path = vehicle_file_paths[index]
+                # if (
+                #     vehicle_file_path.split("/")[-1]
+                #     == "vehicle_a_76106_00000_6478343393.npz"
+                # ):
+                #     write = True
+                #     continue
+                # if write:
                 with np.load(vehicle_file_path) as vehicle_data:
                     X = vehicle_data["vector_data"][:, :45]
                     for vector in list(vectors.keys()):
@@ -733,14 +825,11 @@ class SimpleShell(cmd.Cmd):
                         "bike_lane",
                         "stop_sign",
                         "crosswalk",
-                        "speed_bump",
                         "driveway",
                     ],
                 )
-                with open("output/labeled_scenarios_vehicle_a.json", "a") as file:
-                    file.write(f'"{vehicle_file_path.split("/")[-1]}": "{encoding}",\n')
 
-        with open("output/labeled_scenarios_vehicle_a.json", "a") as file:
+                file.write(f'"{vehicle_file_path.split("/")[-1]}": {encoding},\n')
             file.write("}")
 
     def do_get_u_turn_candidates(self, arg: str):

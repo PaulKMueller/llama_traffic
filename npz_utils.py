@@ -1,3 +1,4 @@
+import random
 import os
 
 SCENARIO_LABEL_LIST = [
@@ -33,6 +34,10 @@ def list_vehicle_files_relative(
     return vehicle_files
 
 
+def get_random_npz_trajectory():
+    return random.choice(list_vehicle_files_absolute())
+
+
 def list_vehicle_files_absolute(
     directory="/storage_local/fzi_datasets_tmp/waymo_open_motion_dataset/unzipped/train-2e6/",
 ):
@@ -46,10 +51,14 @@ def list_vehicle_files_absolute(
     list: Eine Liste von absoluten Pfaden zu Dateien, die mit 'vehicle' beginnen.
     """
     vehicle_files = []
+    counter = 0
     for filename in os.listdir(directory):
-        if filename.startswith("vehicle_a"):
+        if counter == 50000:
+            break
+        if filename.startswith("vehicle_b"):
             absolute_path = os.path.abspath(os.path.join(directory, filename))
             vehicle_files.append(absolute_path)
+            counter += 1
     return vehicle_files
 
 
