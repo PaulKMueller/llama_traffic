@@ -53,9 +53,9 @@ def list_vehicle_files_absolute(
     vehicle_files = []
     counter = 0
     for filename in os.listdir(directory):
-        if counter == 50000:
-            break
-        if filename.startswith("vehicle_b"):
+        # if counter == 50000:
+        #     break
+        if filename.startswith("vehicle_a"):
             absolute_path = os.path.abspath(os.path.join(directory, filename))
             vehicle_files.append(absolute_path)
             counter += 1

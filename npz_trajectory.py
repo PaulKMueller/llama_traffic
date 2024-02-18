@@ -622,7 +622,15 @@ class NpzTrajectory:
                 # print("Something to plot")
                 # print(_X[:, 13:16])
                 # print(_X[:, 13:16].shape)
-                plt.plot(_X[:, 0], _X[:, 1], 0, color="black")
+                plt.plot(
+                    _X[:, 0],
+                    _X[:, 1],
+                    0,
+                    c=np.random.rand(
+                        3,
+                    ),
+                )
+                # plt.plot(_X[:, 0], _X[:, 1], 0, color="black")
             elif _X[:, 16].sum() > 0:  # Bike lanes
                 plt.plot(_X[:, 0], _X[:, 1], 0, color="tab:red")
             elif _X[:, 18:26].sum() > 0:  # Road lines

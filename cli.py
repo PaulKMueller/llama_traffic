@@ -793,6 +793,10 @@ class SimpleShell(cmd.Cmd):
             31: "crosswalk",
             32: "driveway",
         }
+
+        # Other features
+        # Has parking lot
+
         # vehicle_a_file_paths = [arg]
         # write = True
         # with open("output/labeled_scenarios_vehicle_a.json", "a") as file:
