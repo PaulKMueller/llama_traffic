@@ -51,24 +51,24 @@ def has_intersection(trajectory: NpzTrajectory):
     return crossings > 0
 
 
-i = 0
+# i = 0
 
-correct = 0
-incorrect = 0
+# correct = 0
+# incorrect = 0
 
-while i < 100:
-    rnd_traj = NpzTrajectory(get_random_npz_trajectory())
-    rnd_traj.plot_scenario()
-    user_input = input("Does this have a parking lot?")
-    if str(has_intersection(rnd_traj)) == user_input:
-        correct += 1
-    else:
-        incorrect += 1
-    print(has_intersection(rnd_traj))
-    print(user_input)
+# while i < 100:
+#     rnd_traj = NpzTrajectory(get_random_npz_trajectory())
+#     rnd_traj.plot_scenario()
+#     user_input = input("Does this have a parking lot?")
+#     if str(has_intersection(rnd_traj)) == user_input:
+#         correct += 1
+#     else:
+#         incorrect += 1
+#     print(has_intersection(rnd_traj))
+#     print(user_input)
 
-    print(str(has_intersection(rnd_traj)) == user_input)
+#     print(str(has_intersection(rnd_traj)) == user_input)
 
-    print(incorrect)
-    print(correct)
-    help = input("Continue?")
+#     print(incorrect)
+#     print(correct)
+#     help = input("Continue?")

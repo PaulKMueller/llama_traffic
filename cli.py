@@ -740,6 +740,39 @@ class SimpleShell(cmd.Cmd):
         with open("datasets/similarity_dataset.json", "w") as similarity_dataset_file:
             json.dump(similarity_dataset, similarity_dataset_file)
 
+    def do_get_similarity_distribution_for_bucket(self, arg: str):
+        bucket_indeces = {
+            "Left": 0,
+            "Right": 1,
+            "Stationary": 2,
+            "Straight": 3,
+            "Straight-Left": 4,
+            "Straight-Right": 5,
+            "Right-U-Turn": 6,
+            "Left-U-Turn": 7,
+        }
+
+        bucket_index = bucket_indeces[arg]
+
+        with open("datasets/similarity_dataset.json") as sim_file:
+            sim_data = json.load(sim_file)
+            sim_data_keys = list(sim_data.keys())
+        with open("output/processed.json") as labeled_file:
+            labeled_data = json.load(labeled_file)
+            labeled_data_keys = list(labeled_data.keys())
+            print(len(labeled_data_keys))
+
+            filtered_keys = list(
+                filter(lambda x: labeled_data[x] == bucket_index, labeled_data_keys)
+            )
+
+        output = np.zeros(8)
+
+        for key in filtered_keys:
+            output += np.array(sim_data[key])
+        print(output / len(filtered_keys))
+        print(len(filtered_keys))
+
     def do_get_bucket_similarities_softmax(self, arg: str):
         vehicle_path = self.loaded_npz_trajectory.path.split("/")[-1]
         with open("datasets/encoder_output_vehicle_a_mse.json") as encoder_output:
@@ -3069,6 +3102,151 @@ class SimpleShell(cmd.Cmd):
         print(bucket_embeddings[bucket])
         print(len(bucket_embeddings[bucket]))
 
+    def do_plot_intra_trajectory_distribution(self, arg: str):
+        """Prints the number of training examples for each of the buckets
+
+        Args:
+            args (str): No arguments required.
+        """
+
+        intra_bucket_dists = {
+            "Left": [
+                0.97159923,
+                0.67022295,
+                0.5529272,
+                0.51294363,
+                0.79080207,
+                0.613138,
+                0.54929248,
+                0.70395461,
+            ],
+            "Right": [
+                0.65986094,
+                0.96588901,
+                0.56199461,
+                0.64523173,
+                0.67846334,
+                0.79494063,
+                0.65779223,
+                0.51236519,
+            ],
+            "Stationary": [
+                0.63409115,
+                0.64213234,
+                0.94400897,
+                0.62298331,
+                0.65811942,
+                0.63182837,
+                0.51137538,
+                0.51992874,
+            ],
+            "Straight": [
+                0.50813979,
+                0.61218388,
+                0.5266062,
+                0.98638885,
+                0.81350131,
+                0.85191447,
+                0.4928915,
+                0.46935488,
+            ],
+            "Straight-Left": [
+                0.73229209,
+                0.67405639,
+                0.58161009,
+                0.84011299,
+                0.89569923,
+                0.83988261,
+                0.55780005,
+                0.60033539,
+            ],
+            "Straight-Right": [
+                0.6004916,
+                0.75004772,
+                0.57233209,
+                0.89731623,
+                0.84499247,
+                0.9121891,
+                0.59377071,
+                0.52468545,
+            ],
+            "Left-U-Turn": [
+                0.85699261,
+                0.59944206,
+                0.56021788,
+                0.48206848,
+                0.71758612,
+                0.57358528,
+                0.76899377,
+                0.90997596,
+            ],
+            "Right-U-Turn": [
+                0.66924922,
+                0.96108033,
+                0.59181583,
+                0.60270464,
+                0.65480443,
+                0.76744414,
+                0.7197129,
+                0.57999401,
+            ],
+        }
+
+        sns.set_theme(style="whitegrid")
+
+        # Iterate through each bucket to plot its distribution
+        for bucket, values in intra_bucket_dists.items():
+            # Create a DataFrame suitable for plotting
+            buckets_df = pd.DataFrame({bucket: values})
+
+            # Plotting the distribution for the current bucket
+            plt.figure(figsize=(6, 8))
+            ax = sns.barplot(
+                data=buckets_df,
+                x=buckets_df.index,
+                y=bucket,
+                palette="coolwarm",
+                edgecolor="white",
+                linewidth=3,
+            )
+
+            # Adding plot details
+            plt.title(f"Intra-Bucket Distribution for {bucket}")
+            plt.xlabel("Buckets")
+            plt.ylabel("Average Cosine Similarity")
+
+            # plt.xticks(
+            #     [
+            #         "Left",
+            #         "Right",
+            #         "Stationary",
+            #         "Straight",
+            #         "Straight-Left",
+            #         "Straight-Right",
+            #         "Left-U-Turn",
+            #         "Right-U-Turn",
+            #     ]
+            # )
+
+            ax.set_xticks(range(len(values)))  # Set x-ticks positions
+            ax.set_xticklabels(
+                [
+                    "Left",
+                    "Right",
+                    "Stationary",
+                    "Straight",
+                    "Straight-Left",
+                    "Straight-Right",
+                    "Left-U-Turn",
+                    "Right-U-Turn",
+                ],
+                rotation=45,
+            )  # Set custom x-tick labels
+
+            # Save the plot
+            plt.savefig(f"output/intra_{bucket}.png")
+            plt.close()
+
     def do_print_training_dataset_stats(self, args: str):
         """Prints the number of training examples for each of the buckets
 
@@ -3077,23 +3255,23 @@ class SimpleShell(cmd.Cmd):
         """
 
         buckets = {
-            "Left": 0,
-            "Right": 0,
-            "Stationary": 0,
-            "Straight": 0,
-            "Straight-Left": 0,
-            "Straight-Right": 0,
-            "Right-U-Turn": 0,
-            "Left-U-Turn": 0,
+            # "Left": 79230,
+            # "Right": 68302,
+            # "Stationary": 26222,
+            # "Straight": 221035,
+            # "Straight-Left": 35270,
+            # "Straight-Right": 34643,
+            "Left-U-Turn": 2787,
+            "Right-U-Turn": 619,
         }
-        print("Before loading")
-        with open("datasets/direction_labeled_npz_vehicle_b.json", "r") as file:
-            text = file.read()
+        # print("Before loading")
+        # with open("datasets/direction_labeled_npz_vehicle_b.json", "r") as file:
+        #     text = file.read()
 
-        print("After loading")
+        # print("After loading")
 
-        for bucket in buckets:
-            buckets[bucket] = text.count(bucket)
+        # for bucket in buckets:
+        #     buckets[bucket] = text.count(bucket)
 
         # for value in trajectories_data.values():
         #     for bucket in buckets:
@@ -3112,14 +3290,25 @@ class SimpleShell(cmd.Cmd):
         # Adding plot details
         plt.title("Direction Counts in Trajectory Data")
         plt.xlabel("Directions")
-        plt.ylabel("Counts")
 
         plt.savefig("output/training_data_stats_1.png")
         plt.close()
 
         print(buckets_df.head())
 
-        buckets_df = buckets_df.loc[:, ["Right-U-Turn", "Left-U-Turn"]]
+        buckets_df = buckets_df.loc[
+            :,
+            [
+                # "Left",
+                # "Right",
+                # "Stationary",
+                # "Straight",
+                # "Straight-Left",
+                # "Straight-Right",
+                "Left-U-Turn",
+                "Right-U-Turn",
+            ],
+        ]
         sns.set_theme(style="whitegrid")
 
         # Convert buckets into a DataFrame suitable for plotting
@@ -3128,13 +3317,13 @@ class SimpleShell(cmd.Cmd):
             edgecolor="white",
             linewidth=3,
             figsize=(6, 8),
-            color={"Right-U-Turn": "pink", "Left-U-Turn": "grey"},
+            color={"Left-U-Turn": "pink", "Right-U-Turn": "grey"},
         ).set_xticklabels("")
 
         # Adding plot details
-        plt.title("Direction Counts in Trajectory Data")
-        plt.xlabel("Directions")
-        plt.ylabel("Counts")
+        plt.title("Bucket Counts in Trajectory Data")
+        plt.xlabel("Buckets")
+        # plt.ylabel("Counts")
 
         plt.savefig("output/training_data_stats_2.png")
         plt.close()

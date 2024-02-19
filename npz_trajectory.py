@@ -513,8 +513,8 @@ class NpzTrajectory:
     def plot_scenario(
         self,
         filename="output/3D_scenario_plot",
-        x_range=(-100, 100),
-        y_range=(-100, 100),
+        x_range=(-150, 150),
+        y_range=(-150, 150),
         prediction_subsampling_rate=8,
         prediction_horizon=80,
         plot_subsampling_rate=2,
@@ -622,15 +622,15 @@ class NpzTrajectory:
                 # print("Something to plot")
                 # print(_X[:, 13:16])
                 # print(_X[:, 13:16].shape)
-                plt.plot(
-                    _X[:, 0],
-                    _X[:, 1],
-                    0,
-                    c=np.random.rand(
-                        3,
-                    ),
-                )
-                # plt.plot(_X[:, 0], _X[:, 1], 0, color="black")
+                # plt.plot(
+                #     _X[:, 0],
+                #     _X[:, 1],
+                #     0,
+                #     c=np.random.rand(
+                #         3,
+                #     ),
+                # )
+                plt.plot(_X[:, 0], _X[:, 1], 0, color="black")
             elif _X[:, 16].sum() > 0:  # Bike lanes
                 plt.plot(_X[:, 0], _X[:, 1], 0, color="tab:red")
             elif _X[:, 18:26].sum() > 0:  # Road lines
