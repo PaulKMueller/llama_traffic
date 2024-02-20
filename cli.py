@@ -1414,6 +1414,72 @@ class SimpleShell(cmd.Cmd):
         plt.savefig("architecure_example_picture.png")
         plt.close()
 
+    def do_plot_compared_raw_coordinates_single(self, arg: str):
+        """Plots and saves a comparison of the coordinates before, during, and after their transformation to splined, rotated, ego trajectories.
+        It does so for the vehicle which's ID has been provided in the loaded scenario.
+
+        Args:
+            arg (str): The vehicle ID.
+        """
+
+        # Load config file
+        with open("config.yml", "r") as file:
+            config = yaml.safe_load(file)
+            output_folder = config["output_folder"]
+
+        # Checking if a scenario has been loaded already.
+        if not self.scenario_loaded():
+            return
+
+        # Check for empty arguments (no ID provided)
+        if arg == "":
+            print(
+                (
+                    "\nYou have provided no ID for the vehicle "
+                    "whose trajectory you want to get.\nPlease provide a path!\n"
+                )
+            )
+            return
+
+        vehicle_id = arg.split()[0]
+        trajectory = Trajectory(
+            self.loaded_scenario, vehicle_id
+        )  # Define Trajectory class as needed
+
+        # Set the style of the plot using Seaborn
+        sns.set_theme(style="whitegrid")
+
+        # Plot settings
+        plot_settings = {"markersize": 6, "linewidth": 2, "marker": "o"}
+
+        # Titles and filenames for the plots
+        plots_info = [
+            ("Original Coordinates", "original"),
+            ("Splined Coordinates", "splined"),
+            ("Ego Coordinates", "ego"),
+            ("Rotated Ego Coordinates", "rotated"),
+        ]
+
+        coordinates = [
+            trajectory.coordinates,
+            trajectory.splined_coordinates,
+            trajectory.ego_coordinates,
+            trajectory.rotated_coordinates,
+        ]
+
+        # Iterate over each type of coordinates to plot and save separately
+        for (title, filename_suffix), coord in zip(plots_info, coordinates):
+            fig, ax = plt.subplots(figsize=(6, 6))
+            ax.plot(coord["X"], coord["Y"], "o-", **plot_settings)
+            ax.set_title(title)
+            ax.set_xlabel("X Coordinate")
+            ax.set_ylabel("Y Coordinate")
+            plt.tight_layout()
+            plt.savefig(
+                f"{output_folder}{filename_suffix}_coordinates_for_{vehicle_id}.png"
+            )
+            plt.close(fig)  # Close the figure to free memory
+
     def do_plot_compared_raw_coordinates(self, arg: str):
         """Plots a comparison of the coordinates before, during and after their transformation to splined, rotated, ego trajectories.
         It does so for the vehicle which's ID has been provided in the loaded scenario.

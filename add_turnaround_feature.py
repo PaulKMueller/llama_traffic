@@ -17,7 +17,7 @@ data_keys = list_vehicle_files_absolute()
 for i in tqdm(range(len(data_keys))):
     key = data_keys[i]
     # data[key].append(has_parking_lot(NpzTrajectory(directory_path + key)))
-    output_data[key] = 1 if has_turnaround(NpzTrajectory(key)) else 0
+    output_data[key.split("/")[-1]] = 1 if has_turnaround(NpzTrajectory(key)) else 0
 
-with open("output/intersection_vehicle_a.json", "w") as output:
+with open("output/turnaround_vehicle_a.json", "w") as output:
     json.dump(output_data, output, indent=4)
