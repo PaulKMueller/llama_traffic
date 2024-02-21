@@ -513,12 +513,12 @@ class NpzTrajectory:
     def plot_scenario(
         self,
         filename="output/3D_scenario_plot",
-        x_range=(-150, 150),
-        y_range=(-150, 150),
+        x_range=(-100, 100),
+        y_range=(-100, 100),
         prediction_subsampling_rate=8,
         prediction_horizon=80,
         plot_subsampling_rate=2,
-        dpi=800,
+        dpi=1000,
         is_available=None,
         gt_marginal=None,
     ):
@@ -637,8 +637,8 @@ class NpzTrajectory:
                 plt.plot(_X[:, 0], _X[:, 1], 0, "--", color="grey")
             elif _X[:, 26:29].sum() > 0:  # Road edges
                 plt.plot(_X[:, 0], _X[:, 1], 0, linewidth=2, color="grey")
-            elif _X[:, 29].sum() > 0:  # Test
-                plt.plot(_X[:, 0], _X[:, 1], 0, color="orange", linewidth=1)
+            # elif _X[:, 29].sum() > 0:  # Test
+            #     plt.plot(_X[:, 0], _X[:, 1], 0, color="orange", linewidth=1)
             elif _X[:, 30].sum() > 0:  # Stop Signs
                 # print(_X[:, 30])
                 x = _X[:, 0]
@@ -679,42 +679,42 @@ class NpzTrajectory:
                     linewidth=2,
                 )
 
-            elif _X[:, 32].sum() > 0:  # Speedbumps
-                x = _X[:, 0]
-                y = _X[:, 1]
-                z = 0
-                plt.plot(x, y, 0, color="green", marker="o")
-
-                line_length = 2  # Length of the entire speed bump line
-                stripe_length = 0.2  # Length of each stripe
-                stripe_width = 1  # Width of the stripes, making it look more line-like
-
-                for i in range(len(x)):
-                    start_x = x[i] - line_length / 2
-                    end_x = x[i] + line_length / 2
-                    current_x = start_x
-
-                    while current_x < end_x:
-                        # Alternating colors for stripes
-                        color = (
-                            "yellow"
-                            if (current_x - start_x) // stripe_length % 2 == 0
-                            else "black"
-                        )
-                        # Plot each stripe as a thin rectangle (or extended line)
-                        ax.plot(
-                            [current_x, current_x + stripe_length],
-                            [y[i], y[i]],
-                            [z, z],
-                            color=color,
-                            linewidth=stripe_width,
-                        )
-                        current_x += stripe_length
-            # elif _X[:, 33].sum() > 0:  # Driveways
+            # elif _X[:, 32].sum() > 0:  # Speedbumps
             #     x = _X[:, 0]
             #     y = _X[:, 1]
             #     z = 0
-            #     plt.plot(x, y, 0, linewidth=2, color="orange")
+            #     plt.plot(x, y, 0, color="green", marker="o")
+
+            #     line_length = 2  # Length of the entire speed bump line
+            #     stripe_length = 0.2  # Length of each stripe
+            #     stripe_width = 1  # Width of the stripes, making it look more line-like
+
+            #     for i in range(len(x)):
+            #         start_x = x[i] - line_length / 2
+            #         end_x = x[i] + line_length / 2
+            #         current_x = start_x
+
+            #         while current_x < end_x:
+            #             # Alternating colors for stripes
+            #             color = (
+            #                 "yellow"
+            #                 if (current_x - start_x) // stripe_length % 2 == 0
+            #                 else "black"
+            #             )
+            #             # Plot each stripe as a thin rectangle (or extended line)
+            #             ax.plot(
+            #                 [current_x, current_x + stripe_length],
+            #                 [y[i], y[i]],
+            #                 [z, z],
+            #                 color=color,
+            #                 linewidth=stripe_width,
+            #             )
+            #             current_x += stripe_length
+            elif _X[:, 32].sum() > 0:  # Driveways
+                x = _X[:, 0]
+                y = _X[:, 1]
+                z = 0
+                plt.plot(x, y, 0, linewidth=2, color="orange")
 
         ax.set_zlim(bottom=0, top=5)
         ax.set_aspect("equal")
@@ -800,12 +800,12 @@ class NpzTrajectory:
     def plot_trajectory(
         self,
         filename="output/3D_trajectory_plot",
-        x_range=(-100, 100),
-        y_range=(-100, 100),
+        x_range=(-50, 50),
+        y_range=(-50, 50),
         prediction_subsampling_rate=8,
         prediction_horizon=80,
         plot_subsampling_rate=2,
-        dpi=800,
+        dpi=1000,
         is_available=None,
         gt_marginal=None,
     ):
