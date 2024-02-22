@@ -513,8 +513,8 @@ class NpzTrajectory:
     def plot_scenario(
         self,
         filename="output/3D_scenario_plot",
-        x_range=(-100, 100),
-        y_range=(-100, 100),
+        x_range=(-30, 30),
+        y_range=(-30, 30),
         prediction_subsampling_rate=8,
         prediction_horizon=80,
         plot_subsampling_rate=2,
@@ -611,7 +611,7 @@ class NpzTrajectory:
                 bbox = self.rotate_bbox_zxis(pedestrian, _X[-1, 4])
                 bbox = self.shift_cuboid(_X[-1, 0], _X[-1, 1], bbox)
                 self.add_cube(bbox, ax, color="tab:orange", alpha=0.5)
-            elif _X[:, 10].sum() > 0:
+            elif _X[:, 10].sum() > 0:  # Bike
                 if _X[-1, 0] == 0 and _X[-1, 1] == 0:
                     plt.plot(_X[:, 0], _X[:, 1], 0, linewidth=4, color="green")
                     plt.plot(_X[-1, 0], _X[-1, 1], 0, "o", markersize=10, color="green")
@@ -639,45 +639,46 @@ class NpzTrajectory:
                 plt.plot(_X[:, 0], _X[:, 1], 0, linewidth=2, color="grey")
             # elif _X[:, 29].sum() > 0:  # Test
             #     plt.plot(_X[:, 0], _X[:, 1], 0, color="orange", linewidth=1)
-            elif _X[:, 30].sum() > 0:  # Stop Signs
-                # print(_X[:, 30])
-                x = _X[:, 0]
-                y = _X[:, 1]
-                z = 0
-                plt.plot(
-                    x,
-                    y,
-                    0,
-                    color="red",
-                    marker="8",
-                    markeredgewidth=0.5,
-                    markeredgecolor="black",
-                )
-                for i in range(len(x)):
-                    ax.text(
-                        x[i],
-                        y[i],
-                        z,
-                        "STOP",
-                        color="white",
-                        ha="center",
-                        va="center",
-                        fontsize=1.8,
-                        weight="bold",
-                    )  # Adds "Stop" text
-            elif _X[:, 31].sum() > 0:  # Crosswalks
-                x = _X[:, 0]
-                y = _X[:, 1]
-                z = 0
-                plt.plot(
-                    x,
-                    y,
-                    0,
-                    linestyle="dashed",
-                    dashes=(0.5, 0.2),
-                    color="black",
-                    linewidth=2,
-                )
+            # elif _X[:, 30].sum() > 0:  # Stop Signs
+            # # print(_X[:, 30])
+            # x = _X[:, 0]
+            # y = _X[:, 1]
+            # z = 0
+            # plt.plot(
+            #     x,
+            #     y,
+            #     0,
+            #     color="red",
+            #     marker="8",
+            #     markersize=22,
+            #     markeredgewidth=1,
+            #     markeredgecolor="black",
+            # )
+            # for i in range(len(x)):
+            #     ax.text(
+            #         x[i],
+            #         y[i],
+            #         z,
+            #         "STOP",
+            #         color="white",
+            #         ha="center",
+            #         va="center",
+            #         fontsize=6,
+            #         weight="bold",
+            #     )  # Adds "Stop" text
+            # elif _X[:, 31].sum() > 0:  # Crosswalks
+            #     x = _X[:, 0]
+            #     y = _X[:, 1]
+            #     z = 0
+            #     plt.plot(
+            #         x,
+            #         y,
+            #         0,
+            #         linestyle="dashed",
+            #         dashes=(0.2, 0.2),
+            #         color="black",
+            #         linewidth=15,
+            #     )
 
             # elif _X[:, 32].sum() > 0:  # Speedbumps
             #     x = _X[:, 0]
@@ -710,11 +711,11 @@ class NpzTrajectory:
             #                 linewidth=stripe_width,
             #             )
             #             current_x += stripe_length
-            elif _X[:, 32].sum() > 0:  # Driveways
-                x = _X[:, 0]
-                y = _X[:, 1]
-                z = 0
-                plt.plot(x, y, 0, linewidth=2, color="orange")
+            # elif _X[:, 32].sum() > 0:  # Driveways
+            #     x = _X[:, 0]
+            #     y = _X[:, 1]
+            #     z = 0
+            #     plt.plot(x, y, 0, linewidth=10, alpha=0.7, color="orange")
 
         ax.set_zlim(bottom=0, top=5)
         ax.set_aspect("equal")

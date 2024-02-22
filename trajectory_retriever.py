@@ -1,3 +1,4 @@
+import time
 from tqdm import tqdm
 from uae_explore import encode_with_uae
 import json
@@ -15,6 +16,7 @@ encoder_data_keys = list(encoder_output_data.keys())
 max_sim = 0
 best_fit = ""
 
+start = time.time()
 for i in tqdm(range(len(encoder_data_keys))):
     key = encoder_data_keys[i]
     sim = cosine_sim(
@@ -25,5 +27,8 @@ for i in tqdm(range(len(encoder_data_keys))):
         max_sim = sim
         best_fit = encoder_data_keys[i]
 
+end = time.time()
 print(best_fit)
 print(max_sim)
+
+print(end - start)

@@ -1,36 +1,27 @@
-import numpy as np
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-from sklearn.decomposition import PCA
-from sklearn.preprocessing import StandardScaler
 import json
+import numpy as np
 
-# Sample data: Replace this with your actual dataset
-# Assuming each row is a sample and each column is a feature
+# Load the data from JSON file
+with open("datasets/encoder_output_vehicle_a_mse.json", "r") as f:
+    data = json.load(f)
 
-# It's often a good idea to scale the data before performing PCA
-with open("datasets/encoder_output_vehicle_a_mse.json") as data:
-    data = json.load(data).values()
+# Assuming the data is a list of lists
+data_points = list(data.values())
+data_matrix = np.array(data)
 
-# Initialize PCA, setting the number of components to 3
-pca = PCA(n_components=3)
+from sklearn.decomposition import PCA
 
-# Fit PCA on the scaled dataset and transform the data
-X_pca = pca.fit_transform(data)
+# Initialize PCA, we'll reduce to 2 dimensions for easy visualization
+pca = PCA(n_components=2)
 
-# Plotting the 3D points
-fig = plt.figure()
-ax = fig.add_subplot(111, projection="3d")
+# Apply PCA to the data
+reduced_data = pca.fit(data_matrix)
 
-# Extracting the three dimensions
-x, y, z = X_pca[:, 0], X_pca[:, 1], X_pca[:, 2]
+import matplotlib.pyplot as plt
 
-# Scatter plot
-ax.scatter(x, y, z, c="r", marker="o")
-
-# Adding labels for clarity
-ax.set_xlabel("PC1")
-ax.set_ylabel("PC2")
-ax.set_zlabel("PC3")
-
-plt.savefig("output/pca_test.png")
+# Plot the reduced data
+plt.scatter(reduced_data[:, 0], reduced_data[:, 1])
+plt.xlabel("Principal Component 1")
+plt.ylabel("Principal Component 2")
+plt.title("PCA of High-Dimensional Data")
+plt.savefig("output/pca.png")
