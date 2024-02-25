@@ -13,11 +13,11 @@ output_data = {}
 # with open("output/labeled_scenarios_vehicle_a.json") as file:
 #     data = json.load(file)
 #     data_keys = list(data.keys())
-data_keys = list_vehicle_files_absolute()[:50000]
+data_keys = list_vehicle_files_absolute()[350000:468108]
 for i in tqdm(range(len(data_keys))):
     key = data_keys[i]
     # data[key].append(has_parking_lot(NpzTrajectory(directory_path + key)))
     output_data[key] = 1 if has_intersection(NpzTrajectory(key)) else 0
 
-with open("output/intersection_vehicle_a_1.json", "w") as output:
+with open("output/intersection_vehicle_a_6.json", "w") as output:
     json.dump(output_data, output, indent=4)

@@ -514,7 +514,7 @@ class NpzTrajectory:
         self,
         filename="output/3D_scenario_plot",
         x_range=(-30, 30),
-        y_range=(-30, 30),
+        y_range=(-100, 40),
         prediction_subsampling_rate=8,
         prediction_horizon=80,
         plot_subsampling_rate=2,
