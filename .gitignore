@@ -173,6 +173,8 @@ Straight-Right/
 
 lightning_logs/
 
+pca_scenario_frames_cluster/
+
 # Datasets
 datasets/
 
