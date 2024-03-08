@@ -14,44 +14,54 @@ class TrafficLane:
             [np.linalg.norm(point - coordinate) for coordinate in self.coordinates]
         )
 
+    # def get_delta_angles(self):
+    #     """Returns the angle between each segment in the trajectory.
+    #     Args:
+    #         coordinates (np.array): A numpy array containing the coordinates
+    #                                     of the vehicle trajectory.
+    #     """
+    #     delta_angles = []
+
+    #     for i in range(1, len(self.coordinates) - 1):
+    #         # Calculate the direction vector of the current segment
+    #         current_vector = np.array(
+    #             (
+    #                 self.coordinates[i + 1][0] - self.coordinates[i][0],
+    #                 self.coordinates[i + 1][1] - self.coordinates[i][1],
+    #             )
+    #         )
+
+    #         # Calculate the direction vector of the previous segment
+    #         previous_vector = np.array(
+    #             (
+    #                 self.coordinates[i][0] - self.coordinates[i - 1][0],
+    #                 self.coordinates[i][1] - self.coordinates[i - 1][1],
+    #             )
+    #         )
+
+    #         # Compute the angle between the current and previous direction vectors
+    #         angle = self.angle_between(current_vector, previous_vector)
+
+    #         direction = self.get_gross_direction_for_three_points(
+    #             self.coordinates[i - 1], self.coordinates[i], self.coordinates[i + 1]
+    #         )
+
+    #         if direction == "Right":
+    #             angle = -angle
+
+    #         delta_angles.append(angle)
+
+    #     return delta_angles
+
     def get_delta_angles(self):
-        """Returns the angle between each segment in the trajectory.
-        Args:
-            coordinates (np.array): A numpy array containing the coordinates
-                                        of the vehicle trajectory.
-        """
-        delta_angles = []
+        # Vectorized implementation of delta angles calculation
+        deltas = np.diff(self.coordinates, axis=0)
+        angles = np.arctan2(deltas[:, 1], deltas[:, 0])
+        delta_angles = np.diff(angles)
+        delta_angles_degrees = np.degrees(delta_angles)
+        filtered_angles = delta_angles_degrees[np.abs(delta_angles_degrees) <= 20]
 
-        for i in range(1, len(self.coordinates) - 1):
-            # Calculate the direction vector of the current segment
-            current_vector = np.array(
-                (
-                    self.coordinates[i + 1][0] - self.coordinates[i][0],
-                    self.coordinates[i + 1][1] - self.coordinates[i][1],
-                )
-            )
-
-            # Calculate the direction vector of the previous segment
-            previous_vector = np.array(
-                (
-                    self.coordinates[i][0] - self.coordinates[i - 1][0],
-                    self.coordinates[i][1] - self.coordinates[i - 1][1],
-                )
-            )
-
-            # Compute the angle between the current and previous direction vectors
-            angle = self.angle_between(current_vector, previous_vector)
-
-            direction = self.get_gross_direction_for_three_points(
-                self.coordinates[i - 1], self.coordinates[i], self.coordinates[i + 1]
-            )
-
-            if direction == "Right":
-                angle = -angle
-
-            delta_angles.append(angle)
-
-        return delta_angles
+        return filtered_angles
 
     def get_cumulative_delta_angle(self):
         return sum(self.get_delta_angles())

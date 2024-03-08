@@ -99,7 +99,7 @@ pca = PCA(n_components=3)
 #         raise ValueError("Input number must be between 0 and 7.")
 
 
-data_points = np.load("datasets/scenario_features_embeddings.npy")
+data_points = np.load("output/scenario_features_embeddings.npy")
 
 # # Assuming the data is a list of lists
 # fig = plt.figure(figsize=(12, 12))
@@ -192,8 +192,8 @@ def get_matplotlib_color(number):
 
 
 # Assuming `number_list` is your list of numbers corresponding to the points
-number_list = np.load("datasets/scenario_features_embeddings.npy")
-print(number_list[:5])
+# number_list = np.load("datasets/raw_direction_labels.npy")
+# print(number_list[:5])
 # number_list = [your list of numbers here]  # Replace this with your actual list of numbers
 
 # Generate a list of colors for each point
@@ -204,7 +204,6 @@ fig = plt.figure(figsize=(12, 12))
 ax = fig.add_subplot(projection="3d")
 
 # Step 3: Plot using the generated colors
-# c = point_colors
 scatter = ax.scatter(reduced_data[:, 0], reduced_data[:, 1], reduced_data[:, 2])
 
 # Set labels and title (optional, for better understanding of the plot)
@@ -221,7 +220,7 @@ legend_handles = [
 ]
 plt.legend(handles=legend_handles, title="Trajectory Bucket")
 
-frames_dir = "pca_frames_cluster"
+frames_dir = "pca_scenario_frames_cluster"
 os.makedirs(frames_dir, exist_ok=True)
 
 # Save each frame

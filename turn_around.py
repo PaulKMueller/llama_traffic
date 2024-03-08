@@ -2,6 +2,9 @@ from npz_trajectory import NpzTrajectory
 import numpy as np
 from traffic_lane import TrafficLane
 from npz_utils import get_random_npz_trajectory
+from numba import jit
+
+from joblib import Parallel, delayed
 
 
 # npz_trajectory_path = (
@@ -27,32 +30,28 @@ def has_turnaround(npz_trajectory: NpzTrajectory):
     V = npz_trajectory.vector_data
     X, idx = V[:, :44], V[:, 44].flatten()
 
-    lanes = []
+    lanes = [
+        TrafficLane(X[idx == i][:, 0], X[idx == i][:, 1])
+        for i in np.unique(idx)
+        if X[idx == i][:, 13:16].sum() > 0
+    ]
 
-    for i in np.unique(idx):
-        _X = X[idx == i]
-        if _X[:, 13:16].sum() > 0:
-            # print(i)
-            lane = TrafficLane(_X[:, 0], _X[:, 1])
-            lanes.append(lane)
-            # print(_X[:, 0])
-            # print(_X[:, 1])
-
-    # print(len(statics))
-    # rel_lane_dists = []
     width = npz_trajectory.get_scenario_width()
 
     for lane in lanes:
         angles = lane.get_delta_angles()
-        pos_angles = filter(lambda x: x > 0, angles)
-        neg_angles = filter(lambda x: x < 0, angles)
 
-        pos_angle_sum = abs(sum(pos_angles))
-        neg_angle_sum = abs(sum(neg_angles))
+        pos_angle_sum = 0.0
+        neg_angle_sum = 0.0
+        for angle in angles:
+            if angle > 0:
+                pos_angle_sum += angle
+            elif angle < 0:
+                neg_angle_sum += angle
 
         if pos_angle_sum > 190 or neg_angle_sum > 190:
-            # print(pos_angle_sum)
-            # print(neg_angle_sum)
+            print(pos_angle_sum)
+            print(neg_angle_sum)
             # cum_angle = lane.get_cumulative_delta_angle()
             # print(cum_angle)
 
@@ -64,6 +63,42 @@ def has_turnaround(npz_trajectory: NpzTrajectory):
                 return True
 
     return False
+
+
+@jit(nopython=True)
+def calculate_turnaround(angles, threshold, distance):
+    pos_angle_sum = 0.0
+    neg_angle_sum = 0.0
+    for angle in angles:
+        if angle > 0:
+            pos_angle_sum += angle
+        elif angle < 0:
+            neg_angle_sum += angle
+
+    return (
+        abs(pos_angle_sum) > threshold or abs(neg_angle_sum) > threshold
+    ) and distance
+
+
+def process_lane(lane, width):
+    angles = lane.get_delta_angles()
+    distance = np.linalg.norm(lane.coordinates[0] - lane.coordinates[-1]) / width < 0.05
+    return calculate_turnaround(angles, 190, distance)
+
+
+def has_turnaround_fast(npz_trajectory: NpzTrajectory):
+    V = npz_trajectory.vector_data
+    X, idx = V[:, :44], V[:, 44].flatten()
+    width = npz_trajectory.get_scenario_width()
+
+    lanes = [
+        TrafficLane(X[idx == i][:, 0], X[idx == i][:, 1])
+        for i in np.unique(idx)
+        if X[idx == i][:, 13:16].sum() > 0
+    ]
+
+    results = Parallel(n_jobs=-1)(delayed(process_lane)(lane, width) for lane in lanes)
+    return any(results)
 
 
 # i = 0
@@ -80,9 +115,9 @@ def has_turnaround(npz_trajectory: NpzTrajectory):
 #     else:
 #         incorrect += 1
 #     print(has_turnaround(rnd_traj))
-#     print(user_input)
+#     # print(user_input)
 
-#     print(str(has_turnaround(rnd_traj)) == user_input)
+#     # print(str(has_turnaround(rnd_traj)) == user_input)
 
 #     print(incorrect)
 #     print(correct)

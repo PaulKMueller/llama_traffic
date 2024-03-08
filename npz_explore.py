@@ -3,9 +3,10 @@ import numpy as np
 import os
 from tqdm import tqdm
 from npz_utils import list_vehicle_files_absolute
+import matplotlib.pyplot as plt
+import random
 
-
-path = list_vehicle_files_absolute()[0]
+path = list_vehicle_files_absolute()[random.randint(0, 400000)]
 
 
 # npz_trajectory = NpzTrajectory(
@@ -182,15 +183,26 @@ print(keys)
 #     print(scenario[key].shape)
 #     print("\n")
 
-vectors = scenario["raster"]
+vectors = scenario["raster"][:, :, :3] / 255
+plt.imshow(vectors)
 
-np.set_printoptions(threshold=sys.maxsize)
-for i in vectors:
-    print(i)
-    input("continue?")
-print(vectors.shape)
-V = vectors
-X, idx = V[:, :44], V[:, 44].flatten()
+
+# for i in range(224):
+#     for j in range(224):
+#         other_channels = vectors[i][j][3:] / 255
+#         if other_channels.sum() > 0:
+#             print(other_channels)
+
+
+plt.savefig("output/raster.png")
+
+# np.set_printoptions(threshold=sys.maxsize)
+# for i in vectors:
+#     # print(i)
+#     input("continue?")
+# # print(vectors.shape)
+# V = vectors
+# X, idx = V[:, :44], V[:, 44].flatten()
 
 # for i in np.unique(idx):
 #     _X = X[(idx == i)]

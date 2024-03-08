@@ -14,6 +14,21 @@ SCENARIO_LABEL_LIST = [
     "driveway",
 ]
 
+SCENARIO_FEATURES = [
+    "vehicle",
+    "pedestrian",
+    "cyclist",
+    "freeway",
+    "surface_street",
+    "bike_lane",
+    "stop_sign",
+    "crosswalk",
+    "driveway",
+    "parking_lot",
+    "turnaround",
+    "intersection",
+]
+
 
 def list_vehicle_files_relative(
     directory="/storage_local/fzi_datasets_tmp/waymo_open_motion_dataset/unzipped/train-2e6/",
@@ -80,7 +95,7 @@ def one_hot_encode_trajectory(input_string, vocabulary):
     return one_hot_encoded_vector
 
 
-def decode_one_hot_vector(one_hot_encoded_vector, vocabulary):
+def decode_one_hot_vector(one_hot_encoded_vector, vocabulary=SCENARIO_FEATURES):
     # Initialize an empty list to hold words that are present (indicated by a 1 in the vector)
     words_present = []
 
