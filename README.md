@@ -8,7 +8,7 @@ The generation of realistic high quality trajectories is a major bottleneck in t
 
   
 
-![Model arch](.res/arch.png)
+![Model arch](.res/Retrieval_Arch.png)
 
   
 

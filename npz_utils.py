@@ -77,7 +77,7 @@ def list_vehicle_files_absolute(
     return vehicle_files
 
 
-def one_hot_encode_trajectory(input_string, vocabulary):
+def one_hot_encode_trajectory(input_string, vocabulary=SCENARIO_FEATURES):
     # Split the input string into words
     words = input_string.split(" ")
 

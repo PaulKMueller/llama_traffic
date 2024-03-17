@@ -1,0 +1,177 @@
+import json
+from tqdm import tqdm
+from uae_explore import encode_with_uae
+
+scenario_synonyms = {
+    "vehicle": [
+        "Automobile",
+        "Car",
+        "Motor vehicle",
+        "Conveyance",
+        "Transport",
+        "Machine",
+        "Motorcar",
+        "Auto",
+        "Truck",
+        "Van",
+    ],
+    "pedestrian": [
+        "Walker",
+        "Foot traveler",
+        "Stroller",
+        "Hiker",
+        "Jogger",
+        "Passerby",
+        "Wayfarer",
+        "Ramblers",
+        "Perambulator",
+        "Pedestrian traffic",
+    ],
+    "cyclist": [
+        "Biker",
+        "Bicycle rider",
+        "Bike enthusiast",
+        "Cyclist",
+        "Mountain biker",
+        "Road cyclist",
+        "Bicyclist",
+        "Cycle rider",
+        "Velocipedist",
+        "BMX rider",
+    ],
+    "freeway": [
+        "Expressway",
+        "Highway",
+        "Motorway",
+        "Interstate",
+        "Turnpike",
+        "Tollway",
+        "Superhighway",
+        "Thruway",
+        "Autobahn",
+        "Dual carriageway",
+    ],
+    "surface_street": [
+        "Road",
+        "City street",
+        "Urban roadway",
+        "Town road",
+        "Local street",
+        "Main street",
+        "Secondary road",
+        "Residential street",
+        "Public road",
+        "Thoroughfare",
+    ],
+    "bike_lane": [
+        "Bicycle path",
+        "Cycling lane",
+        "Bike path",
+        "Bicycle track",
+        "Cycle path",
+        "Bike trail",
+        "Cycling track",
+        "Bicycle lane",
+        "Bike route",
+        "Cycling route",
+    ],
+    "stop_sign": [
+        "Stop signal",
+        "Traffic stop sign",
+        "Road stop indicator",
+        "STOP board",
+        "Halt sign",
+        "Stop traffic sign",
+        "Roadblock sign",
+        "Intersection control sign",
+        "Mandatory stop sign",
+        "Octagonal traffic sign",
+    ],
+    "crosswalk": [
+        "Pedestrian crossing",
+        "Zebra crossing",
+        "Walkway",
+        "Crossing path",
+        "Pedestrian path",
+        "Cross path",
+        "Footpath",
+        "Pedestrian walkway",
+        "Street crossing",
+        "Pedestrian crossway",
+    ],
+    "speed_bump": [
+        "Speed hump",
+        "Traffic bump",
+        "Road hump",
+        "Speed breaker",
+        "Traffic calming measure",
+        "Speed bar",
+        "Rubber bump",
+        "Sleeping policeman",
+        "Traffic hump",
+        "Road bump",
+    ],
+    "driveway": [
+        "Drive",
+        "Private road",
+        "Carriageway",
+        "Access road",
+        "Residential drive",
+        "Entryway",
+        "Service road",
+        "Approach road",
+        "Front drive",
+        "Pathway",
+    ],
+    "parking_lot": [
+        "Car park",
+        "Parking area",
+        "Parking space",
+        "Vehicle parking",
+        "Auto lot",
+        "Parking garage",
+        "Parking ground",
+        "Motor park",
+        "Parkade",
+        "Parking deck",
+    ],
+    "intersection": [
+        "Crossroads",
+        "Junction",
+        "Road junction",
+        "Traffic intersection",
+        "Crossway",
+        "Four-way",
+        "Roundabout",
+        "T-intersection",
+        "Road crossing",
+        "Interchange",
+    ],
+    "turnaround": [
+        "U-turn spot",
+        "Turnabout area",
+        "Revolving area",
+        "Swing area",
+        "Turning point",
+        "Circular drive",
+        "Loop area",
+        "Turnback area",
+        "Rotating space",
+        "180-degree turn area",
+    ],
+}
+
+synonym_keys = list(scenario_synonyms.keys())
+
+output = {}
+
+for i in tqdm(range(len(synonym_keys))):
+    key = synonym_keys[i]
+    for item in scenario_synonyms[key]:
+        add = encode_with_uae(item)[0].tolist()
+        # print(type(add))
+        print(add)
+        output[item] = add
+
+with open("datasets/scenario_synonym_embedding_cache.json", "w") as output_file:
+    json.dump(output, output_file, indent=4)

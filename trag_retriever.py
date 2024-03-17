@@ -246,13 +246,21 @@ direction_index_mapping = {
     "Left-U-Turn": 7,
 }
 
+accuracies = {}
+output = {}
 keys = list(direction_index_mapping.keys())
 for key in keys:
+    accuracies = []
     bucket_number = direction_index_mapping[key]
     sum = 0
     for entry in results.items():
         synonym, accuracy = entry
         if mapping[synonym] == bucket_number:
+            accuracies.append(accuracy)
+            output[key] = accuracies
             sum += accuracy
+    mean = np.array(output[key]).mean()
+    std_dev = np.array(output[key]).std()
     print(key)
-    print(sum / 10)
+    print(mean)
+    print(std_dev)

@@ -28,8 +28,25 @@ import json
 #     item.append(turnaround_data[key])
 #     output[key] = item
 
+features = [
+    "vehicle",
+    "pedestrian",
+    "cyclist",
+    "freeway",
+    "surface_street",
+    "bike_lane",
+    "stop_sign",
+    "crosswalk",
+    "driveway",
+    "parking_lot",
+    "turnaround",
+    "intersection",
+]
+
 with open("output/scenario_features.json") as data_file:
     data = np.array(list(json.load(data_file).values()))
     print(data.shape)
     np.set_printoptions(threshold=sys.maxsize)
-    print(data.sum(axis=0) / 468108)
+    counts = data.sum(axis=0)
+
+print(dict(zip(features, counts)))

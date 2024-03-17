@@ -79,7 +79,7 @@ def get_uae_encoding(input_text: str) -> dict:
     return output_dict
 
 
-def encode_with_uae(input_text: str) -> dict:
+def encode_with_uae(input_text: str) -> np.array:
     angle = AnglE.from_pretrained(
         "WhereIsAI/UAE-Large-V1", pooling_strategy="cls"
     ).cuda()
